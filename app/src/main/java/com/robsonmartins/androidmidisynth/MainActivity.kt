@@ -61,11 +61,19 @@ class MainViewModel : ViewModel() {
  */
 class MainActivity : AppCompatActivity() {
 
-    companion object {
+/*    companion object {
         /** @brief Initialize: Load the Native Library. */
         init { System.loadLibrary("synth-lib") }
     }
-
+ */
+    companion object {
+        init {
+            System.loadLibrary("c++_shared")
+            System.loadLibrary("oboe")
+            System.loadLibrary("fluidsynth")
+            System.loadLibrary("synth-lib")
+        }
+    }
     /* @brief View Model instance. */
     private val viewModel: MainViewModel by viewModels()
     /* @brief SynthManager instance. */

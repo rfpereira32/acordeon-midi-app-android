@@ -33,11 +33,12 @@
 
 #include "MidiSpec.h"
 #include "SynthManager.h"
+#include <android/log.h>
 
 /* @brief Default sample rate of the FluidSynth, in kHz. */
-static const int kFluidSynthSampleRate = 44100;
+static const int kFluidSynthSampleRate = 48000;
 /* @brief Default latency of the FluidSynth, in ms. */
-static const int kFluidSynthLatency = 10;
+static const int kFluidSynthLatency = 5;
 
 /* @brief Calculate the buffer size based in latency value (ms). */
 #define LATENCY_TO_BUFFER_SIZE(x) (kFluidSynthSampleRate * (x) / 1000.0)
@@ -49,6 +50,10 @@ SynthManager* SynthManager::instance = nullptr;
 SynthManager::SynthManager(): soundfontId(-1) {
     // setup synthesizer
     settings = new_fluid_settings();
+//    fluid_settings_setstr(settings, "audio.driver", "opensles");
+    fluid_settings_setstr(settings, "audio.driver", "oboe");
+    fluid_settings_setint(settings, "audio.realtime-prio", 99);
+    fluid_settings_setint(settings, "audio.periods", 2);
     if (settings == nullptr) return;
     fluid_settings_setint(settings, "synth.cpu-cores", 4);
     fluid_settings_setnum(settings, "synth.gain", 0.6);
@@ -62,10 +67,17 @@ SynthManager::SynthManager(): soundfontId(-1) {
         return;
     }
     driver = new_fluid_audio_driver(settings, synth);
+//    if (driver == nullptr) {
+//        delete_fluid_synth(synth);
+//        delete_fluid_settings(settings);
+//        return;
+//    }
     if (driver == nullptr) {
-        delete_fluid_synth(synth);
-        delete_fluid_settings(settings);
-        return;
+        __android_log_print(
+                ANDROID_LOG_ERROR,
+                "FluidSynth",
+                "Audio driver creation failed"
+        );
     }
 }
 

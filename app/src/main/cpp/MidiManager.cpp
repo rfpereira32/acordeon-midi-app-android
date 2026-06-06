@@ -97,8 +97,8 @@ void MidiManager::parseMidiData(const uint8_t *data, size_t numBytes) {
     std::ostringstream oss;
     switch ((status & kMIDISysCmdChan) >> 4) {
         case kMIDIChanCmd_NoteOff:
-            oss.clear(); oss << "Note OFF: " << (int)note;
-            sendToCallback(oss);
+ //           oss.clear(); oss << "Note OFF: " << (int)note;
+ //           sendToCallback(oss);
             if (!sustain) {
                 synthManager->noteOff(note);
                 sustainNotes.erase(note);
@@ -106,8 +106,8 @@ void MidiManager::parseMidiData(const uint8_t *data, size_t numBytes) {
             playNotes.erase(note);
             break;
         case kMIDIChanCmd_NoteOn:
-            oss.clear(); oss << "Note ON: " << (int)note << " vel: " << (int)velocity;
-            sendToCallback(oss);
+//            oss.clear(); oss << "Note ON: " << (int)note << " vel: " << (int)velocity;
+//            sendToCallback(oss);
             if (sustain) sustainNotes.insert(note);
             playNotes.insert(note);
             synthManager->noteOn(note, velocity);

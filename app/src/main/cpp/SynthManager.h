@@ -32,6 +32,9 @@
 #define ANDROID_MIDI_SYNTH_SYNTHMANAGER_H
 
 #include <fluidsynth.h>
+#include <fluidsynth/types.h>
+#include <fluidsynth/settings.h>
+#include <fluidsynth/synth.h>
 
 // -----------------------------------------------------------------------------------------------
 

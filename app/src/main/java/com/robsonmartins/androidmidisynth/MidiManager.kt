@@ -54,7 +54,14 @@ class MidiManager(context: Context,
     fun start() {
         // scan MIDI devices
         val deviceInfos = midiManager.devices
-        for (deviceInfo in deviceInfos)  { openMidiDevice(deviceInfo) }
+        for (deviceInfo in deviceInfos) {
+
+            val name = deviceInfo.properties.getString("name")
+
+            if (name == "ACORDEON MIDI MICHAEL") {
+                openMidiDevice(deviceInfo)
+            }
+        }
         // register addDevice and removeDevice listeners
         midiManager.registerDeviceCallback(
             object : MidiManager.DeviceCallback() {
@@ -101,7 +108,7 @@ class MidiManager(context: Context,
      * @param message Received message.
      */
     private fun onNativeMessageReceive(message: ByteArray) {
-        onMidiMessageReceived(String(message).trim())
+//        onMidiMessageReceived(String(message).trim())
     }
 
     /*

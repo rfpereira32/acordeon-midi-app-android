@@ -24,65 +24,36 @@ cmake_minimum_required(VERSION 3.4.1)
 project(android-midi-synth)
 
 # Where the fluidsynth library is located.
-set(fluidsynth_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fluidsynth)
+set(fluidsynth_HEADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fluidsynth)
+set(fluidsynth_LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 # fluidsynth lib binaries
 add_library(libc++_shared SHARED IMPORTED)
-set_target_properties(libc++_shared PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libc++_shared.so)
-
-add_library(libFLAC SHARED IMPORTED)
-set_target_properties(libFLAC PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libFLAC.so)
+set_target_properties(libc++_shared PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/libc++_shared.so)
 
 add_library(libfluidsynth SHARED IMPORTED)
-set_target_properties(libfluidsynth PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libfluidsynth.so)
-
-add_library(libfluidsynth-assetloader SHARED IMPORTED)
-set_target_properties(libfluidsynth-assetloader PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libfluidsynth-assetloader.so)
+set_target_properties(libfluidsynth PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/libfluidsynth.so)
 
 add_library(libgio-2.0 SHARED IMPORTED)
-set_target_properties(libgio-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libgio-2.0.so)
+set_target_properties(libgio-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/libgio-2.0.so)
 
 add_library(libglib-2.0 SHARED IMPORTED)
-set_target_properties(libglib-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libglib-2.0.so)
+set_target_properties(libglib-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/libglib-2.0.so)
 
 add_library(libgmodule-2.0 SHARED IMPORTED)
-set_target_properties(libgmodule-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libgmodule-2.0.so)
+set_target_properties(libgmodule-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/libgmodule-2.0.so)
 
 add_library(libgobject-2.0 SHARED IMPORTED)
-set_target_properties(libgobject-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libgobject-2.0.so)
+set_target_properties(libgobject-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/libgobject-2.0.so)
 
 add_library(libgthread-2.0 SHARED IMPORTED)
-set_target_properties(libgthread-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libgthread-2.0.so)
-
-add_library(libinstpatch-1.0 SHARED IMPORTED)
-set_target_properties(libinstpatch-1.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libinstpatch-1.0.so)
+set_target_properties(libgthread-2.0 PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/libgthread-2.0.so)
 
 add_library(liboboe SHARED IMPORTED)
-set_target_properties(liboboe PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/liboboe.so)
+set_target_properties(liboboe PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/liboboe.so)
 
-add_library(libogg SHARED IMPORTED)
-set_target_properties(libogg PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libogg.so)
-
-add_library(libopus SHARED IMPORTED)
-set_target_properties(libopus PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libopus.so)
-
-add_library(libpcre SHARED IMPORTED)
-set_target_properties(libpcre PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libpcre.so)
-
-add_library(libpcreposix SHARED IMPORTED)
-set_target_properties(libpcreposix PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libpcreposix.so)
-		
 add_library(libsndfile SHARED IMPORTED)
-set_target_properties(libsndfile PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libsndfile.so)
-
-add_library(libvorbis SHARED IMPORTED)
-set_target_properties(libvorbis PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libvorbis.so)
-
-add_library(libvorbisenc SHARED IMPORTED)
-set_target_properties(libvorbisenc PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libvorbisenc.so)
-
-add_library(libvorbisfile SHARED IMPORTED)
-set_target_properties(libvorbisfile PROPERTIES IMPORTED_LOCATION ${fluidsynth_DIR}/lib/${ANDROID_ABI}/libvorbisfile.so)
+set_target_properties(libsndfile PROPERTIES IMPORTED_LOCATION ${fluidsynth_LIBS_DIR}/jniLibs/${ANDROID_ABI}/libsndfile.so)
 
 find_package(OpenMP REQUIRED)
 
@@ -93,30 +64,23 @@ add_library(synth-lib SHARED
 )
 
 # Include fluidsynth header directory
-target_include_directories(synth-lib PRIVATE ${fluidsynth_DIR}/include)
+#target_include_directories(synth-lib PRIVATE ${fluidsynth_DIR}/include)
+target_include_directories(synth-lib PRIVATE ${fluidsynth_HEADERS_DIR}/include)
+#	include_directories(${fluidsynth_DIR}/include)
 
 # Link everything (native lib should be the first element in the list)
 target_link_libraries(
 		synth-lib
 		libc++_shared
-        libFLAC
-        libfluidsynth-assetloader
         libgio-2.0
         libglib-2.0
         libgmodule-2.0
         libgobject-2.0
         libgthread-2.0
-        libinstpatch-1.0
         liboboe
-        libogg
-        libopus
-        libpcre
-        libpcreposix
         libsndfile
-        libvorbis
-        libvorbisenc
-        libvorbisfile
         libfluidsynth
         OpenMP::OpenMP_CXX
 		amidi
+		log
 )

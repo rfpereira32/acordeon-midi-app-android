@@ -57,7 +57,7 @@ class SynthManager(private val context: Context) {
      */
     fun loadSF(filename: String, program: Int = 0) {
         try {
-            soundFontPath = copyAssetToTmpFile(filename)
+            soundFontPath = copyAssetToTmpFile("AcordeonGiulietti.sf2")
             if (fluidsynthLoadSF(soundFontPath, program) < 0) {
                 throw IOException("Error loading $filename")
             }
