@@ -28,10 +28,10 @@
  */
 // -----------------------------------------------------------------------------------------------
 
-package com.robsonmartins.androidmidisynth
+package com.robsonsmartins.androidmidisynth
 
+import androidx.activity.ComponentActivity
 import android.content.Context
-import androidx.appcompat.app.AppCompatActivity.MODE_PRIVATE
 import java.io.IOException
 
 /**
@@ -83,7 +83,7 @@ class SynthManager(private val context: Context) {
     private fun copyAssetToTmpFile(filename: String): String {
         context.assets.open(filename).use { `is` ->
             val tempFilename = "tmp_$filename"
-            context.openFileOutput(tempFilename, MODE_PRIVATE).use { fos ->
+            context.openFileOutput(tempFilename, Context.MODE_PRIVATE).use { fos ->
                 var bytesRead: Int
                 val buffer = ByteArray(4096)
                 while ((`is`.read(buffer).also { bytesRead = it }) != -1) {
@@ -118,13 +118,13 @@ class SynthManager(private val context: Context) {
      * @param   note      The note to be played.
      * @param   velocity  The velocity of the note to be played.
      */
-    private external fun fluidsynthNoteOn(note: Int, velocity: Int)
+     external fun fluidsynthNoteOn(note: Int, velocity: Int)
     /*
      * @brief   Import of the native implementation of SynthManager.fluidsynthNoteOff() method.
      * @details Stops the playing note.
      * @param   note The note to be stopped.
      */
-    private external fun fluidsynthNoteOff(note: Int)
+     external fun fluidsynthNoteOff(note: Int)
     /*
      * @brief   Import of the native implementation of SynthManager.fluidsynthCC() method.
      * @details Sends a control command via MIDI.

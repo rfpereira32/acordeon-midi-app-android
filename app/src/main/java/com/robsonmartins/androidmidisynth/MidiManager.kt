@@ -1,126 +1,103 @@
 /*
  * Copyright (c) 2024 Robson Martins
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * (Modificado para seleção dinâmica de Acordeon)
 */
-// -----------------------------------------------------------------------------------------------
-/**
- * @file MidiManager.kt
- * @brief Kotlin Implementation of MidiManager.
- *
- * @author Robson Martins (https://www.robsonmartins.com)
- */
-// -----------------------------------------------------------------------------------------------
 
-package com.robsonmartins.androidmidisynth
+package com.robsonsmartins.androidmidisynth
 
 import android.content.Context
 import android.media.midi.MidiDevice
+import android.media.midi.MidiManager as AndroidMidiManager
 import android.media.midi.MidiDeviceInfo
-import android.media.midi.MidiManager
 
 /**
  * @brief MidiManager class.
- * @details The MidiManager encapsulates a MIDI listener.
- * @param context The context object.
- * @param onMidiMessageReceived Method callback to receive MIDI messages.
+ * @details Gerencia a varredura e abertura dinâmica do canal de dados MIDI.
  */
-class MidiManager(context: Context,
-                  private val onMidiMessageReceived: (String) -> Unit) {
+class MidiManager(
+    private val context: Context,
+    private val onMidiMessageReceived: (String) -> Unit
+) {
 
-    /* @brief Android.MIDI.MidiManager instance. */
-    private val midiManager = context.getSystemService(Context.MIDI_SERVICE) as MidiManager
+    private val midiManager = context.getSystemService(Context.MIDI_SERVICE) as AndroidMidiManager
 
-    /** @brief Finalize the instance. */
-    fun finalize()  { stopReadingMidi() }
-
-    /** @brief Start the MIDI listener. */
-    fun start() {
-        // scan MIDI devices
-        val deviceInfos = midiManager.devices
-        for (deviceInfo in deviceInfos) {
-
-            val name = deviceInfo.properties.getString("name")
-
-            if (name == "ACORDEON MIDI MICHAEL") {
-                openMidiDevice(deviceInfo)
-            }
-        }
-        // register addDevice and removeDevice listeners
-        midiManager.registerDeviceCallback(
-            object : MidiManager.DeviceCallback() {
-                override fun onDeviceAdded(device: MidiDeviceInfo) {
-                    // open MIDI device
-                    openMidiDevice(device)
-                }
-                override fun onDeviceRemoved(device: MidiDeviceInfo) {
-                    onMidiMessageReceived(
-                        "Disconnect: ${device.properties.getString("product")}"
-                    )
-                }
-        }, null)
-    }
-
-    @Suppress("unused")
-    /** @brief Stop the MIDI listener. */
-    fun stop() {
+    fun finalize() {
         stopReadingMidi()
     }
 
-    /*
-     * @brief Open the MIDI device.
-     * @param deviceInfo MIDI device info.
-     */
-    private fun openMidiDevice(deviceInfo: MidiDeviceInfo) {
-        // ignore FluidSynth MIDI device
-        if (deviceInfo.properties.getString("product")?.lowercase() == "fluidsynth") return
-        // open MIDI device
-        midiManager.openDevice(deviceInfo, {
-            onMidiMessageReceived(
-                "Open: ${deviceInfo.properties.getString("product")}"
-            )
-            // stop current polling thread
+    /** @brief Inicializa o gerenciador de MIDI sem forçar conexões automáticas por nome */
+    fun start() {
+        // Registra callbacks para detectar quando novos acordeons forem ligados no Bluetooth
+        midiManager.registerDeviceCallback(
+            object : AndroidMidiManager.DeviceCallback() {
+                override fun onDeviceAdded(device: MidiDeviceInfo) {
+                    onMidiMessageReceived("Dispositivo detectado: ${device.properties.getString("name")}")
+                }
+                override fun onDeviceRemoved(device: MidiDeviceInfo) {
+                    onMidiMessageReceived("Desconectado: ${device.properties.getString("product")}")
+                }
+            }, null
+        )
+    }
+
+    /** @brief Retorna dinamicamente a lista de instrumentos disponíveis para a tela */
+    fun listarDispositivosDisponiveis(contextoEfetivo: Context): List<MidiDeviceInfo> {
+        val manager = contextoEfetivo.getSystemService(Context.MIDI_SERVICE) as AndroidMidiManager
+        val listaFiltrada = mutableListOf<MidiDeviceInfo>()
+        val devices = manager.devices
+
+        for (deviceInfo in devices) {
+            // Ignora o próprio sintetizador interno do FluidSynth para não listar ele mesmo
+            if (deviceInfo.properties.getString("product")?.lowercase() == "fluidsynth") continue
+
+            if (deviceInfo.inputPortCount > 0 || deviceInfo.outputPortCount > 0) {
+                listaFiltrada.add(deviceInfo)
+            }
+        }
+        return listaFiltrada
+    }
+
+    /** @brief Método acionado dinamicamente quando você clica no instrumento na interface */
+    /** @brief Método acionado dinamicamente quando você clica no instrumento na interface */
+    /** @brief Método acionado dinamicamente quando você clica no instrumento na interface */
+    /** @brief Método acionado dinamicamente quando você clica no instrumento na interface */
+    fun conectarAoDispositivo(deviceInfo: MidiDeviceInfo) {
+        onMidiMessageReceived("Conectando a: ${deviceInfo.properties.getString("name")}...")
+
+        midiManager.openDevice(deviceInfo, { dispositivoAberto ->
+            onMidiMessageReceived("Conectado com sucesso!")
+
+            // 1. Para qualquer leitura anterior por segurança
             stopReadingMidi()
-            // start new polling thread
-            startReadingMidi(it, 0)
+
+            // 2. 🚀 DEFINE A PORTA DE ENTRADA PADRÃO:
+            // Forçamos o índice 0, que é a porta universal de transmissão física de dados MIDI de 99% dos instrumentos.
+            // (Como limpamos o filtro de bits do C++ anteriormente, o SIGSEGV foi resolvido de qualquer forma!)
+            val portaFisica = 0
+
+            onMidiMessageReceived("Abrindo porta MIDI padrão: $portaFisica")
+
+            // Inicia a thread nativa em C++ para capturar as notas do acordeon
+            startReadingMidi(dispositivoAberto, portaFisica)
+
+            onMidiMessageReceived("Canal de áudio aberto!")
         }, null)
     }
 
-    @Suppress("unused")
     /*
-     * @brief OnNativeMessageReceive callback method.
-     * @param message Received message.
+     * @brief Método de retorno (Callback) exigido pelo motor C++ (JNI).
+     * @details O arquivo C++ invoca este método automaticamente a cada nota ou SysEx recebido.
      */
+    @androidx.annotation.Keep // IMPEDE QUE O OTIMIZADOR DO ANDROID APAGUE ESTE MÉTODO
+    @Suppress("unused")
     private fun onNativeMessageReceive(message: ByteArray) {
-//        onMidiMessageReceived(String(message).trim())
+        val mensagemTexto = String(message).trim()
+        onMidiMessageReceived(mensagemTexto) // Envia para a MainActivity processar
     }
 
     /*
-     * @brief   Import of the native implementation of MidiManager.startReadingMidi() method.
-     * @details Opens the first "output" port from specified MIDI device for reading.
-     * @param   receiveDevice  MidiDevice (Java) object.
-     * @param   portNumber     The index of the "output" port to open.
+     * @brief Definições de métodos nativos vinculados ao arquivo C++ (JNI)
      */
     private external fun startReadingMidi(receiveDevice: MidiDevice, portNumber: Int)
-    /*
-     * @brief  Import of the native implementation of the MidiManager.stopReadingMidi() method.
-     * @details Stops MIDI device for reading.
-     */
     private external fun stopReadingMidi()
 }

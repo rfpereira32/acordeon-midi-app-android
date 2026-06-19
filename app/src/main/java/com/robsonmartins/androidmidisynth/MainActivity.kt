@@ -1,71 +1,27 @@
-/*
- * Copyright (c) 2024 Robson Martins
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
-*/
-// -----------------------------------------------------------------------------------------------
-/**
- * @file MainActivity.kt
- * @brief Kotlin Implementation of MainActivity.
- *
- * @author Robson Martins (https://www.robsonmartins.com)
- */
-// -----------------------------------------------------------------------------------------------
-
-package com.robsonmartins.androidmidisynth
+package com.robsonsmartins.androidmidisynth
 
 import android.os.Bundle
 import android.view.WindowManager
-import android.widget.ScrollView
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.ViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import android.media.midi.MidiDeviceInfo
 
-// -----------------------------------------------------------------------------------------------
-
-/**
- * @brief MainViewModel class.
- * @details The MainViewModel stores the "View Model" of the Main Activity.
- */
 class MainViewModel : ViewModel() {
-    /** @brief Text content of the main component. */
-    var textContent: String = ""
+    var volume by mutableFloatStateOf(0.8f)
+    var usoCpu by mutableIntStateOf(0)
+    var listaDispositivos by mutableStateOf<List<MidiDeviceInfo>>(emptyList())
 }
 
-// -----------------------------------------------------------------------------------------------
+class MainActivity : ComponentActivity() {
 
-/**
- * @brief MainActivity class.
- * @details The MainActivity encapsulates a main activity of the application.
- */
-class MainActivity : AppCompatActivity() {
-
-/*    companion object {
-        /** @brief Initialize: Load the Native Library. */
-        init { System.loadLibrary("synth-lib") }
-    }
- */
     companion object {
         init {
             System.loadLibrary("c++_shared")
@@ -74,63 +30,82 @@ class MainActivity : AppCompatActivity() {
             System.loadLibrary("synth-lib")
         }
     }
-    /* @brief View Model instance. */
-    private val viewModel: MainViewModel by viewModels()
-    /* @brief SynthManager instance. */
-    private lateinit var synthManager: SynthManager
-    /* @brief MidiManager instance. */
-    private lateinit var midiManager: MidiManager
-    /* @brief TextView widget. */
-    private lateinit var txtLog: TextView
-    /* @brief ScrollView widget. */
-    private lateinit var scrollView: ScrollView
 
-    /**
-     * @brief On create event.
-     * @param savedInstanceState Saved instance state.
-     */
+    private val viewModel: MainViewModel by viewModels()
+    private lateinit var synthManager: SynthManager
+    private lateinit var midiManager: MidiManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // screen always on
+
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+
+        // Pedido de permissão em tempo real obrigatório do Android moderno
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            requestPermissions(
+                arrayOf(
+                    android.Manifest.permission.BLUETOOTH_SCAN,
+                    android.Manifest.permission.BLUETOOTH_CONNECT,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                ), 101
+            )
         }
-        // setup GUI
-        scrollView = findViewById(R.id.scrollView)
-        txtLog = findViewById(R.id.txtLog)
-        txtLog.text = viewModel.textContent
-        txtLog.addTextChangedListener {
-            viewModel.textContent = it.toString()
-            scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
-        }
-        // setup SynthManager and MidiManager
+
+        // Inicializa o Sintetizador
         synthManager = SynthManager(this)
-        synthManager.loadSF("KawaiStereoGrand.sf3")
-        synthManager.setVolume(127)
+        synthManager.loadSF("AcordeonGiulietti.sf2") // Garanta que o nome bate com seu arquivo
+        synthManager.setVolume((viewModel.volume * 127).toInt())
+
+        // Inicializa o gerenciador de MIDI
         midiManager = MidiManager(this, ::onMidiMessageReceived)
         midiManager.start()
-    }
 
-    /** @brief On destroy event. */
+        // Carrega os dispositivos iniciais na lista da interface
+        viewModel.listaDispositivos = midiManager.listarDispositivosDisponiveis(this)
+
+        setContent {
+            TelaMidiSintetizador(
+                viewModel = viewModel,
+                onVolumeChanged = { novoVolume ->
+                    viewModel.volume = novoVolume
+                    synthManager.setVolume((novoVolume * 127).toInt())
+                },
+                onDispositivoSelecionado = { dispositivoEscolhido ->
+                    midiManager.conectarAoDispositivo(dispositivoEscolhido)
+                }
+            )
+        }
+    } // <-- CHAVE CORRETA QUE FECHA O ONCREATE
+
+    /** @brief Callback acionado em tempo real quando mensagens chegam do ESP32-S3 / Cordovox */
+    private fun onMidiMessageReceived(message: String) {
+        runOnUiThread {
+            if (message.startsWith("F0") || message.contains("F0")) {
+                processarSysExCpu(message)
+            }
+        }
+    } // <-- CHAVE CORRETA QUE FECHA O ONMIDIMESSAGERECEIVED
+
+    /** @brief Função que extrai o byte de CPU vindo do envelope SysEx */
+    private fun processarSysExCpu(message: String) {
+        try {
+            val bytesText = message.split(" ")
+            if (bytesText.size >= 5 && bytesText[1].equals("7D", ignoreCase = true)) {
+                val tipoDado = bytesText[3]
+                if (tipoDado == "01" || tipoDado == "1" || tipoDado == "01 ") {
+                    val valorCPU = bytesText[4].toInt(16)
+                    viewModel.usoCpu = valorCPU
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    } // <-- CHAVE CORRETA QUE FECHA O PROCESSARSYSEXCPU
+
     override fun onDestroy() {
         midiManager.finalize()
         synthManager.finalize()
         super.onDestroy()
     }
-
-    /*
-     * @brief On MIDI message received callback.
-     * @param message Message received.
-     */
-    private fun onMidiMessageReceived(message: String) {
-        // messages are received on some other thread, so switch to the UI thread
-        // before attempting to access the UI
-        runOnUiThread { txtLog.append(message + "\n") }
-    }
-
 }

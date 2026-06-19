@@ -150,7 +150,7 @@ extern "C" {
  * @param   (unnamed)      SynthManager (Java) object.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthInit(
+Java_com_robsonsmartins_androidmidisynth_SynthManager_fluidsynthInit(
         JNIEnv *env, jobject) {
     SynthManager::getInstance();
 }
@@ -164,7 +164,7 @@ Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthInit(
  * @param   program        The number of the program
  */
 JNIEXPORT int JNICALL
-Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthLoadSF(
+Java_com_robsonsmartins_androidmidisynth_SynthManager_fluidsynthLoadSF(
         JNIEnv *env, jobject, jstring jSoundfontPath, int program) {
     // convert Java string to C string
     const char *soundfontPath = env->GetStringUTFChars(jSoundfontPath, nullptr);
@@ -178,7 +178,7 @@ Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthLoadSF(
  * @param   (unnamed)      SynthManager (Java) object.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthFree(
+Java_com_robsonsmartins_androidmidisynth_SynthManager_fluidsynthFree(
         JNIEnv *env, jobject) {
     SynthManager::freeInstance();
 }
@@ -192,7 +192,7 @@ Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthFree(
  * @param   velocity       The velocity of the note to be played.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthNoteOn(
+Java_com_robsonsmartins_androidmidisynth_SynthManager_fluidsynthNoteOn(
         JNIEnv *env, jobject, int note, int velocity) {
     SynthManager::getInstance()->noteOn(note, velocity);
 }
@@ -205,7 +205,7 @@ Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthNoteOn(
  * @param   note           The note to be stopped.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthNoteOff(
+Java_com_robsonsmartins_androidmidisynth_SynthManager_fluidsynthNoteOff(
         JNIEnv *env, jobject, int note) {
     SynthManager::getInstance()->noteOff(note);
 }
@@ -219,7 +219,7 @@ Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthNoteOff(
  * @param   value          Value to send.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthCC(
+Java_com_robsonsmartins_androidmidisynth_SynthManager_fluidsynthCC(
         JNIEnv *env, jobject, int controller, int value) {
     SynthManager::getInstance()->sendCC(controller, value);
 }
@@ -232,7 +232,7 @@ Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthCC(
  * @param   level          The reverb level (0 to 127).
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_SynthManager_fluidsynthReverb(
+Java_com_robsonsmartins_androidmidisynth_SynthManager_fluidsynthReverb(
         JNIEnv *env, jobject, int level) {
     SynthManager::getInstance()->reverb(level);
 }

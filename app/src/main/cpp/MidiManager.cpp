@@ -226,9 +226,10 @@ static void* readThreadRoutine(void *context) {
             // failure receiving MIDI data: exit the thread
             manager->reading = false;
         }
-        if (numMessagesReceived > 0 && numBytesReceived >= 0 &&
-            opcode == AMIDI_OPCODE_DATA &&
-            (incomingMessage[0] & kMIDISysCmdChan) != kMIDISysCmdChan) {
+        // 🚀 ATUALIZAÇÃO REVISADA (Muda para Omni Mode e libera os canais):
+        // Removemos a trava '&& (incomingMessage[0] & kMIDISysCmdChan) != kMIDISysCmdChan'
+        // Agora, qualquer byte de nota vindo do Cordovox passa direto para o parser tocar!
+        if (numMessagesReceived > 0 && numBytesReceived >= 0 && opcode == AMIDI_OPCODE_DATA) {
             manager->parseMidiData(incomingMessage, numBytesReceived);
         }
         // AMidiOutputPort_receive is non-blocking
@@ -250,7 +251,7 @@ extern "C" {
  * @param   portNumber     The index of the "output" port to open.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_MidiManager_startReadingMidi(
+Java_com_robsonsmartins_androidmidisynth_MidiManager_startReadingMidi(
         JNIEnv* env, jobject midiManagerObj, jobject midiDeviceObj, jint portNumber) {
     // starts the midi manager
     MidiManager::getInstance(env, midiManagerObj, midiDeviceObj, portNumber);
@@ -263,7 +264,7 @@ Java_com_robsonmartins_androidmidisynth_MidiManager_startReadingMidi(
  * @param  (unnamed)   MidiManager (Java) object.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_MidiManager_stopReadingMidi(
+Java_com_robsonsmartins_androidmidisynth_MidiManager_stopReadingMidi(
         JNIEnv*, jobject) {
     MidiManager::freeInstance();
 }
