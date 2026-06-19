@@ -1,10 +1,10 @@
-package com.robsonsmartins.androidmidisynth
+package com.robsonmartins.androidmidisynth
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import android.media.midi.MidiDeviceInfo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,142 +13,75 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.media.midi.MidiDeviceInfo
 
+// Cores escuras customizadas
+val ColorBgDark = Color(0xFF0F0F11)
+val ColorCardBg = Color(0xFF1A1A1E)
+val ColorChannel1 = Color(0xFF8A46E6)
+val ColorChannel2 = Color(0xFFF27405)
+val ColorChannel3 = Color(0xFF63C324)
+val ColorChannel4 = Color(0xFF2589F5)
+val ColorChannel5 = Color(0xFFFAB802)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaMidiSintetizador(
-    viewModel: MainViewModel,
+    viewModel: Any?,
     onVolumeChanged: (Float) -> Unit,
-    onDispositivoSelecionado: (MidiDeviceInfo) -> Unit
+    onDispositivoSelecionado: (MidiDeviceInfo) -> Unit // Ajustado para o tipo correto exigido
 ) {
-    val volume = viewModel.volume
-    val usoCpu = viewModel.usoCpu
-    val listaDispositivos = viewModel.listaDispositivos
+    var selectedTab by remember { mutableStateOf(0) }
 
-    var mostrarDialogo by remember { mutableStateOf(false) }
-
-    val cpuAnimada by animateFloatAsState(
-        targetValue = usoCpu / 100f,
-        animationSpec = tween(durationMillis = 300),
-        label = "AnimacaoCPU"
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(32.dp)
-    ) {
-        Text(
-            text = "ESP32-S3 BLE MIDI",
-            color = Color.White,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-
-        // Botão para abrir a lista
-        Button(
-            onClick = { mostrarDialogo = true },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00ADB5)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Selecionar Acordeon MIDI", color = Color.White)
-        }
-
-        // Janela de diálogo de escolha
-        if (mostrarDialogo) {
-            AlertDialog(
-                onDismissRequest = { mostrarDialogo = false },
-                title = { Text("Escolha o Instrumento", color = Color.White) },
-                containerColor = Color(0xFF1E1E1E),
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (listaDispositivos.isEmpty()) {
-                            Text("Nenhum dispositivo MIDI encontrado.", color = Color.LightGray)
-                        } else {
-                            for (dispositivo in listaDispositivos) {
-                                val nome = dispositivo.properties.getString("name") ?: "Dispositivo Desconhecido"
-                                Button(
-                                    onClick = {
-                                        onDispositivoSelecionado(dispositivo)
-                                        mostrarDialogo = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2d2d2d))
-                                ) {
-                                    Text(nome, color = Color.White)
-                                }
-                            }
+    Scaffold(
+        containerColor = ColorBgDark,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Cordovox MIDI", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Build, contentDescription = "Status", tint = Color(0xFF4CAF50))
+                            Text(" 87%", color = Color.LightGray, fontSize = 14.sp)
                         }
                     }
                 },
-                confirmButton = {
-                    TextButton(onClick = { mostrarDialogo = false }) {
-                        Text("Fechar", color = Color(0xFF00ADB5))
-                    }
-                }
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBgDark)
             )
-        }
-
-        // Card do Volume
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Volume Geral", color = Color.LightGray, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Slider(
-                        value = volume,
-                        onValueChange = { novoVolume -> onVolumeChanged(novoVolume) },
-                        modifier = Modifier.weight(1f),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF00ADB5),
-                            activeTrackColor = Color(0xFF00ADB5)
-                        )
-                    )
-                    Text(
-                        text = "${(volume * 100).toInt()}%",
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 12.dp),
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+        },
+        bottomBar = {
+            NavigationBar(containerColor = ColorCardBg, tonalElevation = 0.dp) {
+                NavigationBarItem(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Início") },
+                    label = { Text("Início") }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    icon = { Icon(Icons.Default.Info, contentDescription = "Monitor") },
+                    label = { Text("Monitor") }
+                )
             }
         }
-
-        // Card da CPU
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Uso de CPU do ESP32", color = Color.LightGray, fontSize = 16.sp)
-                    Text(
-                        text = "$usoCpu%",
-                        color = if (usoCpu > 80) Color.Red else Color(0xFF00ADB5),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    progress = cpuAnimada,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(12.dp),
-                    color = if (usoCpu > 80) Color.Red else Color(0xFF00ADB5),
-                    trackColor = Color(0xFF333333)
-                )
+            if (selectedTab == 0) {
+                MixerScreenContent()
+            } else {
+                MonitorScreenContent()
             }
         }
     }

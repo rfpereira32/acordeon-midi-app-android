@@ -1,5 +1,6 @@
 package com.robsonsmartins.androidmidisynth
 
+import com.robsonmartins.androidmidisynth.TelaMidiSintetizador
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
