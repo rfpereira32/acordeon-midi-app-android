@@ -9,6 +9,11 @@ import android.content.Context
 import android.media.midi.MidiDevice
 import android.media.midi.MidiManager as AndroidMidiManager
 import android.media.midi.MidiDeviceInfo
+import android.media.midi.MidiOutputPort
+import android.media.midi.MidiReceiver
+
+
+private var outputPort: MidiOutputPort? = null
 
 /**
  * @brief MidiManager class.
@@ -18,6 +23,13 @@ class MidiManager(
     private val context: Context,
     private val onMidiMessageReceived: (String) -> Unit
 ) {
+    /**
+     * Expõe a porta de envio convertida em MidiReceiver para a MainActivity
+     */
+    fun obterReceiverMidi(): MidiReceiver? {
+        return outputPort as MidiReceiver?
+    }
+
 
     private val midiManager = context.getSystemService(Context.MIDI_SERVICE) as AndroidMidiManager
 
@@ -64,11 +76,25 @@ class MidiManager(
     fun conectarAoDispositivo(deviceInfo: MidiDeviceInfo) {
         onMidiMessageReceived("Conectando a: ${deviceInfo.properties.getString("name")}...")
 
+
         midiManager.openDevice(deviceInfo, { dispositivoAberto ->
             onMidiMessageReceived("Conectado com sucesso!")
 
             // 1. Para qualquer leitura anterior por segurança
             stopReadingMidi()
+
+            try {
+                // =========================================================================
+                // NOVA LINHA ADICIONADA: Abre a porta de saída '0' do dispositivo Bluetooth
+                // para permitir que o Android envie comandos e blocos de firmware para o ESP32
+                // =========================================================================
+                outputPort = dispositivoAberto.openOutputPort(0)
+                android.util.Log.d("MIDI_C", "Canal de transmissão para o ESP32-S3 aberto!")
+
+            } catch (e: Exception) {
+                onMidiMessageReceived("Aviso: Falha ao abrir canal de escrita para OTA.")
+                android.util.Log.e("MIDI_C", "Erro ao abrir porta de saída: ${e.message}")
+            }
 
             // 2. 🚀 DEFINE A PORTA DE ENTRADA PADRÃO:
             // Forçamos o índice 0, que é a porta universal de transmissão física de dados MIDI de 99% dos instrumentos.

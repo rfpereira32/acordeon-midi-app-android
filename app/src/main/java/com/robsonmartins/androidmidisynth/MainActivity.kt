@@ -74,9 +74,12 @@ class MainActivity : ComponentActivity() {
                 },
                 onDispositivoSelecionado = { dispositivoEscolhido ->
                     midiManager.conectarAoDispositivo(dispositivoEscolhido)
-                }
+                },
+                // Conexão final estabelecida! Transmite a via física aberta para a UI de atualização
+                midiReceiver = midiManager.obterReceiverMidi()
             )
         }
+
     } // <-- CHAVE CORRETA QUE FECHA O ONCREATE
 
     /** @brief Callback acionado em tempo real quando mensagens chegam do ESP32-S3 / Cordovox */

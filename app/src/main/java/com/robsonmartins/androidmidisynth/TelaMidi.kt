@@ -1,6 +1,8 @@
 package com.robsonmartins.androidmidisynth
 
 import android.media.midi.MidiDeviceInfo
+import android.media.midi.MidiReceiver
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -28,60 +30,59 @@ val ColorChannel5 = Color(0xFFFAB802)
 fun TelaMidiSintetizador(
     viewModel: Any?,
     onVolumeChanged: (Float) -> Unit,
-    onDispositivoSelecionado: (MidiDeviceInfo) -> Unit // Ajustado para o tipo correto exigido
+    onDispositivoSelecionado: (MidiDeviceInfo) -> Unit,
+    midiReceiver: MidiReceiver? = null // Integrado o driver MIDI nativo com valor nulo padrão
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var mostrarMonitor by remember { mutableStateOf(false) }
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
 
-    Scaffold(
-        containerColor = ColorBgDark,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ColorBgDark)
+    ) {
+        TopAppBar(
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (mostrarMonitor) {
+                            IconButton(onClick = { mostrarMonitor = false }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+                            }
+                        } else {
                             Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text("Cordovox MIDI", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Build, contentDescription = "Status", tint = Color(0xFF4CAF50))
-                            Text(" 87%", color = Color.LightGray, fontSize = 14.sp)
-                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = if (mostrarMonitor) "Atualização OTA" else "Cordovox MIDI",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBgDark)
-            )
-        },
-        bottomBar = {
-            NavigationBar(containerColor = ColorCardBg, tonalElevation = 0.dp) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Início") },
-                    label = { Text("Início") }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Build, contentDescription = "Status", tint = Color(0xFF4CAF50))
+                        Text(" 87%", color = Color.LightGray, fontSize = 14.sp)
+                    }
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBgDark)
+        )
+
+        Box(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            if (mostrarMonitor) {
+                // Despacha o driver MIDI real para o monitor de gravação
+                MonitorScreenContent(
+                    fileUri = selectedFileUri,
+                    midiReceiver = midiReceiver,
+                    onFileSelected = { uri -> selectedFileUri = uri }
                 )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = { Icon(Icons.Default.Info, contentDescription = "Monitor") },
-                    label = { Text("Monitor") }
-                )
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (selectedTab == 0) {
-                MixerScreenContent()
             } else {
-                MonitorScreenContent()
+                MixerScreenContent(onOtaClick = { mostrarMonitor = true })
             }
         }
     }
