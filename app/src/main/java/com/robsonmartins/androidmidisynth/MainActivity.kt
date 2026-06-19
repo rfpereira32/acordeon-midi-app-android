@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import android.media.midi.MidiDeviceInfo
+import com.robsonmartins.androidmidisynth.ui.home.HomeScreen
 
 class MainViewModel : ViewModel() {
     var volume by mutableFloatStateOf(0.8f)
@@ -65,7 +66,8 @@ class MainActivity : ComponentActivity() {
         viewModel.listaDispositivos = midiManager.listarDispositivosDisponiveis(this)
 
         setContent {
-            TelaMidiSintetizador(
+            HomeScreen()
+           /* TelaMidiSintetizador(
                 viewModel = viewModel,
                 onVolumeChanged = { novoVolume ->
                     viewModel.volume = novoVolume
@@ -74,7 +76,7 @@ class MainActivity : ComponentActivity() {
                 onDispositivoSelecionado = { dispositivoEscolhido ->
                     midiManager.conectarAoDispositivo(dispositivoEscolhido)
                 }
-            )
+            )*/
         }
     } // <-- CHAVE CORRETA QUE FECHA O ONCREATE
 
