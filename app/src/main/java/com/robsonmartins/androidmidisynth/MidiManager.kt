@@ -44,7 +44,6 @@ class MidiManager(
     private val mainHandler = Handler(Looper.getMainLooper())
     private val bluetoothAdapter: BluetoothAdapter? by lazy { BluetoothAdapter.getDefaultAdapter() }
     private var dispositivoAberto: MidiDevice? = null
-    private var callbacksRegistrados = false
     private var scanningBleMidi = false
     private val bluetoothDevicesEmAbertura = mutableSetOf<String>()
 
@@ -66,24 +65,21 @@ class MidiManager(
 
     /** @brief Inicializa callbacks MIDI e a busca BLE MIDI nativa, sem depender de apps externos. */
     fun start() {
-        if (!callbacksRegistrados) {
-            midiManager.registerDeviceCallback(
-                object : AndroidMidiManager.DeviceCallback() {
-                    override fun onDeviceAdded(device: MidiDeviceInfo) {
-                        val nome = nomeDispositivo(device)
-                        onMidiMessageReceived("Dispositivo MIDI detectado: $nome")
-                        if (ehDispositivoBleMidi(device)) {
-                            conectarAoDispositivo(device)
-                        }
+        midiManager.registerDeviceCallback(
+            object : AndroidMidiManager.DeviceCallback() {
+                override fun onDeviceAdded(device: MidiDeviceInfo) {
+                    val nome = nomeDispositivo(device)
+                    onMidiMessageReceived("Dispositivo MIDI detectado: $nome")
+                    if (ehDispositivoBleMidi(device)) {
+                        conectarAoDispositivo(device)
                     }
+                }
 
-                    override fun onDeviceRemoved(device: MidiDeviceInfo) {
-                        onMidiMessageReceived("Desconectado: ${nomeDispositivo(device)}")
-                    }
-                }, mainHandler
-            )
-            callbacksRegistrados = true
-        }
+                override fun onDeviceRemoved(device: MidiDeviceInfo) {
+                    onMidiMessageReceived("Desconectado: ${nomeDispositivo(device)}")
+                }
+            }, mainHandler
+        )
 
         iniciarBuscaBleMidi()
     }

@@ -114,7 +114,7 @@ class MainActivity : ComponentActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 101 && ::midiManager.isInitialized) {
-            midiManager.start()
+            midiManager.iniciarEscaneamentoAutomatico()
         }
     }
 
