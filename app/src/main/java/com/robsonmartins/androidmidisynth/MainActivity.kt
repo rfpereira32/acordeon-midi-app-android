@@ -21,6 +21,10 @@ class MainViewModel : ViewModel() {
     var listaDispositivos by mutableStateOf<List<MidiDeviceInfo>>(emptyList())
 }
 
+private fun MidiManager.iniciarEscaneamentoAutomatico() {
+    start()
+}
+
 class MainActivity : ComponentActivity() {
 
     companion object {
@@ -106,6 +110,17 @@ class MainActivity : ComponentActivity() {
             e.printStackTrace()
         }
     } // <-- CHAVE CORRETA QUE FECHA O PROCESSARSYSEXCPU
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101 && ::midiManager.isInitialized) {
+            midiManager.iniciarEscaneamentoAutomatico()
+        }
+    }
 
     override fun onDestroy() {
         midiManager.finalize()
