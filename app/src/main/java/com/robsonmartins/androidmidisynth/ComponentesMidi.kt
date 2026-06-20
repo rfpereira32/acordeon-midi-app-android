@@ -26,11 +26,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import android.bluetooth.BluetoothGatt
 
 
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MixerScreenContent(onOtaClick: () -> Unit) {
+fun MixerScreenContent(nomeInstrumento: String, isConnected: Boolean, onOtaClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -40,8 +38,22 @@ fun MixerScreenContent(onOtaClick: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(modifier = Modifier.size(8.dp).background(Color(0xFF4CAF50), RoundedCornerShape(4.dp)))
-            Text(" BLE Ativo   |   \uD83C\uDFB5 Scandalli Master ▾", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
+            // O LED muda dinamicamente: Verde se conectado, Vermelho se desconectado
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        color = if (isConnected) Color(0xFF4CAF50) else Color.Red,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            )
+
+            Text(
+                text = if (isConnected) " BLE Ativo   |   \uD83C\uDFB5 $nomeInstrumento ▾" else " BLE Desconectado   |   \uD83C\uDFB5 $nomeInstrumento ▾",
+                color = Color.Gray,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -74,7 +86,6 @@ fun MixerScreenContent(onOtaClick: () -> Unit) {
                     Text("Presets", color = Color.Gray, fontSize = 10.sp)
                 }
             }
-            // Botão OTA UPDATE: Agora apenas muda a tela e vai para o monitor
             Card(
                 onClick = onOtaClick,
                 modifier = Modifier.height(60.dp).weight(1f),
@@ -96,6 +107,7 @@ fun MixerScreenContent(onOtaClick: () -> Unit) {
         }
     }
 }
+
 @Composable
 fun MonitorScreenContent(
     fileUri: android.net.Uri?,

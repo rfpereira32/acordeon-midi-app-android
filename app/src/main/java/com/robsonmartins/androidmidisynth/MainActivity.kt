@@ -15,10 +15,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import android.media.midi.MidiDeviceInfo
 
+
 class MainViewModel : ViewModel() {
     var volume by mutableFloatStateOf(0.8f)
     var usoCpu by mutableIntStateOf(0)
     var listaDispositivos by mutableStateOf<List<MidiDeviceInfo>>(emptyList())
+
 }
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
@@ -66,12 +68,21 @@ class MainActivity : ComponentActivity() {
         midiManager = MidiManager(this, ::onMidiMessageReceived)
         midiManager.start()
 
+        // Inicializa o gerenciador de MIDI
+        midiManager = MidiManager(this, ::onMidiMessageReceived)
+        midiManager.start()
+
+        // LINE ADICIONADA: Ativa o rastreamento em background direto pelo rádio do celular
+        midiManager.iniciarEscaneamentoAutomatico()
+
+
         // Carrega os dispositivos iniciais na lista da interface
         viewModel.listaDispositivos = midiManager.listarDispositivosDisponiveis(this)
 
         setContent {
             TelaMidiSintetizador(
-                viewModel = viewModel,
+                // CORREÇÃO AQUI: Mudamos o nome do parâmetro para bater exatamente com a assinatura da tela
+                listaDispositivos = viewModel.listaDispositivos,
                 onVolumeChanged = { novoVolume ->
                     viewModel.volume = novoVolume
                     synthManager.setVolume((novoVolume * 127).toInt())
@@ -79,10 +90,10 @@ class MainActivity : ComponentActivity() {
                 onDispositivoSelecionado = { dispositivoEscolhido ->
                     midiManager.conectarAoDispositivo(dispositivoEscolhido)
                 },
-                // Conexão final estabelecida! Transmite a via física aberta para a UI de atualização
                 midiReceiver = midiManager.obterReceiverMidi()
             )
         }
+
 
     } // <-- CHAVE CORRETA QUE FECHA O ONCREATE
 
