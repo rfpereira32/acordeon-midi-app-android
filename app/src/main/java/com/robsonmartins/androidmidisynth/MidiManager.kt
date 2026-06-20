@@ -129,6 +129,11 @@ class MidiManager(
         onMidiMessageReceived("Buscando dispositivos BLE MIDI...")
     }
 
+    /** @brief Compatibilidade com chamadas existentes no app para iniciar a conexão BLE MIDI automática. */
+    fun iniciarEscaneamentoAutomatico() {
+        iniciarBuscaBleMidi()
+    }
+
     fun pararBuscaBleMidi() {
         if (!scanningBleMidi || !temPermissaoBluetooth()) return
         bluetoothAdapter?.bluetoothLeScanner?.stopScan(bleMidiScanCallback)
