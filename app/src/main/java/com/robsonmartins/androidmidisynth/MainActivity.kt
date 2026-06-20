@@ -107,6 +107,17 @@ class MainActivity : ComponentActivity() {
         }
     } // <-- CHAVE CORRETA QUE FECHA O PROCESSARSYSEXCPU
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101 && ::midiManager.isInitialized) {
+            midiManager.iniciarEscaneamentoAutomatico()
+        }
+    }
+
     override fun onDestroy() {
         midiManager.finalize()
         synthManager.finalize()
