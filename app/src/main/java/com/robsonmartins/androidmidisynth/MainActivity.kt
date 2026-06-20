@@ -21,6 +21,10 @@ class MainViewModel : ViewModel() {
     var listaDispositivos by mutableStateOf<List<MidiDeviceInfo>>(emptyList())
 }
 
+private fun MidiManager.iniciarEscaneamentoAutomatico() {
+    start()
+}
+
 class MainActivity : ComponentActivity() {
 
     companion object {
