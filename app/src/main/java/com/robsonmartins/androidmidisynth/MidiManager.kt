@@ -24,8 +24,17 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.robsonmartins.androidmidisynth.MidiEstadoCompartilhado
 
 private var inputPort: MidiInputPort? = null
+
+
 
 /**
  * @brief MidiManager class.
@@ -47,6 +56,12 @@ class MidiManager(
     private var scanningBleMidi = false
     private val bluetoothDevicesEmAbertura = mutableSetOf<String>()
 
+    // --- NOVOS ESTADOS REATIVOS PARA A INTERFACE ---
+    private val _nomeDispositivoConectado = MutableStateFlow("Nenhum dispositivo pareado")
+    val nomeDispositivoConectado: StateFlow<String> = _nomeDispositivoConectado.asStateFlow()
+
+    private val _isBleConectado = MutableStateFlow(false)
+    val isBleConectado: StateFlow<Boolean> = _isBleConectado.asStateFlow()
     /**
      * Expõe a porta de envio convertida em MidiReceiver para a MainActivity.
      */
@@ -54,16 +69,7 @@ class MidiManager(
         return inputPort
     }
 
-    fun finalize() {
-        pararBuscaBleMidi()
-        stopReadingMidi()
-        inputPort?.close()
-        dispositivoAberto?.close()
-        inputPort = null
-        dispositivoAberto = null
-    }
-
-    /** @brief Inicializa callbacks MIDI e a busca BLE MIDI nativa, sem depender de apps externos. */
+        /** @brief Inicializa callbacks MIDI e a busca BLE MIDI nativa, sem depender de apps externos. */
     fun start() {
         midiManager.registerDeviceCallback(
             object : AndroidMidiManager.DeviceCallback() {
@@ -94,14 +100,50 @@ class MidiManager(
     }
 
     /** @brief Abre um dispositivo MIDI já publicado pelo Android. */
+    /** @brief Abre um dispositivo MIDI selecionado manualmente no Pop-up */
     fun conectarAoDispositivo(deviceInfo: MidiDeviceInfo) {
-        onMidiMessageReceived("Conectando a: ${nomeDispositivo(deviceInfo)}...")
+        val nome = nomeDispositivo(deviceInfo)
+        onMidiMessageReceived("Conectando manualmente a: $nome...")
+
+        // CORREÇÃO CRÍTICA 1: Para o scanner imediatamente para não concorrer com o clique do Pop-up!
+        pararBuscaBleMidi()
+
         midiManager.openDevice(deviceInfo, { dispositivo ->
             if (dispositivo == null) {
-                onMidiMessageReceived("Falha ao abrir ${nomeDispositivo(deviceInfo)}.")
+                onMidiMessageReceived("Falha ao abrir $nome.")
                 return@openDevice
             }
-            configurarDispositivoAberto(dispositivo, deviceInfo)
+
+            // Delay de estabilização para o Android popular os descritores
+            mainHandler.postDelayed({
+                configurarDispositivoAberto(dispositivo, deviceInfo)
+            }, 300)
+        }, mainHandler)
+    }
+
+    private fun abrirDispositivoBluetoothMidi(device: BluetoothDevice) {
+        if (!temPermissaoBluetooth()) return
+        val endereco = device.address ?: return
+        if (!bluetoothDevicesEmAbertura.add(endereco)) return
+
+        val nome = try { device.name ?: endereco } catch (_: SecurityException) { endereco }
+        onMidiMessageReceived("BLE MIDI encontrado no ar: $nome. Conectando...")
+
+        // CORREÇÃO CRÍTICA 2: Cancela o scanner imediatamente antes de chamar o openBluetoothDevice
+        pararBuscaBleMidi()
+
+        midiManager.openBluetoothDevice(device, { dispositivo ->
+            bluetoothDevicesEmAbertura.remove(endereco)
+            if (dispositivo == null) {
+                onMidiMessageReceived("Não foi possível abrir BLE MIDI: $nome")
+                // Se falhar, reativa a busca automática para não ficar cego
+                iniciarBuscaBleMidi()
+                return@openBluetoothDevice
+            }
+
+            mainHandler.postDelayed({
+                configurarDispositivoAberto(dispositivo, dispositivo.info)
+            }, 300)
         }, mainHandler)
     }
 
@@ -150,56 +192,101 @@ class MidiManager(
         }
     }
 
-    private fun abrirDispositivoBluetoothMidi(device: BluetoothDevice) {
-        if (!temPermissaoBluetooth()) return
-        val endereco = device.address ?: return
-        if (!bluetoothDevicesEmAbertura.add(endereco)) return
+    private fun configurarDispositivoAberto(dispositivo: MidiDevice, deviceInfo: MidiDeviceInfo) {
+        try {
+            inputPort?.close()
+            dispositivoAberto?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao limpar conexoes residuais: ${e.message}")
+        }
 
-        val nome = try { device.name ?: endereco } catch (_: SecurityException) { endereco }
-        onMidiMessageReceived("BLE MIDI encontrado: $nome. Abrindo conexão nativa...")
+        MidiEstadoCompartilhado.receiverMidiAtivo = null
+        inputPort = null
+        dispositivoAberto = dispositivo
 
-        midiManager.openBluetoothDevice(device, { dispositivo ->
-            bluetoothDevicesEmAbertura.remove(endereco)
-            if (dispositivo == null) {
-                onMidiMessageReceived("Não foi possível abrir BLE MIDI: $nome")
-                return@openBluetoothDevice
+        val nomeDoAparato = nomeDispositivo(deviceInfo)
+        stopReadingMidi()
+
+        var portaAbertaComSucesso = false
+        val totalDePortasDeEntrada = if (deviceInfo.inputPortCount > 0) deviceInfo.inputPortCount else 2
+
+        for (indicePorta in 0 until totalDePortasDeEntrada) {
+            try {
+                val tentaPorta = dispositivo.openInputPort(indicePorta)
+                if (tentaPorta != null) {
+                    inputPort = tentaPorta
+                    // Injeta a referência física convertida no Singleton global para o OtaManager ler
+                    MidiEstadoCompartilhado.receiverMidiAtivo = tentaPorta
+                    Log.d(TAG, "Bypass Sucesso: Canal de escrita indexado na porta: $indicePorta")
+                    portaAbertaComSucesso = true
+                    break
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Porta $indicePorta indisponivel no barramento.")
             }
-            pararBuscaBleMidi()
-            configurarDispositivoAberto(dispositivo, dispositivo.info)
-        }, mainHandler)
+        }
+
+        if (!portaAbertaComSucesso) {
+            try {
+                val portaInjetada = dispositivo.openInputPort(0)
+                if (portaInjetada != null) {
+                    inputPort = portaInjetada
+                    MidiEstadoCompartilhado.receiverMidiAtivo = portaInjetada
+                    portaAbertaComSucesso = true
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Falha na ponte de injecao.")
+            }
+        }
+
+        // Sincronização estável de Estados Reativos com a UI (Thread Principal)
+        mainHandler.post {
+            if (portaAbertaComSucesso) {
+                // Chama a função centralizada que atualiza o Jetpack Compose sem conflitos
+                MidiEstadoCompartilhado.atualizarEstado(nomeDoAparato, true)
+                _nomeDispositivoConectado.value = nomeDoAparato
+                _isBleConectado.value = true
+
+                onMidiMessageReceived("Conectado com sucesso a $nomeDoAparato!")
+                onMidiMessageReceived("Canal de envio para o ESP32 aberto.")
+            } else {
+                MidiEstadoCompartilhado.atualizarEstado("Nenhum dispositivo pareado", false)
+                _nomeDispositivoConectado.value = "Nenhum dispositivo pareado"
+                _isBleConectado.value = false
+                onMidiMessageReceived("Aviso: ESP32-S3 nao liberou canal de escrita.")
+            }
+        }
+
+        // Abertura do canal de leitura de notas (Sons vindos do instrumento)
+        if (deviceInfo.outputPortCount > 0) {
+            startReadingMidi(dispositivo, 0)
+        }
     }
 
-    private fun configurarDispositivoAberto(dispositivo: MidiDevice, deviceInfo: MidiDeviceInfo) {
-        dispositivoAberto?.close()
-        dispositivoAberto = dispositivo
-        onMidiMessageReceived("Conectado com sucesso a ${nomeDispositivo(deviceInfo)}!")
 
+
+    fun finalize() {
+        // Garante que a UI limpe os indicadores na Thread principal ao desconectar
+        mainHandler.post {
+            MidiEstadoCompartilhado.atualizarEstado("Nenhum dispositivo pareado", false)
+            MidiEstadoCompartilhado.receiverMidiAtivo = null
+            _nomeDispositivoConectado.value = "Nenhum dispositivo pareado"
+            _isBleConectado.value = false
+        }
+
+        pararBuscaBleMidi()
         stopReadingMidi()
-        inputPort?.close()
-        inputPort = null
-
         try {
-            if (deviceInfo.inputPortCount > 0) {
-                inputPort = dispositivo.openInputPort(0)
-                Log.d(TAG, "Canal de envio para o ESP32 aberto.")
-            }
-        } catch (e: Exception) {
-            onMidiMessageReceived("Aviso: falha ao abrir canal MIDI de envio/OTA.")
-            Log.e(TAG, "Erro ao abrir porta de entrada do dispositivo: ${e.message}")
-        }
-
-        if (deviceInfo.outputPortCount > 0) {
-            onMidiMessageReceived("Abrindo porta MIDI padrão: 0")
-            startReadingMidi(dispositivo, 0)
-            onMidiMessageReceived("Canal de áudio aberto!")
-        } else {
-            onMidiMessageReceived("Dispositivo conectado sem porta MIDI de leitura.")
-        }
+            inputPort?.close()
+            dispositivoAberto?.close()
+        } catch (_: Exception) {}
+        inputPort = null
+        dispositivoAberto = null
     }
 
     private fun ehDispositivoBleMidi(deviceInfo: MidiDeviceInfo): Boolean {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-            deviceInfo.type == MidiDeviceInfo.TYPE_BLUETOOTH
+                deviceInfo.type == MidiDeviceInfo.TYPE_BLUETOOTH
     }
 
     private fun nomeDispositivo(deviceInfo: MidiDeviceInfo): String {
@@ -211,7 +298,7 @@ class MidiManager(
     private fun temPermissaoBluetooth(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
-                context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+                    context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
         } else {
             context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         }

@@ -1,8 +1,10 @@
 package com.robsonmartins.androidmidisynth
 
 import android.content.Context
+import android.media.midi.MidiManager
 import android.media.midi.MidiReceiver
 import android.net.Uri
+import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -14,19 +16,49 @@ class OtaManager(private val context: Context, private val midiReceiver: MidiRec
 
     suspend fun iniciarAtualizacao(fileUri: Uri) {
         if (estaAtualizando.value) return
-        if (midiReceiver == null) {
-            statusOta.value = "Erro: Acordeon não está conectado via MIDI!"
+
+        var receiverAtivo = midiReceiver ?: MidiEstadoCompartilhado.receiverMidiAtivo
+
+        if (receiverAtivo == null) {
+            try {
+                val midiManager = context.getSystemService(Context.MIDI_SERVICE) as MidiManager
+                val primeiroAparelhoConectado = midiManager.devices.firstOrNull()
+
+                if (primeiroAparelhoConectado != null) {
+                    var portaInjetada: MidiReceiver? = null
+                    midiManager.openDevice(primeiroAparelhoConectado, { device ->
+                        if (device != null) {
+                            try {
+                                portaInjetada = device.openInputPort(0) ?: device.openInputPort(1)
+                                if (portaInjetada != null) {
+                                    MidiEstadoCompartilhado.receiverMidiAtivo = portaInjetada
+                                }
+                            } catch (e: Exception) {
+                                Log.e("OTA", "Erro na ponte de bypass do receiver.")
+                            }
+                        }
+                    }, android.os.Handler(android.os.Looper.getMainLooper()))
+
+                    delay(500)
+                    receiverAtivo = portaInjetada ?: MidiEstadoCompartilhado.receiverMidiAtivo
+                }
+            } catch (e: Exception) {
+                Log.e("OTA", "Falha ao forcar a ponte automatica: ${e.message}")
+            }
+        }
+
+        if (receiverAtivo == null) {
+            statusOta.value = "Erro: Canal de escrita indisponível!"
             return
         }
 
         estaAtualizando.value = true
         statusOta.value = "Abrindo arquivo de firmware..."
         progressoOta.value = 0f
+        delay(300)
 
         try {
             val contentResolver = context.contentResolver
-
-            // Descobre o tamanho do arquivo .bin
             val totalBytes = contentResolver.openAssetFileDescriptor(fileUri, "r")?.use {
                 it.length.toInt()
             } ?: throw Exception("Não foi possível ler o tamanho do arquivo.")
@@ -34,60 +66,72 @@ class OtaManager(private val context: Context, private val midiReceiver: MidiRec
             contentResolver.openInputStream(fileUri).use { inputStream ->
                 if (inputStream == null) throw Exception("Falha ao abrir fluxo do arquivo.")
 
-                statusOta.value = "Preparando ESP32-S3 para gravação..."
+                statusOta.value = "Conectando ao instrumento..."
+                delay(300)
 
-                // Passo 1: Handshake inicial via SysEx informando o tamanho total do firmware
-                // Formato: [0xF0, 0x7D, 0x0A, 0x02, tamanho_byte1, tamanho_byte2, tamanho_byte3, tamanho_byte4, 0xF7]
+                // PASSO 1: Handshake Inicial (7-bit)
                 val handshakeMidi = ByteArray(9)
-                handshakeMidi[0] = 0xF0.toByte() // Início do SysEx
-                handshakeMidi[1] = 0x7D.toByte() // ID Educacional/Customizado
-                handshakeMidi[2] = 0x0A.toByte() // Seu identificador de telemetria/sistema
-                handshakeMidi[3] = 0x02.toByte() // Sub-ID: 0x02 = Comando Iniciar OTA
+                handshakeMidi[0] = 0xF0.toByte()
+                handshakeMidi[1] = 0x7D.toByte()
+                handshakeMidi[2] = 0x0A.toByte()
+                handshakeMidi[3] = 0x02.toByte()
+                handshakeMidi[4] = ((totalBytes shr 21) and 0x7F).toByte()
+                handshakeMidi[5] = ((totalBytes shr 14) and 0x7F).toByte()
+                handshakeMidi[6] = ((totalBytes shr 7) and 0x7F).toByte()
+                handshakeMidi[7] = (totalBytes and 0x7F).toByte()
+                handshakeMidi[8] = 0xF7.toByte()
 
-                // Divide o tamanho de 32 bits (Int) em 4 bytes para caber no pacote MIDI
-                handshakeMidi[4] = ((totalBytes shr 24) and 0xFF).toByte()
-                handshakeMidi[5] = ((totalBytes shr 16) and 0xFF).toByte()
-                handshakeMidi[6] = ((totalBytes shr 8) and 0xFF).toByte()
-                handshakeMidi[7] = (totalBytes and 0xFF).toByte()
-                handshakeMidi[8] = 0xF7.toByte() // Fim do SysEx
+//                receiverAtivo.send(handshakeMidi, 0, handshakeMidi.size)
 
-                // Despacha o comando usando o driver nativo do Android
-                midiReceiver.send(handshakeMidi, 0, handshakeMidi.size)
+                try {
+                    Log.d("OTA_DEBUG", "Enviando envelope: ${handshakeMidi.joinToString { String.format("0x%02X", it) }}")
 
-                // Aguarda 1,5 segundos para o ESP32-S3 apagar os blocos velhos na memória flash
-                delay(1500)
+                    // Envia imediatamente para o hardware informando o timestamp 0 (envio imediato)
+                    receiverAtivo.send(handshakeMidi, 0, handshakeMidi.size)
+                } catch (e: Exception) {
+                    Log.e("OTA_DEBUG", "Falha crítica ao chamar receiver.send: ${e.message}")
+                }
 
-                statusOta.value = "Transmitindo firmware sem cabos..."
+                // Dá um fôlego maior de 2.2 segundos para garantir o handshake dinâmico
+                statusOta.value = "Iniciando gravacao dinamica..."
+                delay(2200)
 
-                // Blocos estáveis de 256 bytes para não estourar a RAM nem o buffer do chip
-                val bufferBloco = ByteArray(256)
-                var bytesLidos: Int
-                var totalBytesEnviados = 0
+                statusOta.value = "Transmitindo firmware..."
 
-                // Passo 2: Loop pesado de faturamento real
-                while (inputStream.read(bufferBloco).also { bytesLidos = it } != -1) {
+                // Pacotes ultracompactos de 7 bytes puros para blindagem contra quebra de MTU
+                val bufferBlocoBruto = ByteArray(7)
+                var bytesBrutosLidos: Int
+                var totalBytesProcessadosDoBinario = 0
 
-                    // Constrói o envelope SysEx para carregar os bytes brutos do bloco
-                    // Tamanho: 5 bytes de cabeçalho + tamanho dos dados lidos + 1 byte de fim (0xF7)
-                    val envelopeSysEx = ByteArray(5 + bytesLidos + 1)
+                // PASSO 2: Loop de faturamento
+                while (inputStream.read(bufferBlocoBruto).also { bytesBrutosLidos = it } != -1) {
+                    val tamanhoDadosMidiNoAr = bytesBrutosLidos * 2
+                    val envelopeSysEx = ByteArray(5 + tamanhoDadosMidiNoAr + 1)
+
                     envelopeSysEx[0] = 0xF0.toByte()
                     envelopeSysEx[1] = 0x7D.toByte()
                     envelopeSysEx[2] = 0x0A.toByte()
-                    envelopeSysEx[3] = 0x03.toByte() // Sub-ID: 0x03 = Bloco de dados Brutos do Firmware
-                    envelopeSysEx[4] = bytesLidos.toByte() // Informa quantos bytes válidos vão nesse bloco
+                    envelopeSysEx[3] = 0x03.toByte()
+                    envelopeSysEx[4] = bytesBrutosLidos.toByte()
 
-                    // Injeta os bytes do firmware para dentro do miolo do SysEx
-                    System.arraycopy(bufferBloco, 0, envelopeSysEx, 5, bytesLidos)
-                    envelopeSysEx[envelopeSysEx.size - 1] = 0xF7.toByte() // Fecha o SysEx
+                    var indiceDestinoMidi = 5
+                    for (i in 0 until bytesBrutosLidos) {
+                        val byteBruto = bufferBlocoBruto[i].toInt()
+                        val nibbleSuperior = (byteBruto shr 4) and 0x0F
+                        val nibbleInferior = byteBruto and 0x0F
 
-                    // Envia o pacote completo pelo ar para o acordeon
-                    midiReceiver.send(envelopeSysEx, 0, envelopeSysEx.size)
+                        envelopeSysEx[indiceDestinoMidi++] = nibbleSuperior.toByte()
+                        envelopeSysEx[indiceDestinoMidi++] = nibbleInferior.toByte()
+                    }
+                    envelopeSysEx[envelopeSysEx.size - 1] = 0xF7.toByte()
 
-                    totalBytesEnviados += bytesLidos
-                    progressoOta.value = totalBytesEnviados.toFloat() / totalBytes.toFloat()
+                    receiverAtivo.send(envelopeSysEx, 0, envelopeSysEx.size)
 
-                    // Pequena pausa (12ms) para a escrita física na Flash do ESP32 respirar
-                    delay(12)
+                    totalBytesProcessadosDoBinario += bytesBrutosLidos
+                    progressoOta.value = totalBytesProcessadosDoBinario.toFloat() / totalBytes.toFloat()
+
+                    // Delay calibrado em 22ms para casar perfeitamente com o erase-on-write do ESP32
+                    delay(22)
                 }
 
                 statusOta.value = "Concluído! O Cordovox está reiniciando..."
@@ -95,6 +139,7 @@ class OtaManager(private val context: Context, private val midiReceiver: MidiRec
             }
         } catch (e: Exception) {
             statusOta.value = "Falha no envio MIDI: ${e.message}"
+            Log.e("OTA_ERROR", "Erro fatal na transmissao: ${e.message}")
         } finally {
             estaAtualizando.value = false
         }

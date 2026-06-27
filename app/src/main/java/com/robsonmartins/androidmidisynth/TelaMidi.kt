@@ -2,21 +2,17 @@ package com.robsonmartins.androidmidisynth
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
-import android.companion.AssociationRequest
-import android.companion.BluetoothLeDeviceFilter
-import android.companion.CompanionDeviceManager
 import android.content.Context
 import android.content.Intent
-import android.content.IntentSender
 import android.media.midi.MidiDeviceInfo
 import android.media.midi.MidiReceiver
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -24,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -31,7 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.regex.Pattern
 
-// Cores escuras customizadas
+
+// Cores escuras customizadas do Cordovox MIDI
 val ColorBgDark = Color(0xFF0F0F11)
 val ColorCardBg = Color(0xFF1A1A1E)
 val ColorChannel1 = Color(0xFF8A46E6)
@@ -48,61 +46,29 @@ fun TelaMidiSintetizador(
     listaDispositivos: List<MidiDeviceInfo>,
     onVolumeChanged: (Float) -> Unit,
     onDispositivoSelecionado: (MidiDeviceInfo) -> Unit,
-    midiReceiver: MidiReceiver? = null
+    midiReceiver: MidiReceiver? = null // Remova o 'android.media.midi.' se houver duplicidade de import
 ) {
+
     val context = LocalContext.current
     var mostrarMonitor by remember { mutableStateOf(false) }
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
-    var nomeAcordeonConectado by remember { mutableStateOf("Nenhum instrumento") }
     var exibirPopupDispositivos by remember { mutableStateOf(false) }
 
-    // Intercepta o acordeon quando você clica nele na caixinha nativa do Android
-    val selectorLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { resultado ->
-        if (resultado.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Acordeon pareado! Abra este menu novamente para conectar.", Toast.LENGTH_LONG).show()
-        }
-    }
+    // ======================================================================
+    // VINCULAÇÃO DIRETA E REATIVA AO SINGLETON GLOBAL DO JETPACK COMPOSE
+    // Lê os estados do MidiEstadoCompartilhado que reside no MidiManager.kt
+    // ======================================================================
+    val tituloDispositivo = MidiEstadoCompartilhado.nomeDispositivoPareado
+    val ledVerdeAtivo = MidiEstadoCompartilhado.isDispositivoConectado
 
-    // Aciona a janela flutuante padrão do Android que varre o ar buscando o ESP32-S3
-    fun dispararJanelaBuscaSistema() {
-        try {
-            val deviceManager = context.getSystemService(Context.COMPANION_DEVICE_SERVICE) as CompanionDeviceManager
-
-            // Filtro dinâmico: Procura sinais de rádio com o nome do instrumento
-            val filtroDispositivo = BluetoothLeDeviceFilter.Builder()
-                .setNamePattern(Pattern.compile(".*(Acordeon|Cordovox|MIDI|ESP32).*", Pattern.CASE_INSENSITIVE))
-                .build()
-
-            val requisicaoAssociacao = AssociationRequest.Builder()
-                .addDeviceFilter(filtroDispositivo)
-                .setSingleDevice(false)
-                .build()
-
-            deviceManager.associate(requisicaoAssociacao, object : CompanionDeviceManager.Callback() {
-                override fun onDeviceFound(intentSender: IntentSender) {
-                    selectorLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
-                }
-                override fun onFailure(error: CharSequence?) {
-                    Toast.makeText(context, "Erro no escaneamento: $error", Toast.LENGTH_SHORT).show()
-                }
-            }, null)
-
-            exibirPopupDispositivos = false
-        } catch (e: Exception) {
-            Toast.makeText(context, "Erro ao iniciar o pareador do sistema.", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    // Força a ativação física do chip de Bluetooth do celular se estiver desligado
+    // Launcher para requisitar ao sistema que ligue o Bluetooth se estiver desligado
     val bluetoothEnableLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { resultado ->
         if (resultado.resultCode == android.app.Activity.RESULT_OK) {
-            dispararJanelaBuscaSistema()
+            Toast.makeText(context, "Bluetooth ativado! Buscando instrumentos no ar...", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "Ative o Bluetooth para localizar o Acordeon!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Ative o Bluetooth para sincronizar com o Acordeon.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -115,16 +81,12 @@ fun TelaMidiSintetizador(
         val locationConcedida = permissoes[android.Manifest.permission.ACCESS_FINE_LOCATION] ?: false
 
         if (scanConcedido && connectConcedido && locationConcedida) {
-            val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-            if (btManager.adapter?.isEnabled == false) {
-                bluetoothEnableLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-            } else {
-                dispararJanelaBuscaSistema()
-            }
+            exibirPopupDispositivos = true
         } else {
-            Toast.makeText(context, "Dê todas as permissões nas configurações do celular!", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Dê todas as permissões nas configurações do celular!", Toast.LENGTH_SHORT).show()
         }
     }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -148,19 +110,25 @@ fun TelaMidiSintetizador(
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
+
+                        // TEXTO DINÂMICO COM TAMANHO ADAPTATIVO
                         Text(
-                            text = if (mostrarMonitor) "Atualização OTA" else "Cordovox MIDI",
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
+                            text = tituloDispositivo,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontSize = if (tituloDispositivo == "Nenhum dispositivo pareado") 16.sp else 24.sp,
+                            fontWeight = if (tituloDispositivo == "Nenhum dispositivo pareado") FontWeight.Medium else FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Build,
-                            contentDescription = "Status",
-                            tint = if (midiReceiver != null) Color(0xFF4CAF50) else Color.Red
+                        // LED INDICADOR SUPERIOR DINÂMICO (VERDE / VERMELHO)
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .background(if (ledVerdeAtivo) Color(0xFF4CAF50) else Color.Red)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(" 87%", color = Color.LightGray, fontSize = 14.sp)
                     }
                 }
@@ -168,7 +136,11 @@ fun TelaMidiSintetizador(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBgDark)
         )
 
-        Box(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
             if (mostrarMonitor) {
                 MonitorScreenContent(
                     fileUri = selectedFileUri,
@@ -177,14 +149,13 @@ fun TelaMidiSintetizador(
                 )
             } else {
                 MixerScreenContent(
-                    nomeInstrumento = nomeAcordeonConectado,
-                    isConnected = midiReceiver != null,
+                    nomeInstrumento = tituloDispositivo,
+                    isConnected = ledVerdeAtivo,
                     onOtaClick = { mostrarMonitor = true }
                 )
             }
         }
     }
-
     // --- POP-UP CENTRAL DE SELEÇÃO MIDI ---
     if (exibirPopupDispositivos) {
         val midiManager = context.getSystemService(Context.MIDI_SERVICE) as android.media.midi.MidiManager
@@ -212,13 +183,14 @@ fun TelaMidiSintetizador(
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             listaAtualizada.forEach { dispositivo ->
-                                val nomeDispositivo = dispositivo.properties.getString("name") ?: "Acordeon MIDI"
+                                val nomeDispositivo = dispositivo.properties.getString(MidiDeviceInfo.PROPERTY_NAME)
+                                    ?: dispositivo.properties.getString(MidiDeviceInfo.PROPERTY_PRODUCT)
+                                    ?: "Acordeon MIDI"
 
                                 Button(
                                     onClick = {
-                                        nomeAcordeonConectado = nomeDispositivo
-                                        onDispositivoSelecionado(dispositivo)
                                         exibirPopupDispositivos = false
+                                        onDispositivoSelecionado(dispositivo)
                                     },
                                     modifier = Modifier.fillMaxWidth().height(48.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = ColorChannel1),
@@ -230,7 +202,7 @@ fun TelaMidiSintetizador(
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         Icon(Icons.Default.Build, contentDescription = null, tint = Color.White)
-                                        Text(nomeDispositivo, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                        Text(text = nomeDispositivo)
                                     }
                                 }
                             }
@@ -257,11 +229,16 @@ fun TelaMidiSintetizador(
                                 connectCheck == android.content.pm.PackageManager.PERMISSION_GRANTED &&
                                 locationCheck == android.content.pm.PackageManager.PERMISSION_GRANTED) {
 
-                                val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager
-                                if (btManager.adapter?.isEnabled == false) {
-                                    bluetoothEnableLauncher.launch(Intent(android.bluetooth.BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                                val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                                val adapter = btManager.adapter
+
+                                if (adapter != null && !adapter.isEnabled) {
+                                    bluetoothEnableLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                                 } else {
-                                    dispararJanelaBuscaSistema()
+                                    Toast.makeText(context, "Atualizando lista de dispositivos no ar...", Toast.LENGTH_SHORT).show()
+                                    try {
+                                        listaAtualizada = midiManager.devices.toList()
+                                    } catch (_: Exception) {}
                                 }
                             } else {
                                 launcherPermissoes.launch(

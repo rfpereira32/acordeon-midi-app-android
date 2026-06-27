@@ -14,12 +14,21 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import android.media.midi.MidiDeviceInfo
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 
 class MainViewModel : ViewModel() {
     var volume by mutableFloatStateOf(0.8f)
     var usoCpu by mutableIntStateOf(0)
     var listaDispositivos by mutableStateOf<List<MidiDeviceInfo>>(emptyList())
+
+    private val _nomeDispositivoConectado = MutableStateFlow("Nenhum dispositivo pareado")
+    val nomeDispositivoConectado: StateFlow<String> = _nomeDispositivoConectado.asStateFlow()
+
+    private val _isBleConectado = MutableStateFlow(false)
+    val isBleConectado: StateFlow<Boolean> = _isBleConectado.asStateFlow()
 
 }
 

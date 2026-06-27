@@ -1,6 +1,8 @@
 package com.robsonmartins.androidmidisynth
 
+import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -9,22 +11,24 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
-import android.bluetooth.BluetoothGatt
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +42,6 @@ fun MixerScreenContent(nomeInstrumento: String, isConnected: Boolean, onOtaClick
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // O LED muda dinamicamente: Verde se conectado, Vermelho se desconectado
             Box(
                 modifier = Modifier
                     .size(8.dp)
@@ -49,7 +52,7 @@ fun MixerScreenContent(nomeInstrumento: String, isConnected: Boolean, onOtaClick
             )
 
             Text(
-                text = if (isConnected) " BLE Ativo   |   \uD83C\uDFB5 $nomeInstrumento ▾" else " BLE Desconectado   |   \uD83C\uDFB5 $nomeInstrumento ▾",
+                text = if (isConnected) " BLE Ativo   |   🎵 $nomeInstrumento ▾" else " BLE Desconectado   |   🎵 $nomeInstrumento ▾",
                 color = Color.Gray,
                 fontSize = 14.sp,
                 modifier = Modifier.padding(start = 8.dp)
@@ -58,6 +61,7 @@ fun MixerScreenContent(nomeInstrumento: String, isConnected: Boolean, onOtaClick
 
         Spacer(modifier = Modifier.height(4.dp))
 
+        // OS 5 SLIDERS DE VOLUME DO MIXER COM AS CAIXAS LATERAIS ESTREITAS
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             StaticChannelRow("1", "Teclado / Melodia", ColorChannel1, 85f)
             StaticChannelRow("2", "Baixos Fundamentais", ColorChannel2, 70f, true)
@@ -68,6 +72,7 @@ fun MixerScreenContent(nomeInstrumento: String, isConnected: Boolean, onOtaClick
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // OS 4 BOTÕES DE AÇÕES RÁPIDAS NO RODAPÉ DO MIXER
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -107,17 +112,18 @@ fun MixerScreenContent(nomeInstrumento: String, isConnected: Boolean, onOtaClick
         }
     }
 }
-
 @Composable
 fun MonitorScreenContent(
-    fileUri: android.net.Uri?,
-    midiReceiver: android.media.midi.MidiReceiver?, // Recebe o driver MIDI nativo do topo
-    onFileSelected: (android.net.Uri) -> Unit
+    fileUri: Uri?,
+    midiReceiver: android.media.midi.MidiReceiver?,
+    onFileSelected: (Uri) -> Unit
 ) {
     val context = LocalContext.current
 
-    // Vincula o gerenciador de OTA ao driver MIDI do acordeon
-    val otaManager = remember(midiReceiver) { OtaManager(context, midiReceiver) }
+    // Instancia o OtaManager usando o barramento reativo compartilhado
+    val otaManager = remember(MidiEstadoCompartilhado.receiverMidiAtivo) {
+        OtaManager(context, MidiEstadoCompartilhado.receiverMidiAtivo)
+    }
 
     val statusAtual by otaManager.statusOta.collectAsState()
     val progressoPercentual by otaManager.progressoOta.collectAsState()
@@ -127,7 +133,7 @@ fun MonitorScreenContent(
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: android.net.Uri? ->
+    ) { uri: Uri? ->
         if (uri != null) {
             onFileSelected(uri)
         }
@@ -161,6 +167,7 @@ fun MonitorScreenContent(
                 Text(text = statusAtual, color = Color.LightGray, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // CORRIGIDO: Passando o Float direto sem as chaves lambda {}
                 LinearProgressIndicator(
                     progress = progressoPercentual,
                     modifier = Modifier.fillMaxWidth().height(10.dp),
@@ -192,9 +199,9 @@ fun MonitorScreenContent(
 
         Button(
             onClick = {
-                if (fileUri != null) {
+                fileUri?.let { uriValida ->
                     coroutineScope.launch {
-                        otaManager.iniciarAtualizacao(fileUri)
+                        otaManager.iniciarAtualizacao(uriValida)
                     }
                 }
             },
@@ -221,19 +228,33 @@ fun StaticChannelRow(
     var currentVolume by remember { mutableStateOf(initialVolume) }
     var isMuted by remember { mutableStateOf(false) }
 
+    val corFundoLinha = if (isMuted) Color(0xFF252528) else ColorCardBg
+    val corCaixaCanal = if (isMuted) Color.Gray else accentColor
+    val corTextoVolume = if (isMuted) Color.LightGray else accentColor
+
     Row(
-        modifier = Modifier.fillMaxWidth().height(110.dp).background(ColorCardBg, RoundedCornerShape(8.dp)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp)
+            .background(corFundoLinha, RoundedCornerShape(8.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.fillMaxHeight().width(55.dp).background(accentColor, RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)),
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(34.dp)
+                .background(corCaixaCanal, RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)),
             contentAlignment = Alignment.Center
         ) {
             Text(number, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
 
         Column(
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .alpha(if (isMuted) 0.4f else 1.0f),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
@@ -255,7 +276,7 @@ fun StaticChannelRow(
                     Box(
                         modifier = Modifier.size(8.dp).background(if (isIndicatorOn) Color(0xFF4CAF50) else Color.DarkGray, RoundedCornerShape(4.dp))
                     )
-                    Text("${currentVolume.toInt()}%", color = accentColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("${currentVolume.toInt()}%", color = corTextoVolume, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -265,8 +286,8 @@ fun StaticChannelRow(
                 valueRange = 0f..100f,
                 modifier = Modifier.fillMaxWidth(),
                 colors = SliderDefaults.colors(
-                    thumbColor = accentColor,
-                    activeTrackColor = accentColor,
+                    thumbColor = corCaixaCanal,
+                    activeTrackColor = corCaixaCanal,
                     inactiveTrackColor = Color(0xFF2C2C32)
                 )
             )
