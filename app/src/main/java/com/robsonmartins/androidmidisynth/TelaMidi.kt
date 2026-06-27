@@ -1,155 +1,270 @@
-package com.robsonsmartins.androidmidisynth
+package com.robsonmartins.androidmidisynth
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import android.content.Intent
+import android.media.midi.MidiDeviceInfo
+import android.media.midi.MidiReceiver
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.media.midi.MidiDeviceInfo
+import java.util.regex.Pattern
 
+
+// Cores escuras customizadas do Cordovox MIDI
+val ColorBgDark = Color(0xFF0F0F11)
+val ColorCardBg = Color(0xFF1A1A1E)
+val ColorChannel1 = Color(0xFF8A46E6)
+val ColorChannel2 = Color(0xFFF27405)
+val ColorChannel3 = Color(0xFF63C324)
+val ColorChannel4 = Color(0xFF2589F5)
+val ColorChannel5 = Color(0xFFFAB802)
+
+val cpuTelemetryFlow = kotlinx.coroutines.flow.MutableStateFlow(0f)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaMidiSintetizador(
-    viewModel: MainViewModel,
+    listaDispositivos: List<MidiDeviceInfo>,
     onVolumeChanged: (Float) -> Unit,
-    onDispositivoSelecionado: (MidiDeviceInfo) -> Unit
+    onDispositivoSelecionado: (MidiDeviceInfo) -> Unit,
+    midiReceiver: MidiReceiver? = null // Remova o 'android.media.midi.' se houver duplicidade de import
 ) {
-    val volume = viewModel.volume
-    val usoCpu = viewModel.usoCpu
-    val listaDispositivos = viewModel.listaDispositivos
 
-    var mostrarDialogo by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var mostrarMonitor by remember { mutableStateOf(false) }
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
+    var exibirPopupDispositivos by remember { mutableStateOf(false) }
 
-    val cpuAnimada by animateFloatAsState(
-        targetValue = usoCpu / 100f,
-        animationSpec = tween(durationMillis = 300),
-        label = "AnimacaoCPU"
-    )
+    // ======================================================================
+    // VINCULAÇÃO DIRETA E REATIVA AO SINGLETON GLOBAL DO JETPACK COMPOSE
+    // Lê os estados do MidiEstadoCompartilhado que reside no MidiManager.kt
+    // ======================================================================
+    val tituloDispositivo = MidiEstadoCompartilhado.nomeDispositivoPareado
+    val ledVerdeAtivo = MidiEstadoCompartilhado.isDispositivoConectado
+
+    // Launcher para requisitar ao sistema que ligue o Bluetooth se estiver desligado
+    val bluetoothEnableLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { resultado ->
+        if (resultado.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Bluetooth ativado! Buscando instrumentos no ar...", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Ative o Bluetooth para sincronizar com o Acordeon.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Launcher que pede o combo obrigatório de permissões (Bluetooth + Localização)
+    val launcherPermissoes = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissoes ->
+        val scanConcedido = permissoes[android.Manifest.permission.BLUETOOTH_SCAN] ?: false
+        val connectConcedido = permissoes[android.Manifest.permission.BLUETOOTH_CONNECT] ?: false
+        val locationConcedida = permissoes[android.Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+
+        if (scanConcedido && connectConcedido && locationConcedida) {
+            exibirPopupDispositivos = true
+        } else {
+            Toast.makeText(context, "Dê todas as permissões nas configurações do celular!", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(32.dp)
+            .background(ColorBgDark)
     ) {
-        Text(
-            text = "ESP32-S3 BLE MIDI",
-            color = Color.White,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-
-        // Botão para abrir a lista
-        Button(
-            onClick = { mostrarDialogo = true },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00ADB5)),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Selecionar Acordeon MIDI", color = Color.White)
-        }
-
-        // Janela de diálogo de escolha
-        if (mostrarDialogo) {
-            AlertDialog(
-                onDismissRequest = { mostrarDialogo = false },
-                title = { Text("Escolha o Instrumento", color = Color.White) },
-                containerColor = Color(0xFF1E1E1E),
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (listaDispositivos.isEmpty()) {
-                            Text("Nenhum dispositivo MIDI encontrado.", color = Color.LightGray)
+        TopAppBar(
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (mostrarMonitor) {
+                            IconButton(onClick = { mostrarMonitor = false }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
+                            }
                         } else {
-                            for (dispositivo in listaDispositivos) {
-                                val nome = dispositivo.properties.getString("name") ?: "Dispositivo Desconhecido"
-                                Button(
-                                    onClick = {
-                                        onDispositivoSelecionado(dispositivo)
-                                        mostrarDialogo = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2d2d2d))
-                                ) {
-                                    Text(nome, color = Color.White)
-                                }
+                            IconButton(onClick = { exibirPopupDispositivos = true }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
                             }
                         }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { mostrarDialogo = false }) {
-                        Text("Fechar", color = Color(0xFF00ADB5))
-                    }
-                }
-            )
-        }
+                        Spacer(modifier = Modifier.width(12.dp))
 
-        // Card do Volume
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Volume Geral", color = Color.LightGray, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Slider(
-                        value = volume,
-                        onValueChange = { novoVolume -> onVolumeChanged(novoVolume) },
-                        modifier = Modifier.weight(1f),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF00ADB5),
-                            activeTrackColor = Color(0xFF00ADB5)
+                        // TEXTO DINÂMICO COM TAMANHO ADAPTATIVO
+                        Text(
+                            text = tituloDispositivo,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontSize = if (tituloDispositivo == "Nenhum dispositivo pareado") 16.sp else 24.sp,
+                            fontWeight = if (tituloDispositivo == "Nenhum dispositivo pareado") FontWeight.Medium else FontWeight.Bold,
+                            color = Color.White
                         )
-                    )
-                    Text(
-                        text = "${(volume * 100).toInt()}%",
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 12.dp),
-                        fontWeight = FontWeight.Medium
-                    )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // LED INDICADOR SUPERIOR DINÂMICO (VERDE / VERMELHO)
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .background(if (ledVerdeAtivo) Color(0xFF4CAF50) else Color.Red)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(" 87%", color = Color.LightGray, fontSize = 14.sp)
+                    }
                 }
-            }
-        }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBgDark)
+        )
 
-        // Card da CPU
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Uso de CPU do ESP32", color = Color.LightGray, fontSize = 16.sp)
-                    Text(
-                        text = "$usoCpu%",
-                        color = if (usoCpu > 80) Color.Red else Color(0xFF00ADB5),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    progress = cpuAnimada,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(12.dp),
-                    color = if (usoCpu > 80) Color.Red else Color(0xFF00ADB5),
-                    trackColor = Color(0xFF333333)
+            if (mostrarMonitor) {
+                MonitorScreenContent(
+                    fileUri = selectedFileUri,
+                    midiReceiver = midiReceiver,
+                    onFileSelected = { uri -> selectedFileUri = uri }
+                )
+            } else {
+                MixerScreenContent(
+                    nomeInstrumento = tituloDispositivo,
+                    isConnected = ledVerdeAtivo,
+                    onOtaClick = { mostrarMonitor = true }
                 )
             }
         }
+    }
+    // --- POP-UP CENTRAL DE SELEÇÃO MIDI ---
+    if (exibirPopupDispositivos) {
+        val midiManager = context.getSystemService(Context.MIDI_SERVICE) as android.media.midi.MidiManager
+        var listaAtualizada by remember { mutableStateOf(listaDispositivos) }
+
+        LaunchedEffect(exibirPopupDispositivos) {
+            try {
+                listaAtualizada = midiManager.devices.toList()
+            } catch (e: Exception) {
+                listaAtualizada = listaDispositivos
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = { exibirPopupDispositivos = false },
+            title = { Text("Selecione o Acordeon", color = Color.White, fontWeight = FontWeight.Bold) },
+            containerColor = ColorCardBg,
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (listaAtualizada.isNotEmpty()) {
+                        Text("Instrumentos Disponíveis:", color = Color.Gray, fontSize = 12.sp)
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listaAtualizada.forEach { dispositivo ->
+                                val nomeDispositivo = dispositivo.properties.getString(MidiDeviceInfo.PROPERTY_NAME)
+                                    ?: dispositivo.properties.getString(MidiDeviceInfo.PROPERTY_PRODUCT)
+                                    ?: "Acordeon MIDI"
+
+                                Button(
+                                    onClick = {
+                                        exibirPopupDispositivos = false
+                                        onDispositivoSelecionado(dispositivo)
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = ColorChannel1),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Icon(Icons.Default.Build, contentDescription = null, tint = Color.White)
+                                        Text(text = nomeDispositivo)
+                                    }
+                                }
+                            }
+                        }
+                        Divider(color = Color.DarkGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
+                    }
+
+                    Text("Não listado? Escaneie o ambiente:", color = Color.Gray, fontSize = 12.sp)
+                    Button(
+                        onClick = {
+                            val scanCheck = context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN)
+                            val connectCheck = context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+                            val locationCheck = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
+
+                            val lm = context.getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+                            val gpsLigado = lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
+
+                            if (!gpsLigado) {
+                                Toast.makeText(context, "Ative a Localização (GPS) no painel do seu celular!", Toast.LENGTH_LONG).show()
+                                return@Button
+                            }
+
+                            if (scanCheck == android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                                connectCheck == android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                                locationCheck == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+
+                                val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                                val adapter = btManager.adapter
+
+                                if (adapter != null && !adapter.isEnabled) {
+                                    bluetoothEnableLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                                } else {
+                                    Toast.makeText(context, "Atualizando lista de dispositivos no ar...", Toast.LENGTH_SHORT).show()
+                                    try {
+                                        listaAtualizada = midiManager.devices.toList()
+                                    } catch (_: Exception) {}
+                                }
+                            } else {
+                                launcherPermissoes.launch(
+                                    arrayOf(
+                                        android.Manifest.permission.BLUETOOTH_SCAN,
+                                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                                        android.Manifest.permission.ACCESS_FINE_LOCATION
+                                    )
+                                )
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ColorChannel2),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Buscar Instrumentos no Ar", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { exibirPopupDispositivos = false }) {
+                    Text("Cancelar", color = Color.Gray, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
     }
 }

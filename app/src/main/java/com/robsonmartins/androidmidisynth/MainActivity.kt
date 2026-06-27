@@ -1,5 +1,6 @@
 package com.robsonsmartins.androidmidisynth
 
+import com.robsonmartins.androidmidisynth.TelaMidiSintetizador
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -13,11 +14,26 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import android.media.midi.MidiDeviceInfo
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 
 class MainViewModel : ViewModel() {
     var volume by mutableFloatStateOf(0.8f)
     var usoCpu by mutableIntStateOf(0)
     var listaDispositivos by mutableStateOf<List<MidiDeviceInfo>>(emptyList())
+
+    private val _nomeDispositivoConectado = MutableStateFlow("Nenhum dispositivo pareado")
+    val nomeDispositivoConectado: StateFlow<String> = _nomeDispositivoConectado.asStateFlow()
+
+    private val _isBleConectado = MutableStateFlow(false)
+    val isBleConectado: StateFlow<Boolean> = _isBleConectado.asStateFlow()
+
+}
+
+private fun MidiManager.iniciarEscaneamentoAutomatico() {
+    start()
 }
 
 class MainActivity : ComponentActivity() {
@@ -61,21 +77,33 @@ class MainActivity : ComponentActivity() {
         midiManager = MidiManager(this, ::onMidiMessageReceived)
         midiManager.start()
 
+        // Inicializa o gerenciador de MIDI
+        midiManager = MidiManager(this, ::onMidiMessageReceived)
+        midiManager.start()
+
+        // LINE ADICIONADA: Ativa o rastreamento em background direto pelo rádio do celular
+        midiManager.iniciarEscaneamentoAutomatico()
+
+
         // Carrega os dispositivos iniciais na lista da interface
         viewModel.listaDispositivos = midiManager.listarDispositivosDisponiveis(this)
 
         setContent {
             TelaMidiSintetizador(
-                viewModel = viewModel,
+                // CORREÇÃO AQUI: Mudamos o nome do parâmetro para bater exatamente com a assinatura da tela
+                listaDispositivos = viewModel.listaDispositivos,
                 onVolumeChanged = { novoVolume ->
                     viewModel.volume = novoVolume
                     synthManager.setVolume((novoVolume * 127).toInt())
                 },
                 onDispositivoSelecionado = { dispositivoEscolhido ->
                     midiManager.conectarAoDispositivo(dispositivoEscolhido)
-                }
+                },
+                midiReceiver = midiManager.obterReceiverMidi()
             )
         }
+
+
     } // <-- CHAVE CORRETA QUE FECHA O ONCREATE
 
     /** @brief Callback acionado em tempo real quando mensagens chegam do ESP32-S3 / Cordovox */
@@ -102,6 +130,17 @@ class MainActivity : ComponentActivity() {
             e.printStackTrace()
         }
     } // <-- CHAVE CORRETA QUE FECHA O PROCESSARSYSEXCPU
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101 && ::midiManager.isInitialized) {
+            midiManager.iniciarEscaneamentoAutomatico()
+        }
+    }
 
     override fun onDestroy() {
         midiManager.finalize()

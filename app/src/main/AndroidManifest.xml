@@ -3,16 +3,23 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.robsonsmartins.androidmidisynth">
 
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <!-- Adicione esta linha junto com as outras permissões e features no topo do manifesto -->
+    <uses-feature android:name="android.software.companion_device_setup" android:required="true" />
+
+    <!-- Adicione estas duas linhas junto com as de Bluetooth no topo do seu manifesto -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Permissões universais de Bluetooth unificadas -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+    <!-- Exigido do Android 12 ao 14+ -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <attribution android:tag="@string/empty_tag" android:label="@string/midi_audio_label" />
-    <attribution android:tag="audioPlayback" android:label="@string/midi_audio_label" />
+    <!-- Recursos físicos de hardware exigidos -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -35,6 +42,8 @@
                 <action android:name="androidx.media.MediaSessionService" />
             </intent-filter>
         </service>
+
+        <uses-library android:name="android.test.runner" android:required="false" />
 
         <activity
             android:name=".MainActivity"
