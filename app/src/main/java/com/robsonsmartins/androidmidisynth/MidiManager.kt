@@ -30,11 +30,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.robsonmartins.androidmidisynth.MidiEstadoCompartilhado
 
 private var inputPort: MidiInputPort? = null
-
-
 
 /**
  * @brief MidiManager class.
@@ -62,6 +59,7 @@ class MidiManager(
 
     private val _isBleConectado = MutableStateFlow(false)
     val isBleConectado: StateFlow<Boolean> = _isBleConectado.asStateFlow()
+
     /**
      * Expõe a porta de envio convertida em MidiReceiver para a MainActivity.
      */
@@ -69,7 +67,57 @@ class MidiManager(
         return inputPort
     }
 
-        /** @brief Inicializa callbacks MIDI e a busca BLE MIDI nativa, sem depender de apps externos. */
+    // =======================================================================
+    // COUT DE ENGENHARIA: RECURSOS ADICIONADOS DE TRANSMISSÃO DIGITAL SYSEX
+    // =======================================================================
+
+    /**
+     * Dispara o envelope SysEx curto de chaveamento de infraestrutura (Sub-ID 0x0A).
+     * Força o microcontrolador ESP32 a derrubar o BLE e invocar o iniciarOTA().
+     */
+    fun enviarComandoIniciarOtaWifi() {
+        val rádio = inputPort
+        if (rádio != null) {
+            try {
+                val envelopeOtaSysEx = byteArrayOf(
+                    0xF0.toByte(),
+                    0x7D.toByte(),
+                    0x0A.toByte(),
+                    0xF7.toByte()
+                )
+                rádio.send(envelopeOtaSysEx, 0, envelopeOtaSysEx.size)
+                onMidiMessageReceived("Comando OTA via Wi-Fi AP despachado com sucesso.")
+            } catch (e: Exception) {
+                Log.e(TAG, "Falha critica ao descarregar buffer SysEx 0x0A: ${e.message}")
+            }
+        } else {
+            onMidiMessageReceived("Erro: Acordeon desconectado. Impossivel enviar comando OTA.")
+        }
+    }
+
+    /**
+     * Monta e descarrega o pacote do Mixer de Volumes (Sub-ID 0x05) de 7 bits em runtime.
+     */
+    fun despacharComandoMixerSysEx(canal: Int, volume: Int) {
+        val rádio = inputPort
+        if (rádio != null) {
+            try {
+                val envelopeSysEx = byteArrayOf(
+                    0xF0.toByte(),
+                    0x7D.toByte(),
+                    0x05.toByte(),
+                    (canal and 0x7F).toByte(),
+                    (volume and 0x7F).toByte(),
+                    0xF7.toByte()
+                )
+                rádio.send(envelopeSysEx, 0, envelopeSysEx.size)
+            } catch (e: Exception) {
+                Log.e(TAG, "Falha ao escoar fader SysEx no rádio: ${e.message}")
+            }
+        }
+    }
+
+    /** @brief Inicializa callbacks MIDI e a busca BLE MIDI nativa, sem depender de apps externos. */
     fun start() {
         midiManager.registerDeviceCallback(
             object : AndroidMidiManager.DeviceCallback() {
@@ -86,7 +134,6 @@ class MidiManager(
                 }
             }, mainHandler
         )
-
         iniciarBuscaBleMidi()
     }
 
@@ -95,17 +142,14 @@ class MidiManager(
         val manager = contextoEfetivo.getSystemService(Context.MIDI_SERVICE) as AndroidMidiManager
         return manager.devices.filter { deviceInfo ->
             deviceInfo.properties.getString("product")?.lowercase() != "fluidsynth" &&
-                (deviceInfo.inputPortCount > 0 || deviceInfo.outputPortCount > 0)
+                    (deviceInfo.inputPortCount > 0 || deviceInfo.outputPortCount > 0)
         }
     }
 
-    /** @brief Abre um dispositivo MIDI já publicado pelo Android. */
     /** @brief Abre um dispositivo MIDI selecionado manualmente no Pop-up */
     fun conectarAoDispositivo(deviceInfo: MidiDeviceInfo) {
         val nome = nomeDispositivo(deviceInfo)
         onMidiMessageReceived("Conectando manualmente a: $nome...")
-
-        // CORREÇÃO CRÍTICA 1: Para o scanner imediatamente para não concorrer com o clique do Pop-up!
         pararBuscaBleMidi()
 
         midiManager.openDevice(deviceInfo, { dispositivo ->
@@ -113,8 +157,6 @@ class MidiManager(
                 onMidiMessageReceived("Falha ao abrir $nome.")
                 return@openDevice
             }
-
-            // Delay de estabilização para o Android popular os descritores
             mainHandler.postDelayed({
                 configurarDispositivoAberto(dispositivo, deviceInfo)
             }, 300)
@@ -128,19 +170,15 @@ class MidiManager(
 
         val nome = try { device.name ?: endereco } catch (_: SecurityException) { endereco }
         onMidiMessageReceived("BLE MIDI encontrado no ar: $nome. Conectando...")
-
-        // CORREÇÃO CRÍTICA 2: Cancela o scanner imediatamente antes de chamar o openBluetoothDevice
         pararBuscaBleMidi()
 
         midiManager.openBluetoothDevice(device, { dispositivo ->
             bluetoothDevicesEmAbertura.remove(endereco)
             if (dispositivo == null) {
                 onMidiMessageReceived("Não foi possível abrir BLE MIDI: $nome")
-                // Se falhar, reativa a busca automática para não ficar cego
                 iniciarBuscaBleMidi()
                 return@openBluetoothDevice
             }
-
             mainHandler.postDelayed({
                 configurarDispositivoAberto(dispositivo, dispositivo.info)
             }, 300)
@@ -215,7 +253,6 @@ class MidiManager(
                 val tentaPorta = dispositivo.openInputPort(indicePorta)
                 if (tentaPorta != null) {
                     inputPort = tentaPorta
-                    // Injeta a referência física convertida no Singleton global para o OtaManager ler
                     MidiEstadoCompartilhado.receiverMidiAtivo = tentaPorta
                     Log.d(TAG, "Bypass Sucesso: Canal de escrita indexado na porta: $indicePorta")
                     portaAbertaComSucesso = true
@@ -239,10 +276,8 @@ class MidiManager(
             }
         }
 
-        // Sincronização estável de Estados Reativos com a UI (Thread Principal)
         mainHandler.post {
             if (portaAbertaComSucesso) {
-                // Chama a função centralizada que atualiza o Jetpack Compose sem conflitos
                 MidiEstadoCompartilhado.atualizarEstado(nomeDoAparato, true)
                 _nomeDispositivoConectado.value = nomeDoAparato
                 _isBleConectado.value = true
@@ -253,20 +288,16 @@ class MidiManager(
                 MidiEstadoCompartilhado.atualizarEstado("Nenhum dispositivo pareado", false)
                 _nomeDispositivoConectado.value = "Nenhum dispositivo pareado"
                 _isBleConectado.value = false
-                onMidiMessageReceived("Aviso: ESP32-S3 nao liberou canal de escrita.")
+                onMidiMessageReceived("Aviso: ESP32 nao liberou canal de escrita.")
             }
         }
 
-        // Abertura do canal de leitura de notas (Sons vindos do instrumento)
         if (deviceInfo.outputPortCount > 0) {
             startReadingMidi(dispositivo, 0)
         }
     }
 
-
-
     fun finalize() {
-        // Garante que a UI limpe os indicadores na Thread principal ao desconectar
         mainHandler.post {
             MidiEstadoCompartilhado.atualizarEstado("Nenhum dispositivo pareado", false)
             MidiEstadoCompartilhado.receiverMidiAtivo = null
