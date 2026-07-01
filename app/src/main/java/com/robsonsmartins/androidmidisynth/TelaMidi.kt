@@ -78,11 +78,17 @@ fun TelaMidiSintetizador(
         TopAppBar(
             title = {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // BLOCO DA ESQUERDA: MENU + TEXTO DO INSTRUMENTO (PROTEGIDO CONTRA ESTOURO)
+                    Row(
+                        modifier = Modifier.weight(1f), // Força este bloco a consumir apenas o espaço útil da esquerda
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         if (mostrarMonitor) {
                             IconButton(onClick = { mostrarMonitor = false }) {
                                 Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = Color.White)
@@ -92,18 +98,44 @@ fun TelaMidiSintetizador(
                                 Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
                             }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = tituloDispositivo, style = MaterialTheme.typography.headlineMedium, fontSize = if (tituloDispositivo == "Nenhum dispositivo pareado") 16.sp else 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(if (ledVerdeAtivo) Color(0xFF4CAF50) else Color.Red))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(" 87%", color = Color.LightGray, fontSize = 14.sp)
+
+                        // CORREÇÃO CRÍTICA: Fonte normalizada em 18.sp para não empurrar e sumir com a bateria
+                        Text(
+                            text = tituloDispositivo,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1 // Garante que o texto fique em uma única linha sem quebrar o layout
+                        )
+                    }
+
+                    // BLOCO DA DIREITA: LED REATIVO + TEXTO DA BATERIA REAL (FIXO NA MARGEM DIREITA)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp) // Reduzido ligeiramente de 14 para 10dp para melhor respiro visual
+                                .clip(CircleShape)
+                                .background(if (ledVerdeAtivo) Color(0xFF4CAF50) else Color.Red)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        Text(
+                            text = MidiEstadoCompartilhado.porcentagemBateriaReal,
+                            color = if (ledVerdeAtivo) Color.LightGray else Color.Gray,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold // Negrito para destacar a leitura do ADC do ESP32
+                        )
                     }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBgDark)
         )
+
 
         Box(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
             if (mostrarMonitor) {
