@@ -1,3 +1,19 @@
+# Acordeon MIDI
+
+Aplicativo Android nativo desenvolvido em Kotlin para acordeões MIDI.
+
+## Recursos
+
+- BLE automático
+- FluidSynth integrado
+- SoundFonts
+- Mixer MIDI
+- OTA
+- Presets
+- Configuração do acordeão
+
+
+
 # Android MIDI Synth
 
 The Android MIDI Synth project is an example Android application written in Kotlin, which processes
@@ -28,18 +44,3 @@ The same "Terms and Conditions" and "Privacy Policy" of the
 - [Terms and Conditions](https://www.robsonmartins.com/content/policy/terms.php)
 - [Privacy Policy](https://www.robsonmartins.com/content/policy/privacy.php)
 
-## Contact
-
-[![Home Page][contact-site-shield]][contact-site-url] [![LinkedIn][contact-linkedin-shield]][contact-linkedin-url]
-
-This work is licensed under a [MIT License][mit].
-
-[![MIT License][mit-image]][mit]
-
-[mit]: https://spdx.org/licenses/MIT.html
-[mit-image]: https://img.shields.io/badge/License-MIT-yellow.svg
-
-[contact-site-shield]: https://img.shields.io/badge/Home%20Page-robsonmartins.com-green?style=plastic
-[contact-site-url]: https://www.robsonmartins.com
-[contact-linkedin-shield]: https://img.shields.io/badge/LinkedIn-robsonmartins-blue?style=plastic
-[contact-linkedin-url]: https://www.linkedin.com/in/robsonmartins/
