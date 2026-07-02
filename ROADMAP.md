@@ -22,4 +22,4 @@
 
 # Sprint 5
 
-- [ ] OTA
+- [ ] Comunicação com ESP
