@@ -30,7 +30,6 @@
 
 package com.robsonsmartins.androidmidisynth
 
-import androidx.activity.ComponentActivity
 import android.content.Context
 import java.io.IOException
 
@@ -39,7 +38,7 @@ import java.io.IOException
  * @details The SynthManager encapsulates a FluidSynth synthesizer.
  * @param context The context object.
  */
-class SynthManager(private val context: Context) {
+class FluidSynthManager(private val context: Context) {
 
     /* @brief Soundfont file path. */
     private var soundFontPath: String? = null

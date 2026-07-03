@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val viewModel: MainViewModel by viewModels()
-    private lateinit var synthManager: SynthManager
+    private lateinit var synthManager: FluidSynthManager
     private lateinit var midiManager: MidiManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
         }
 
         // Inicializa o motor de áudio FluidSynth interno do projeto
-        synthManager = SynthManager(this)
+        synthManager = FluidSynthManager(this)
 
         val nomeArquivoSf2 = "AcordeonGiulietti.sf2"
         val arquivoDestinoFisico = File(filesDir, nomeArquivoSf2)
