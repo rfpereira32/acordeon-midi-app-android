@@ -18,11 +18,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
-*/
+ */
+
 // -----------------------------------------------------------------------------------------------
 /**
- * @file SynthManager.kt
- * @brief Kotlin Implementation of SynthManager.
+ * @file FluidSynthManager.kt
+ * @brief Kotlin implementation of FluidSynthManager.
  *
  * @author Robson Martins (https://www.robsonmartins.com)
  */
@@ -34,31 +35,49 @@ import android.content.Context
 import java.io.IOException
 
 /**
- * @brief SynthManager class.
- * @details The SynthManager encapsulates a FluidSynth synthesizer.
- * @param context The context object.
+ * Encapsula toda a comunicação entre o Kotlin e a biblioteca FluidSynth.
+ *
+ * Esta classe é responsável apenas por controlar o sintetizador.
+ * Toda a lógica de canais, mixer e presets ficará fora dela.
  */
 class FluidSynthManager(private val context: Context) {
 
-    /* @brief Soundfont file path. */
+    // =============================================================================================
+    // Propriedades
+    // =============================================================================================
+
+    /** Caminho temporário da SoundFont carregada. */
     private var soundFontPath: String? = null
 
-    /** @brief Initialize the instance. */
-    init { fluidsynthInit() }
+    // =============================================================================================
+    // Inicialização
+    // =============================================================================================
 
-    /** @brief Finalize the instance. */
-    fun finalize()  { fluidsynthFree() }
+    init {
+        fluidsynthInit()
+    }
 
     /**
-     * @brief Load a soundfont file.
-     * @param filename The soundfont filename.
-     * @param program Program number to select (default = 0).
+     * Libera os recursos utilizados pelo FluidSynth.
+     */
+    fun finalize() {
+        fluidsynthFree()
+    }
+
+    // =============================================================================================
+    // API Pública
+    // =============================================================================================
+
+    /**
+     * Carrega uma SoundFont.
+     *
+     * @param filename Nome do arquivo .sf2 localizado na pasta assets.
+     * @param program Programa MIDI inicial.
      */
     fun loadSF(filename: String, program: Int = 0) {
         try {
-            soundFontPath = copyAssetToTmpFile("AcordeonGiulietti.sf2")
-            if (fluidsynthLoadSF(soundFontPath, program) < 0) {
-                throw IOException("Error loading $filename")
+            if (fluidsynthLoadSF(filename, program) < 0) {
+                throw IOException("Erro ao carregar $filename")
             }
         } catch (e: IOException) {
             throw RuntimeException(e)
@@ -66,75 +85,85 @@ class FluidSynthManager(private val context: Context) {
     }
 
     /**
-     * @brief Set synth volume.
-     * @param volume The volume level.
+     * Ajusta o volume geral do sintetizador.
      */
     fun setVolume(volume: Int) {
         fluidsynthCC(7, volume)
     }
 
-    @Throws(IOException::class)
-    /*
-     * @brief Copy asset file to the temporary directory.
-     * @param filename Asset filename.
-     * @return The filename in temporary directory.
+    /**
+     * Toca uma nota.
      */
+    external fun fluidsynthNoteOn(note: Int, velocity: Int)
+
+    /**
+     * Finaliza uma nota.
+     */
+    external fun fluidsynthNoteOff(note: Int)
+
+    // =============================================================================================
+    // Métodos Privados
+    // =============================================================================================
+
+    /**
+     * Copia uma SoundFont da pasta assets para a área privada do aplicativo.
+     */
+    @Throws(IOException::class)
     private fun copyAssetToTmpFile(filename: String): String {
-        context.assets.open(filename).use { `is` ->
+
+        context.assets.open(filename).use { input ->
+
             val tempFilename = "tmp_$filename"
-            context.openFileOutput(tempFilename, Context.MODE_PRIVATE).use { fos ->
-                var bytesRead: Int
+
+            context.openFileOutput(tempFilename, Context.MODE_PRIVATE).use { output ->
+
                 val buffer = ByteArray(4096)
-                while ((`is`.read(buffer).also { bytesRead = it }) != -1) {
-                    fos.write(buffer, 0, bytesRead)
+
+                var bytesRead: Int
+
+                while (input.read(buffer).also { bytesRead = it } != -1) {
+                    output.write(buffer, 0, bytesRead)
                 }
             }
-            val filesDir = context.filesDir
-            return "$filesDir/$tempFilename"
+
+            return "${context.filesDir}/$tempFilename"
         }
     }
 
-    /*
-     * @brief   Import of the native implementation of SynthManager.fluidsynthInit() method.
-     * @details Initializes the FluidSynth library.
+    // =============================================================================================
+    // JNI
+    // =============================================================================================
+
+    /**
+     * Inicializa o FluidSynth.
      */
     private external fun fluidsynthInit()
-    /*
-     * @brief   Import of the native implementation of SynthManager.fluidsynthLoadSF() method.
-     * @details Loads a soundfont file.
-     * @param   soundfontPath The soundfont filename full path.
-     * @param   program       The number of the program
+
+    /**
+     * Carrega uma SoundFont.
      */
-    private external fun fluidsynthLoadSF(soundfontPath: String?, program: Int): Int
-    /*
-     * @brief   Import of the native implementation of SynthManager.fluidsynthFree() method.
-     * @details Finalizes the FluidSynth library.
+    private external fun fluidsynthLoadSF(
+        soundfontPath: String?,
+        program: Int
+    ): Int
+
+    /**
+     * Libera o FluidSynth.
      */
     private external fun fluidsynthFree()
-    /*
-     * @brief   Import of the native implementation of SynthManager.fluidsynthNoteOn() method.
-     * @details Plays the note.
-     * @param   note      The note to be played.
-     * @param   velocity  The velocity of the note to be played.
+
+    /**
+     * Envia um Control Change.
      */
-     external fun fluidsynthNoteOn(note: Int, velocity: Int)
-    /*
-     * @brief   Import of the native implementation of SynthManager.fluidsynthNoteOff() method.
-     * @details Stops the playing note.
-     * @param   note The note to be stopped.
+    private external fun fluidsynthCC(
+        controller: Int,
+        value: Int
+    )
+
+    /**
+     * Ajusta o nível de Reverb.
      */
-     external fun fluidsynthNoteOff(note: Int)
-    /*
-     * @brief   Import of the native implementation of SynthManager.fluidsynthCC() method.
-     * @details Sends a control command via MIDI.
-     * @param   controller Number of the controller.
-     * @param   value      Value to send.
-     */
-    private external fun fluidsynthCC(controller: Int, value: Int)
-    /*
-     * @brief   Import of the native implementation of SynthManager.fluidsynthReverb() method.
-     * @details Sets the reverb level.
-     * @param   level The reverb level (0 to 127).
-     */
-    private external fun fluidsynthReverb(level: Int)
+    private external fun fluidsynthReverb(
+        level: Int
+    )
 }
