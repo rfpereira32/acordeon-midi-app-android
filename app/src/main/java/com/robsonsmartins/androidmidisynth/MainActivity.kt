@@ -21,6 +21,7 @@ import android.util.Log
 import android.media.midi.MidiDeviceInfo
 import java.io.File
 import java.io.FileOutputStream
+import com.robsonsmartins.androidmidisynth.audio.SoundFontManager
 
 class MainViewModel : ViewModel() {
     var volume by mutableFloatStateOf(0.8f)
@@ -47,6 +48,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private lateinit var synthManager: FluidSynthManager
     private lateinit var midiManager: MidiManager
+    private lateinit var soundFontManager: SoundFontManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,29 +69,12 @@ class MainActivity : ComponentActivity() {
         // Inicializa o motor de áudio FluidSynth interno do projeto
         synthManager = FluidSynthManager(this)
 
-        val nomeArquivoSf2 = "AcordeonGiulietti.sf2"
-        val arquivoDestinoFisico = File(filesDir, nomeArquivoSf2)
+        soundFontManager = SoundFontManager(this)
 
-        try {
-            if (!arquivoDestinoFisico.exists()) {
-                assets.open(nomeArquivoSf2).use { inputStream ->
-                    FileOutputStream(arquivoDestinoFisico).use { outputStream ->
-                        val bufferDeCopia = ByteArray(8192)
-                        var bytesLidos = inputStream.read(bufferDeCopia)
-                        while (bytesLidos != -1) {
-                            outputStream.write(bufferDeCopia, 0, bytesLidos)
-                            bytesLidos = inputStream.read(bufferDeCopia)
-                        }
-                        outputStream.flush()
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Falha extração SoundFont: ${e.message}")
-        }
+        val caminhoSoundFont =
+            soundFontManager.prepareSoundFont("AcordeonGiulietti.sf2")
 
-        val caminhoAbsolutoMidi = arquivoDestinoFisico.absolutePath
-        synthManager.loadSF(caminhoAbsolutoMidi)
+        synthManager.loadSF(caminhoSoundFont)
         synthManager.setVolume((viewModel.volume * 127).toInt())
 
         // ==============================================================================
