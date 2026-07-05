@@ -22,7 +22,7 @@ class SynthController(
 
 ) {
 
-    fun setChannelVolume(
+    fun setVolume(
         channel: Int,
         volume: Int
     ) {

@@ -17,6 +17,7 @@ import java.io.File
 import java.io.FileOutputStream
 import com.robsonsmartins.androidmidisynth.audio.SoundFontManager
 import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
+import com.robsonsmartins.androidmidisynth.audio.SynthController
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
     start()
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var synthManager: FluidSynthManager
     private lateinit var midiManager: MidiManager
     private lateinit var soundFontManager: SoundFontManager
+    private lateinit var synthController: SynthController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +59,7 @@ class MainActivity : ComponentActivity() {
 
         // Inicializa o motor de áudio FluidSynth interno do projeto
         synthManager = FluidSynthManager(this)
+        synthController = SynthController(synthManager)
 
         soundFontManager = SoundFontManager(this)
 
@@ -64,7 +67,10 @@ class MainActivity : ComponentActivity() {
             soundFontManager.prepareSoundFont("AcordeonGiulietti.sf2")
 
         synthManager.loadSF(caminhoSoundFont)
-        synthManager.setVolume((viewModel.masterVolume * 127).toInt())
+        synthController.setVolume(
+            0,
+            (viewModel.masterVolume * 127).toInt()
+        )
 
         // ==============================================================================
         // INICIALIZAÇÃO DO DRIVER DE RÁDIO MIDI COM FILTRO DE BYTES CONTROLO CHANGE
@@ -95,7 +101,10 @@ class MainActivity : ComponentActivity() {
                                         val vel = msg[offset + 2].toInt() and 0xFF
 
                                         if (status in 0x90..0x9F && vel > 0) {
-                                            synthManager.setVolume((viewModel.masterVolume * 127).toInt())
+                                            synthController.setVolume(
+                                                0,
+                                                (viewModel.masterVolume * 127).toInt()
+                                            )
                                         }
                                     }
                                 }
@@ -116,8 +125,9 @@ class MainActivity : ComponentActivity() {
                         onVolumeChanged = { novoVolume: Float ->
                             viewModel.masterVolume = novoVolume
 
-                            synthManager.setVolume(
-                                (novoVolume * 127).toInt()
+                            synthController.setVolume(
+                                0,
+                                (viewModel.masterVolume * 127).toInt()
                             )
                         },
                         onDispositivoSelecionado = { dispositivoEscolhido: MidiDeviceInfo ->

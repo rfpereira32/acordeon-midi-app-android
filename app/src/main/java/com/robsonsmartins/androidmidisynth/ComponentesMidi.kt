@@ -51,11 +51,7 @@ fun MixerScreenContent(
     var modoSetupOtaAtivado by remember { mutableStateOf(false) }
 
     // Estados locais controlando os faders em tempo real
-    var volDiscant by remember { mutableStateOf(85f) }
-    var volBaixos by remember { mutableStateOf(70f) }
-    var volAcordes by remember { mutableStateOf(60f) }
-    var volExtras1 by remember { mutableStateOf(40f) }
-    var volExtras2 by remember { mutableStateOf(50f) }
+    val canais = viewModel.getChannels()
 
     Column(
         modifier = Modifier
@@ -88,100 +84,95 @@ fun MixerScreenContent(
         // OS 5 SLIDERS INTEGRADOS À ESCALA MIDI DE 7 BITS (0 A 127) VIA STRING CHAVEADA
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             StaticChannelRow(
-                "1",
-                "Teclado / Melodia",
-                ColorChannel4,
-                volDiscant,
-                false
+                number = "1",
+                name = "Teclado / Melodia",
+                accentColor = ColorChannel4,
+                initialVolume = canais[0].volume * 100f / 127f,
+                isIndicatorOn = false
             ) { novoVol ->
-
-                volDiscant = novoVol
 
                 val valorMidi = percentToMidi(novoVol)
 
-                // Novo
                 viewModel.setChannelVolume(0, valorMidi)
 
-                // Continua igual
-                midiManager.despacharComandoMixerSysEx(0, valorMidi)
+                midiManager.despacharComandoMixerSysEx(
+                    0,
+                    valorMidi
+                )
             }
-            StaticChannelRow(
-                "2",
-                "Baixos Fundamentais",
-                ColorChannel4,
-                volDiscant,
-                false
-            ) { novoVol ->
 
-                volDiscant = novoVol
+            StaticChannelRow(
+                number = "2",
+                name = "Baixos Fundamentais",
+                accentColor = ColorChannel4,
+                initialVolume = canais[1].volume * 100f / 127f,
+                isIndicatorOn = false
+            ) { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
-                // Novo
                 viewModel.setChannelVolume(1, valorMidi)
 
-                // Continua igual
-                midiManager.despacharComandoMixerSysEx(0, valorMidi)
+                midiManager.despacharComandoMixerSysEx(
+                    0,
+                    valorMidi
+                )
             }
-            StaticChannelRow(
-                "3",
-                "Acordes / Harmonia",
-                ColorChannel4,
-                volDiscant,
-                false
-            ) { novoVol ->
 
-                volDiscant = novoVol
+            StaticChannelRow(
+                number = "3",
+                name = "Acordes / Harmonia",
+                accentColor = ColorChannel4,
+                initialVolume = canais[2].volume * 100f / 127f,
+                isIndicatorOn = false
+            ) { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
-                // Novo
                 viewModel.setChannelVolume(2, valorMidi)
 
-                // Continua igual
-                midiManager.despacharComandoMixerSysEx(0, valorMidi)
+                midiManager.despacharComandoMixerSysEx(
+                    0,
+                    valorMidi
+                )
             }
-            StaticChannelRow(
-                "4",
-                "Instrumentos Extras 1",
-                ColorChannel1,
-                volDiscant,
-                false
-            ) { novoVol ->
 
-                volDiscant = novoVol
+            StaticChannelRow(
+                number = "4",
+                name = "Instrumentos Extras 1",
+                accentColor = ColorChannel4,
+                initialVolume = canais[3].volume * 100f / 127f,
+                isIndicatorOn = false
+            ) { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
-                // Novo
                 viewModel.setChannelVolume(3, valorMidi)
 
-                // Continua igual
-                midiManager.despacharComandoMixerSysEx(0, valorMidi)
+                midiManager.despacharComandoMixerSysEx(
+                    0,
+                    valorMidi
+                )
             }
+
             StaticChannelRow(
-                "5",
-                "Instrumentos Extras 2",
-                ColorChannel1,
-                volDiscant,
-                false
+                number = "5",
+                name = "Instrumentos Extras 2",
+                accentColor = ColorChannel4,
+                initialVolume = canais[4].volume * 100f / 127f,
+                isIndicatorOn = false
             ) { novoVol ->
 
-                volDiscant = novoVol
+                val valorMidi = percentToMidi(novoVol)
 
-                val valorMidi =
-                    ((novoVol / 100f) * 127f)
-                        .toInt()
-                        .coerceIn(0,127)
-
-                // Novo
                 viewModel.setChannelVolume(4, valorMidi)
 
-                // Continua igual
-                midiManager.despacharComandoMixerSysEx(0, valorMidi)
+                midiManager.despacharComandoMixerSysEx(
+                    0,
+                    valorMidi
+                )
             }
         }
-
         Spacer(modifier = Modifier.height(8.dp))
         // OS 4 BOTÕES DE AÇÕES RÁPIDAS NO RODAPÉ DO MIXER (CONFIG AGORA ATIVA A GAVETA)
         Row(
