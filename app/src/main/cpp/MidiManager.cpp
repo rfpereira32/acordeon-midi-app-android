@@ -92,7 +92,7 @@ void MidiManager::freeInstance() {
 void MidiManager::parseMidiData(const uint8_t *data, size_t numBytes) {
     if (numBytes < 3) return;
     uint8_t status = data[0] & 0xFF;
-    uint8_t channel = status & 0x0F;
+    uint8_t midiChannel = status & 0x0F;
     uint8_t note = data[1] & 0xFF;
     uint8_t velocity = data[2] & 0xFF;
     std::ostringstream oss;
@@ -101,7 +101,7 @@ void MidiManager::parseMidiData(const uint8_t *data, size_t numBytes) {
 
             if (!sustain) {
 
-                synthManager->noteOff(channel, note);
+                synthManager->noteOff(midiChannel, note);
 
                 sustainNotes.erase(note);
 
@@ -113,7 +113,7 @@ void MidiManager::parseMidiData(const uint8_t *data, size_t numBytes) {
 //            sendToCallback(oss);
             if (sustain) sustainNotes.insert(note);
             playNotes.insert(note);
-            synthManager->noteOn(channel, note, velocity);
+            synthManager->noteOn(midiChannel, note, velocity);
             break;
         case kMIDIChanCmd_Control:
             parseMidiCmdControl(note, velocity);
