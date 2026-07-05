@@ -55,6 +55,11 @@ class MainViewModel : ViewModel() {
         midiMixer.getChannel(it)
     }
 
+    fun toggleChannelMute(channel: Int) {
+        val novoEstado = !midiMixer.isMuted(channel)
+        midiMixer.setMute(channel, novoEstado)
+    }
+
     // =============================================================================
     // Áudio
     // =============================================================================
