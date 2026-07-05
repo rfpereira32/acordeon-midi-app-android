@@ -67,9 +67,6 @@ class MainActivity : ComponentActivity() {
         synthManager.setVolume((viewModel.masterVolume * 127).toInt())
 
         // ==============================================================================
-        // COUPLING TEXTUAL DE ALTA FIDELIDADE: CAPTURA E ATUALIZA A BATERIA EM RUNTIME
-        // ==============================================================================
-        // ==============================================================================
         // INICIALIZAÇÃO DO DRIVER DE RÁDIO MIDI COM FILTRO DE BYTES CONTROLO CHANGE
         // ==============================================================================
         // Inicialização limpa e original do seu driver MIDI
@@ -118,7 +115,10 @@ class MainActivity : ComponentActivity() {
                         listaDispositivos = viewModel.dispositivosMidi,
                         onVolumeChanged = { novoVolume: Float ->
                             viewModel.masterVolume = novoVolume
-                            synthManager.setVolume((viewModel.masterVolume * 127).toInt())
+
+                            synthManager.setVolume(
+                                (novoVolume * 127).toInt()
+                            )
                         },
                         onDispositivoSelecionado = { dispositivoEscolhido: MidiDeviceInfo ->
                             midiManager.conectarAoDispositivo(dispositivoEscolhido)

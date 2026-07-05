@@ -30,21 +30,7 @@ class MainViewModel : ViewModel() {
 
     val systemState = SystemState()
     fun setChannelVolume(channel: Int, volume: Int) {
-
         midiMixer.setVolume(channel, volume)
-
-        mixerState
-            .getChannel(channel)
-            .volume = volume
-
-    }
-
-    fun getChannelVolume(channel: Int): Int {
-
-        return mixerState
-            .getChannel(channel)
-            .volume
-
     }
 
     fun getChannel(channel: Int) =
