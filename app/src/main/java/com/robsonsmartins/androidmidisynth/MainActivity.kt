@@ -124,7 +124,8 @@ class MainActivity : ComponentActivity() {
                             midiManager.conectarAoDispositivo(dispositivoEscolhido)
                         },
                         midiReceiver = midiManager.obterReceiverMidi(),
-                        instanciaMidiManager = midiManager
+                        instanciaMidiManager = midiManager,
+                        viewModel = viewModel
                     )
                 }
             }

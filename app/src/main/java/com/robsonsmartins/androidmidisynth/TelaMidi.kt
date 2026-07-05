@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 
 val ColorBgDark = Color(0xFF0F0F11)
 val ColorCardBg = Color(0xFF1A1A1E)
@@ -44,7 +45,9 @@ fun TelaMidiSintetizador(
     onVolumeChanged: (Float) -> Unit,
     onDispositivoSelecionado: (MidiDeviceInfo) -> Unit,
     midiReceiver: MidiReceiver? = null,
-    instanciaMidiManager: MidiManager
+    instanciaMidiManager: MidiManager,
+
+    viewModel: MainViewModel
 ) {
     val context = LocalContext.current
     var mostrarMonitor by remember { mutableStateOf(false) }
@@ -141,7 +144,7 @@ fun TelaMidiSintetizador(
             if (mostrarMonitor) {
                 MonitorScreenContent(fileUri = selectedFileUri, midiReceiver = midiReceiver, onFileSelected = { uri -> selectedFileUri = uri })
             } else {
-                MixerScreenContent(nomeInstrumento = tituloDispositivo, isConnected = ledVerdeAtivo, onOtaClick = { mostrarMonitor = true }, midiManager = instanciaMidiManager)
+                MixerScreenContent(nomeInstrumento = tituloDispositivo, isConnected = ledVerdeAtivo, onOtaClick = { mostrarMonitor = true }, midiManager = instanciaMidiManager, viewModel = viewModel)
             }
         }
     }

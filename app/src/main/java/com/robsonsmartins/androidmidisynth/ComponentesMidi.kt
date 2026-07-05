@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +44,8 @@ fun MixerScreenContent(
     nomeInstrumento: String,
     isConnected: Boolean,
     onOtaClick: () -> Unit,
-    midiManager: MidiManager // Injetado de forma estável para conectar o layout ao barramento de rádio
+    midiManager: MidiManager, // Injetado de forma estável para conectar o layout ao barramento de rádio
+    viewModel: MainViewModel
 ) {
     var exibirGavetaConfig by remember { mutableStateOf(false) }
     var modoSetupOtaAtivado by remember { mutableStateOf(false) }
