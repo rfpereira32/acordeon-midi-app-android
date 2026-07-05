@@ -15,7 +15,18 @@ class MainViewModel : ViewModel() {
     // Mixer
     // =============================================================================
 
-    val midiMixer = MidiMixer()
+    private val midiMixer = MidiMixer()
+
+    fun setChannelVolume(channel: Int, volume: Int) {
+        midiMixer.setVolume(channel, volume)
+    }
+
+    fun getChannelVolume(channel: Int): Int {
+        return midiMixer.getVolume(channel)
+    }
+
+    fun getChannel(channel: Int) =
+        midiMixer.getChannel(channel)
 
     // =============================================================================
     // Áudio
