@@ -87,7 +87,7 @@ fun MixerScreenContent(
                 number = "1",
                 name = "Teclado / Melodia",
                 accentColor = ColorChannel4,
-                initialVolume = canais[0].volume * 100f / 127f,
+                volume = canais[0].volume * 100f / 127f,
                 isIndicatorOn = false
             ) { novoVol ->
 
@@ -105,7 +105,7 @@ fun MixerScreenContent(
                 number = "2",
                 name = "Baixos Fundamentais",
                 accentColor = ColorChannel4,
-                initialVolume = canais[1].volume * 100f / 127f,
+                volume = canais[1].volume * 100f / 127f,
                 isIndicatorOn = false
             ) { novoVol ->
 
@@ -123,7 +123,7 @@ fun MixerScreenContent(
                 number = "3",
                 name = "Acordes / Harmonia",
                 accentColor = ColorChannel4,
-                initialVolume = canais[2].volume * 100f / 127f,
+                volume = canais[2].volume * 100f / 127f,
                 isIndicatorOn = false
             ) { novoVol ->
 
@@ -141,7 +141,7 @@ fun MixerScreenContent(
                 number = "4",
                 name = "Instrumentos Extras 1",
                 accentColor = ColorChannel4,
-                initialVolume = canais[3].volume * 100f / 127f,
+                volume = canais[3].volume * 100f / 127f,
                 isIndicatorOn = false
             ) { novoVol ->
 
@@ -159,7 +159,7 @@ fun MixerScreenContent(
                 number = "5",
                 name = "Instrumentos Extras 2",
                 accentColor = ColorChannel4,
-                initialVolume = canais[4].volume * 100f / 127f,
+                volume = canais[4].volume * 100f / 127f,
                 isIndicatorOn = false
             ) { novoVol ->
 
@@ -361,11 +361,10 @@ fun StaticChannelRow(
     number: String,
     name: String,
     accentColor: Color,
-    initialVolume: Float,
+    volume: Float,
     isIndicatorOn: Boolean = false,
     onVolumeChanged: (Float) -> Unit
 ) {
-    var currentVolume by remember { mutableStateOf(initialVolume) }
     var isMuted by remember { mutableStateOf(false) }
 
     val corFundoLinha = if (isMuted) Color(0xFF252528) else ColorCardBg
@@ -383,14 +382,14 @@ fun StaticChannelRow(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    IconButton(onClick = { isMuted = !isMuted; onVolumeChanged(if(isMuted) 0f else currentVolume) }, modifier = Modifier.size(24.dp)) {
+                    IconButton(onClick = { isMuted = !isMuted; onVolumeChanged(if(isMuted) 0f else volume) }, modifier = Modifier.size(24.dp)) {
                         Icon(imageVector = if (isMuted) Icons.Default.Clear else Icons.Default.Check, contentDescription = null, tint = if (isMuted) Color.Red else Color.Gray, modifier = Modifier.size(18.dp))
                     }
                     Box(modifier = Modifier.size(8.dp).background(if (isIndicatorOn) Color(0xFF4CAF50) else Color.DarkGray, RoundedCornerShape(4.dp)))
-                    Text("${currentVolume.toInt()}%", color = corTextoVolume, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("${volume.toInt()}%", color = corTextoVolume, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            Slider(value = currentVolume, onValueChange = { currentVolume = it; if (!isMuted) onVolumeChanged(it) }, valueRange = 0f..100f, modifier = Modifier.fillMaxWidth(), colors = SliderDefaults.colors(thumbColor = corCaixaCanal, activeTrackColor = corCaixaCanal, inactiveTrackColor = Color(0xFF2C2C32)))
+            Slider(value = volume, onValueChange = onVolumeChanged, valueRange = 0f..100f, modifier = Modifier.fillMaxWidth(), colors = SliderDefaults.colors(thumbColor = corCaixaCanal, activeTrackColor = corCaixaCanal, inactiveTrackColor = Color(0xFF2C2C32)))
         }
     }
 }
