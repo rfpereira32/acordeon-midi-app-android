@@ -63,22 +63,9 @@ public:
      * @param note Note number.
      * @param velocity The velocity of the note.
      */
-    void noteOn(int note, int velocity);
-    /**
-     * @brief Stop of playing a note.
-     * @param note Note number.
-     */
-    void noteOff(int note);
-    /**
-     * @brief Send a MIDI command.
-     * @param controller Controller number.
-     * @param value Value to send.
-     */
-    void sendCC(int controller, int value);
-    /**
-     * @brief Adjust reverb effect.
-     * @param level Level of the reverb.
-     */
+    void noteOn(int channel, int note, int velocity);
+    void noteOff(int channel, int note);
+    void sendCC(int channel, int controller, int value);
     void reverb(int level);
 private:
     /* @brief Constructor. */

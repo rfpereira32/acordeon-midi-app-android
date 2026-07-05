@@ -112,14 +112,25 @@ bool SynthManager::loadSF(const char *soundfontPath, int program) {
     return true;
 }
 
-void SynthManager::noteOn(int note, int velocity) {
+void SynthManager::noteOn(int channel, int note, int velocity) {
     if (synth == nullptr) return;
-    fluid_synth_noteon(synth, 0, note, velocity);
+
+    fluid_synth_noteon(
+            synth,
+            channel,
+            note,
+            velocity
+    );
 }
 
-void SynthManager::noteOff(int note) {
+void SynthManager::noteOff(int channel, int note) {
     if (synth == nullptr) return;
-    fluid_synth_noteoff(synth, 0, note);
+
+    fluid_synth_noteoff(
+            synth,
+            channel,
+            note
+    );
 }
 
 void SynthManager::reverb(int level) {
@@ -128,9 +139,15 @@ void SynthManager::reverb(int level) {
     fluid_synth_set_reverb_group_level(synth, -1, level / 127.0);
 }
 
-void SynthManager::sendCC(int controller, int value) {
+void SynthManager::sendCC(int channel, int controller, int value) {
     if (synth == nullptr) return;
-    fluid_synth_cc(synth, 0, controller, value);
+
+    fluid_synth_cc(
+            synth,
+            channel,
+            controller,
+            value
+    );
 }
 
 void SynthManager::setLatency(int ms){
@@ -194,8 +211,7 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthFree(
 JNIEXPORT void JNICALL
 Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthNoteOn(
         JNIEnv *env, jobject, int note, int velocity) {
-    SynthManager::getInstance()->noteOn(note, velocity);
-}
+        SynthManager::getInstance()->noteOn(0, note, velocity);}
 
 /**
  * @brief   Native implementation of SynthManager.fluidsynthNoteOff() method.
@@ -207,7 +223,7 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthNoteOn(
 JNIEXPORT void JNICALL
 Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthNoteOff(
         JNIEnv *env, jobject, int note) {
-    SynthManager::getInstance()->noteOff(note);
+        SynthManager::getInstance()->noteOff(0, note);
 }
 
 /**
@@ -221,7 +237,7 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthNoteOff(
 JNIEXPORT void JNICALL
 Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthCC(
         JNIEnv *env, jobject, int controller, int value) {
-    SynthManager::getInstance()->sendCC(controller, value);
+        SynthManager::getInstance()->sendCC(0, controller, value);
 }
 
 /**

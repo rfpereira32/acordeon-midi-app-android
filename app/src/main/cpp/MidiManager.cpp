@@ -92,16 +92,19 @@ void MidiManager::freeInstance() {
 void MidiManager::parseMidiData(const uint8_t *data, size_t numBytes) {
     if (numBytes < 3) return;
     uint8_t status = data[0] & 0xFF;
+    uint8_t channel = status & 0x0F;
     uint8_t note = data[1] & 0xFF;
     uint8_t velocity = data[2] & 0xFF;
     std::ostringstream oss;
     switch ((status & kMIDISysCmdChan) >> 4) {
         case kMIDIChanCmd_NoteOff:
- //           oss.clear(); oss << "Note OFF: " << (int)note;
- //           sendToCallback(oss);
+
             if (!sustain) {
-                synthManager->noteOff(note);
+
+                synthManager->noteOff(channel, note);
+
                 sustainNotes.erase(note);
+
             }
             playNotes.erase(note);
             break;
@@ -110,7 +113,7 @@ void MidiManager::parseMidiData(const uint8_t *data, size_t numBytes) {
 //            sendToCallback(oss);
             if (sustain) sustainNotes.insert(note);
             playNotes.insert(note);
-            synthManager->noteOn(note, velocity);
+            synthManager->noteOn(channel, note, velocity);
             break;
         case kMIDIChanCmd_Control:
             parseMidiCmdControl(note, velocity);
@@ -164,8 +167,10 @@ void MidiManager::parseMidiCmdControl(uint8_t controller, uint8_t value) {
                 sendToCallback(oss);
                 sustain = false;
                 // Stop all sustained notes
-                for (const auto n: sustainNotes) {
-                    if (playNotes.find(n) == playNotes.end()) synthManager->noteOff(n);
+                for (const auto n : sustainNotes) {
+                    if (playNotes.find(n) == playNotes.end()) {
+                        synthManager->noteOff(0, n);
+                    }
                 }
                 sustainNotes.clear();
             }
@@ -180,7 +185,7 @@ void MidiManager::parseMidiCmdControl(uint8_t controller, uint8_t value) {
             oss << "Unparsed command: controller: "
                 << (int)controller << " value: " << (int)value;
             sendToCallback(oss);
-            synthManager->sendCC(controller, value);
+            synthManager->sendCC(0, controller, value);
             break;
     }
 }
