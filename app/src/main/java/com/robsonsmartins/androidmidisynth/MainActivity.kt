@@ -7,27 +7,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.lifecycle.ViewModel
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import android.util.Log
 import android.media.midi.MidiDeviceInfo
 import java.io.File
 import java.io.FileOutputStream
 import com.robsonsmartins.androidmidisynth.audio.SoundFontManager
-
-class MainViewModel : ViewModel() {
-    var volume by mutableFloatStateOf(0.8f)
-    var usoCpu by mutableIntStateOf(0)
-    var listaDispositivos by mutableStateOf<List<MidiDeviceInfo>>(emptyList())
-}
+import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
     start()
@@ -75,7 +64,7 @@ class MainActivity : ComponentActivity() {
             soundFontManager.prepareSoundFont("AcordeonGiulietti.sf2")
 
         synthManager.loadSF(caminhoSoundFont)
-        synthManager.setVolume((viewModel.volume * 127).toInt())
+        synthManager.setVolume((viewModel.masterVolume * 127).toInt())
 
         // ==============================================================================
         // COUPLING TEXTUAL DE ALTA FIDELIDADE: CAPTURA E ATUALIZA A BATERIA EM RUNTIME
@@ -90,7 +79,7 @@ class MainActivity : ComponentActivity() {
 
 
         midiManager.iniciarEscaneamentoAutomatico()
-        viewModel.listaDispositivos = midiManager.listarDispositivosDisponiveis(this)
+        viewModel.dispositivosMidi = midiManager.listarDispositivosDisponiveis(this)
 
         val sistemaMidi = getSystemService(Context.MIDI_SERVICE) as android.media.midi.MidiManager
         sistemaMidi.registerDeviceCallback(object : android.media.midi.MidiManager.DeviceCallback() {
@@ -109,7 +98,7 @@ class MainActivity : ComponentActivity() {
                                         val vel = msg[offset + 2].toInt() and 0xFF
 
                                         if (status in 0x90..0x9F && vel > 0) {
-                                            synthManager.setVolume((viewModel.volume * 127).toInt())
+                                            synthManager.setVolume((viewModel.masterVolume * 127).toInt())
                                         }
                                     }
                                 }
@@ -126,10 +115,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     TelaMidiSintetizador(
-                        listaDispositivos = viewModel.listaDispositivos,
+                        listaDispositivos = viewModel.dispositivosMidi,
                         onVolumeChanged = { novoVolume: Float ->
-                            viewModel.volume = novoVolume
-                            synthManager.setVolume((novoVolume * 127).toInt())
+                            viewModel.masterVolume = novoVolume
+                            synthManager.setVolume((viewModel.masterVolume * 127).toInt())
                         },
                         onDispositivoSelecionado = { dispositivoEscolhido: MidiDeviceInfo ->
                             midiManager.conectarAoDispositivo(dispositivoEscolhido)
