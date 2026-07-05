@@ -87,30 +87,98 @@ fun MixerScreenContent(
 
         // OS 5 SLIDERS INTEGRADOS À ESCALA MIDI DE 7 BITS (0 A 127) VIA STRING CHAVEADA
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            StaticChannelRow("1", "Teclado / Melodia", ColorChannel1, volDiscant, false) { novoVol ->
+            StaticChannelRow(
+                "1",
+                "Teclado / Melodia",
+                ColorChannel4,
+                volDiscant,
+                false
+            ) { novoVol ->
+
                 volDiscant = novoVol
-                val valorMidi = ((novoVol / 100f) * 127f).toInt().coerceIn(0, 127)
+
+                val valorMidi = percentToMidi(novoVol)
+
+                // Novo
+                viewModel.setChannelVolume(0, valorMidi)
+
+                // Continua igual
                 midiManager.despacharComandoMixerSysEx(0, valorMidi)
             }
-            StaticChannelRow("2", "Baixos Fundamentais", ColorChannel2, volBaixos, true) { novoVol ->
-                volBaixos = novoVol
-                val valorMidi = ((novoVol / 100f) * 127f).toInt().coerceIn(0, 127)
-                midiManager.despacharComandoMixerSysEx(1, valorMidi)
+            StaticChannelRow(
+                "2",
+                "Baixos Fundamentais",
+                ColorChannel4,
+                volDiscant,
+                false
+            ) { novoVol ->
+
+                volDiscant = novoVol
+
+                val valorMidi = percentToMidi(novoVol)
+
+                // Novo
+                viewModel.setChannelVolume(1, valorMidi)
+
+                // Continua igual
+                midiManager.despacharComandoMixerSysEx(0, valorMidi)
             }
-            StaticChannelRow("3", "Acordes / Harmonia", ColorChannel3, volAcordes, false) { novoVol ->
-                volAcordes = novoVol
-                val valorMidi = ((novoVol / 100f) * 127f).toInt().coerceIn(0, 127)
-                midiManager.despacharComandoMixerSysEx(2, valorMidi)
+            StaticChannelRow(
+                "3",
+                "Acordes / Harmonia",
+                ColorChannel4,
+                volDiscant,
+                false
+            ) { novoVol ->
+
+                volDiscant = novoVol
+
+                val valorMidi = percentToMidi(novoVol)
+
+                // Novo
+                viewModel.setChannelVolume(2, valorMidi)
+
+                // Continua igual
+                midiManager.despacharComandoMixerSysEx(0, valorMidi)
             }
-            StaticChannelRow("4", "Instrumentos Extras 1", ColorChannel4, volExtras1, false) { novoVol ->
-                volExtras1 = novoVol
-                val valorMidi = ((novoVol / 100f) * 127f).toInt().coerceIn(0, 127)
-                midiManager.despacharComandoMixerSysEx(3, valorMidi)
+            StaticChannelRow(
+                "4",
+                "Instrumentos Extras 1",
+                ColorChannel1,
+                volDiscant,
+                false
+            ) { novoVol ->
+
+                volDiscant = novoVol
+
+                val valorMidi = percentToMidi(novoVol)
+
+                // Novo
+                viewModel.setChannelVolume(3, valorMidi)
+
+                // Continua igual
+                midiManager.despacharComandoMixerSysEx(0, valorMidi)
             }
-            StaticChannelRow("5", "Instrumentos Extras 2", ColorChannel5, volExtras2, true) { novoVol ->
-                volExtras2 = novoVol
-                val valorMidi = ((novoVol / 100f) * 127f).toInt().coerceIn(0, 127)
-                midiManager.despacharComandoMixerSysEx(4, valorMidi)
+            StaticChannelRow(
+                "5",
+                "Instrumentos Extras 2",
+                ColorChannel1,
+                volDiscant,
+                false
+            ) { novoVol ->
+
+                volDiscant = novoVol
+
+                val valorMidi =
+                    ((novoVol / 100f) * 127f)
+                        .toInt()
+                        .coerceIn(0,127)
+
+                // Novo
+                viewModel.setChannelVolume(4, valorMidi)
+
+                // Continua igual
+                midiManager.despacharComandoMixerSysEx(0, valorMidi)
             }
         }
 
@@ -334,4 +402,10 @@ fun StaticChannelRow(
             Slider(value = currentVolume, onValueChange = { currentVolume = it; if (!isMuted) onVolumeChanged(it) }, valueRange = 0f..100f, modifier = Modifier.fillMaxWidth(), colors = SliderDefaults.colors(thumbColor = corCaixaCanal, activeTrackColor = corCaixaCanal, inactiveTrackColor = Color(0xFF2C2C32)))
         }
     }
+}
+
+private fun percentToMidi(volume: Float): Int {
+    return ((volume / 100f) * 127f)
+        .toInt()
+        .coerceIn(0,127)
 }
