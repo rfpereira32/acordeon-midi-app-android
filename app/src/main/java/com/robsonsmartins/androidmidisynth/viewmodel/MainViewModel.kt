@@ -8,6 +8,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.robsonsmartins.androidmidisynth.core.MidiMixer
+import com.robsonsmartins.androidmidisynth.core.DeviceState
+import com.robsonsmartins.androidmidisynth.core.MixerState
+import com.robsonsmartins.androidmidisynth.core.SystemState
 
 class MainViewModel : ViewModel() {
 
@@ -17,23 +20,52 @@ class MainViewModel : ViewModel() {
 
     private val midiMixer = MidiMixer()
 
+    // =============================================================================
+    // Estado da aplicação
+    // =============================================================================
+
+    val mixerState = MixerState()
+
+    val deviceState = DeviceState()
+
+    val systemState = SystemState()
     fun setChannelVolume(channel: Int, volume: Int) {
+
         midiMixer.setVolume(channel, volume)
+
+        mixerState
+            .getChannel(channel)
+            .volume = volume
+
     }
 
     fun getChannelVolume(channel: Int): Int {
-        return midiMixer.getVolume(channel)
+
+        return mixerState
+            .getChannel(channel)
+            .volume
+
     }
 
     fun getChannel(channel: Int) =
         midiMixer.getChannel(channel)
 
     fun setChannelMute(channel: Int, mute: Boolean) {
+
         midiMixer.setMute(channel, mute)
+
+        mixerState
+            .getChannel(channel)
+            .muted = mute
+
     }
 
     fun isChannelMuted(channel: Int): Boolean {
-        return midiMixer.isMuted(channel)
+
+        return mixerState
+            .getChannel(channel)
+            .muted
+
     }
 
     fun getEffectiveChannelVolume(channel: Int): Int {
@@ -56,8 +88,17 @@ class MainViewModel : ViewModel() {
     }
 
     fun toggleChannelMute(channel: Int) {
-        val novoEstado = !midiMixer.isMuted(channel)
-        midiMixer.setMute(channel, novoEstado)
+
+        val novoEstado =
+            !mixerState
+                .getChannel(channel)
+                .muted
+
+        setChannelMute(
+            channel,
+            novoEstado
+        )
+
     }
 
     // =============================================================================
