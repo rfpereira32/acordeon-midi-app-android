@@ -87,10 +87,22 @@ class FluidSynthManager(private val context: Context) {
     /**
      * Ajusta o volume geral do sintetizador.
      */
-    fun setVolume(volume: Int) {
-        fluidsynthCC(7, volume)
+    fun setChannelVolume(
+        channel: Int,
+        volume: Int
+    ) {
+
+        fluidsynthCC(
+            channel,
+            7,
+            volume
+        )
+
     }
 
+    fun setVolume(volume: Int) {
+        setChannelVolume(0, volume)
+    }
     /**
      * Toca uma nota.
      */
@@ -156,6 +168,7 @@ class FluidSynthManager(private val context: Context) {
      * Envia um Control Change.
      */
     private external fun fluidsynthCC(
+        channel: Int,
         controller: Int,
         value: Int
     )

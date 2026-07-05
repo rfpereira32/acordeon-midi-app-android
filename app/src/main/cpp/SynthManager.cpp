@@ -236,8 +236,12 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthNoteOff(
  */
 JNIEXPORT void JNICALL
 Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthCC(
-        JNIEnv *env, jobject, int controller, int value) {
-        SynthManager::getInstance()->sendCC(0, controller, value);
+        JNIEnv *env, jobject, int channel, int controller, int value) {
+        SynthManager::getInstance()->sendCC(
+                channel,
+                controller,
+                value
+        );
 }
 
 /**
