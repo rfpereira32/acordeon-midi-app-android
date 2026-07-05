@@ -28,6 +28,33 @@ class MainViewModel : ViewModel() {
     fun getChannel(channel: Int) =
         midiMixer.getChannel(channel)
 
+    fun setChannelMute(channel: Int, mute: Boolean) {
+        midiMixer.setMute(channel, mute)
+    }
+
+    fun isChannelMuted(channel: Int): Boolean {
+        return midiMixer.isMuted(channel)
+    }
+
+    fun getEffectiveChannelVolume(channel: Int): Int {
+        return if (midiMixer.isMuted(channel))
+            0
+        else
+            midiMixer.getVolume(channel)
+    }
+
+    fun setChannelProgram(channel: Int, program: Int) {
+        midiMixer.setProgram(channel, program)
+    }
+
+    fun getChannelProgram(channel: Int): Int {
+        return midiMixer.getProgram(channel)
+    }
+
+    fun getChannels() = List(5) {
+        midiMixer.getChannel(it)
+    }
+
     // =============================================================================
     // Áudio
     // =============================================================================
