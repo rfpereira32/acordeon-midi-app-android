@@ -1,4 +1,5 @@
 package com.robsonsmartins.androidmidisynth.viewmodel
+import com.robsonsmartins.androidmidisynth.audio.SynthController
 
 import android.media.midi.MidiDeviceInfo
 import androidx.compose.runtime.getValue
@@ -13,6 +14,12 @@ import com.robsonsmartins.androidmidisynth.core.MixerState
 import com.robsonsmartins.androidmidisynth.core.SystemState
 
 class MainViewModel : ViewModel() {
+
+    private var synthController: SynthController? = null
+
+    fun setSynthController(controller: SynthController) {
+        synthController = controller
+    }
 
     // =============================================================================
     // Mixer
@@ -29,8 +36,16 @@ class MainViewModel : ViewModel() {
     val deviceState = DeviceState()
 
     val systemState = SystemState()
+
     fun setChannelVolume(channel: Int, volume: Int) {
+
         midiMixer.setVolume(channel, volume)
+
+        mixerState
+            .getChannel(channel)
+            .volume = volume
+
+        synthController?.setVolume(channel, volume)
     }
 
     fun getChannel(channel: Int) =
@@ -69,9 +84,7 @@ class MainViewModel : ViewModel() {
         return midiMixer.getProgram(channel)
     }
 
-    fun getChannels() = List(5) {
-        midiMixer.getChannel(it)
-    }
+    fun getChannels() = mixerState.channels
 
     fun toggleChannelMute(channel: Int) {
 

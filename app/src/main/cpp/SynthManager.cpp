@@ -107,8 +107,15 @@ bool SynthManager::loadSF(const char *soundfontPath, int program) {
     int id = fluid_synth_sfload(synth, soundfontPath, 0);
     if (id == FLUID_FAILED) return false;
     fluid_synth_sfont_select(synth, 0, id);
-    fluid_synth_program_change(synth, 0, program);
-    soundfontId = id;
+    for (int ch = 0; ch < 16; ch++) {
+
+        fluid_synth_sfont_select(synth, ch, id);
+
+        fluid_synth_bank_select(synth, ch, 0);
+
+        fluid_synth_program_change(synth, ch, 0);
+
+    }    soundfontId = id;
     return true;
 }
 

@@ -1,6 +1,7 @@
 package com.robsonsmartins.androidmidisynth.audio
 
 import com.robsonsmartins.androidmidisynth.FluidSynthManager
+import android.util.Log
 
 /**
  * Centraliza todas as operações relacionadas ao sintetizador.
@@ -22,45 +23,25 @@ class SynthController(
 
 ) {
 
-    fun setVolume(
-        channel: Int,
-        volume: Int
-    ) {
-        synth.setChannelVolume(channel, volume)
+    fun setVolume(channel: Int, volume: Int) {
+
+        val valor = volume.coerceIn(0, 127)
+        synth.setChannelVolume(channel, valor)
     }
 
-    fun noteOn(
-        channel: Int,
-        note: Int,
-        velocity: Int
-    ) {
-        // Implementaremos depois
+    fun setMute(channel: Int, mute: Boolean) {
+        // próximo commit
     }
 
-    fun noteOff(
-        channel: Int,
-        note: Int
-    ) {
-        // Implementaremos depois
+    fun setProgram(channel: Int, program: Int) {
+        // próximo commit
     }
 
-    fun setMute(
-        channel: Int,
-        mute: Boolean
-    ) {
-        // Implementaremos depois
+    fun noteOn(channel: Int, note: Int, velocity: Int) {
+        // futuro
     }
 
-    fun setProgram(
-        channel: Int,
-        program: Int
-    ) {
-        // Implementaremos depois
-    }
-
-    fun loadSoundFont(
-        filename: String
-    ) {
-        // Implementaremos depois
+    fun noteOff(channel: Int, note: Int) {
+        // futuro
     }
 }

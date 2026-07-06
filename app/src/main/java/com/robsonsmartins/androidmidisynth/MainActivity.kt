@@ -59,7 +59,10 @@ class MainActivity : ComponentActivity() {
 
         // Inicializa o motor de áudio FluidSynth interno do projeto
         synthManager = FluidSynthManager(this)
-        synthController = SynthController(synthManager)
+
+        val synthController = SynthController(synthManager)
+
+        viewModel.setSynthController(synthController)
 
         soundFontManager = SoundFontManager(this)
 
@@ -101,10 +104,7 @@ class MainActivity : ComponentActivity() {
                                         val vel = msg[offset + 2].toInt() and 0xFF
 
                                         if (status in 0x90..0x9F && vel > 0) {
-                                            synthController.setVolume(
-                                                0,
-                                                (viewModel.masterVolume * 127).toInt()
-                                            )
+//                                            synthController.setVolume(0,(viewModel.masterVolume * 127).toInt())
                                         }
                                     }
                                 }

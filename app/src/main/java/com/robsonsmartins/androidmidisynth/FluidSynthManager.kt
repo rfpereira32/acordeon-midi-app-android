@@ -33,6 +33,7 @@ package com.robsonsmartins.androidmidisynth
 
 import android.content.Context
 import java.io.IOException
+import android.util.Log
 
 /**
  * Encapsula toda a comunicação entre o Kotlin e a biblioteca FluidSynth.
@@ -91,7 +92,6 @@ class FluidSynthManager(private val context: Context) {
         channel: Int,
         volume: Int
     ) {
-
         fluidsynthCC(
             channel,
             7,

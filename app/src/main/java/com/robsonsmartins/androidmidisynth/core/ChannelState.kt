@@ -1,27 +1,34 @@
 package com.robsonsmartins.androidmidisynth.core
 
-data class ChannelState(
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
-    val channel: Int,
+class ChannelState(
 
-    var volume: Int = 100,
+    val channel: Int
 
-    var muted: Boolean = false,
+) {
 
-    var expression: Int = 127,
+    var volume by mutableIntStateOf(100)
 
-    var pan: Int = 64,
+    var muted by mutableStateOf(false)
 
-    var bankMsb: Int = 0,
+    var expression by mutableIntStateOf(127)
 
-    var bankLsb: Int = 0,
+    var pan by mutableIntStateOf(64)
 
-    var program: Int = 0,
+    var bankMsb by mutableIntStateOf(0)
 
-    var instrumentName: String = "",
+    var bankLsb by mutableIntStateOf(0)
 
-    var soundFont: String = "",
+    var program by mutableIntStateOf(0)
 
-    var led: Boolean = false
+    var instrumentName by mutableStateOf("")
 
-)
+    var soundFont by mutableStateOf("")
+
+    var led by mutableStateOf(false)
+
+}
