@@ -57,7 +57,7 @@ public:
      * @param program Program number to select (default = 0).
      * @return True if successful. False otherwise.
      */
-    bool loadSF(const char *soundfontPath, int program = 0);
+    int loadSF(const char *soundfontPath, int program = 0);
     /**
      * @brief Play a note.
      * @param note Note number.

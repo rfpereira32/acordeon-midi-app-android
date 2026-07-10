@@ -101,22 +101,46 @@ void SynthManager::freeInstance() {
     }
 }
 
-bool SynthManager::loadSF(const char *soundfontPath, int program) {
-    if (synth == nullptr) return false;
-    // load soundfont
-    int id = fluid_synth_sfload(synth, soundfontPath, 0);
-    if (id == FLUID_FAILED) return false;
-    fluid_synth_sfont_select(synth, 0, id);
+int SynthManager::loadSF(const char *soundfontPath, int program) {
+
+    if (synth == nullptr)
+        return FLUID_FAILED;
+
+    int sfid = fluid_synth_sfload(
+            synth,
+            soundfontPath,
+            0
+    );
+
+    if (sfid == FLUID_FAILED)
+        return FLUID_FAILED;
+
+    // Mantemos por enquanto a seleção automática
     for (int ch = 0; ch < 16; ch++) {
 
-        fluid_synth_sfont_select(synth, ch, id);
+        fluid_synth_sfont_select(
+                synth,
+                ch,
+                sfid
+        );
 
-        fluid_synth_bank_select(synth, ch, 0);
+        fluid_synth_bank_select(
+                synth,
+                ch,
+                0
+        );
 
-        fluid_synth_program_change(synth, ch, 0);
+        fluid_synth_program_change(
+                synth,
+                ch,
+                0
+        );
 
-    }    soundfontId = id;
-    return true;
+    }
+
+    soundfontId = sfid;
+
+    return sfid;
 }
 
 void SynthManager::noteOn(int channel, int note, int velocity) {
@@ -192,7 +216,10 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthLoadSF(
         JNIEnv *env, jobject, jstring jSoundfontPath, int program) {
     // convert Java string to C string
     const char *soundfontPath = env->GetStringUTFChars(jSoundfontPath, nullptr);
-    return SynthManager::getInstance()->loadSF(soundfontPath, program) ? 0 : -1;
+    return SynthManager::getInstance()->loadSF(
+            soundfontPath,
+            program
+    );
 }
 
 /**
