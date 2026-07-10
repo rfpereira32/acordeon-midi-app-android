@@ -130,7 +130,7 @@ fun MixerScreenContent(
 
             onMuteChanged = { mute ->
 
-                viewModel.setChannelMute(0, mute)
+                viewModel.setChannelMute(1, mute)
 
             }
             )
@@ -156,7 +156,7 @@ fun MixerScreenContent(
 
             onMuteChanged = { mute ->
 
-                viewModel.setChannelMute(0, mute)
+                viewModel.setChannelMute(2, mute)
 
             }
         )
@@ -182,7 +182,7 @@ fun MixerScreenContent(
 
             onMuteChanged = { mute ->
 
-                viewModel.setChannelMute(0, mute)
+                viewModel.setChannelMute(3, mute)
 
             }
             )
@@ -208,7 +208,7 @@ fun MixerScreenContent(
 
             onMuteChanged = { mute ->
 
-                viewModel.setChannelMute(0, mute)
+                viewModel.setChannelMute(4, mute)
 
             }
         )
