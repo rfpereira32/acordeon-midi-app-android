@@ -58,6 +58,16 @@ public:
      * @return True if successful. False otherwise.
      */
     int loadSF(const char *soundfontPath, int program = 0);
+
+    /**
+ * @brief Seleciona banco e programa para um canal MIDI.
+ *
+ * @param channel Canal MIDI.
+ * @param bank Banco do instrumento.
+ * @param program Programa (Preset).
+ */
+    void programChange(int channel, int bank, int program);
+
     /**
      * @brief Play a note.
      * @param note Note number.
@@ -67,6 +77,7 @@ public:
     void noteOff(int channel, int note);
     void sendCC(int channel, int controller, int value);
     void reverb(int level);
+
 private:
     /* @brief Constructor. */
     SynthManager();

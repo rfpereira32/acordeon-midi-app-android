@@ -101,8 +101,8 @@ void SynthManager::freeInstance() {
     }
 }
 
-int SynthManager::loadSF(const char *soundfontPath, int program) {
-
+int SynthManager::loadSF(const char *soundfontPath, int program)
+{
     if (synth == nullptr)
         return FLUID_FAILED;
 
@@ -115,7 +115,6 @@ int SynthManager::loadSF(const char *soundfontPath, int program) {
     if (sfid == FLUID_FAILED)
         return FLUID_FAILED;
 
-    // Mantemos por enquanto a seleção automática
     for (int ch = 0; ch < 16; ch++) {
 
         fluid_synth_sfont_select(
@@ -135,12 +134,20 @@ int SynthManager::loadSF(const char *soundfontPath, int program) {
                 ch,
                 0
         );
-
     }
 
     soundfontId = sfid;
 
     return sfid;
+}
+
+void SynthManager::programChange(int channel, int bank, int program){
+    if (synth == nullptr)
+        return;
+
+    fluid_synth_bank_select(synth, channel, bank);
+
+    fluid_synth_program_change(synth, channel, program);
 }
 
 void SynthManager::noteOn(int channel, int note, int velocity) {
@@ -276,6 +283,17 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthCC(
                 controller,
                 value
         );
+}
+
+JNIEXPORT void JNICALL
+Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthProgramChange(
+        JNIEnv *env,
+        jobject,
+        jint channel,
+        jint bank,
+        jint program) {
+
+    SynthManager::getInstance()->programChange(channel, bank, program);
 }
 
 /**

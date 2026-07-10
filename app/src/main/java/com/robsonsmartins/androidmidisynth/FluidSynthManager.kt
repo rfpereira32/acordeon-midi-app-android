@@ -85,6 +85,20 @@ class FluidSynthManager(private val context: Context) {
         }
     }
 
+    fun programChange(
+        channel: Int,
+        bank: Int,
+        program: Int
+    ) {
+
+        fluidsynthProgramChange(
+            channel,
+            bank,
+            program
+        )
+
+    }
+
     /**
      * Ajusta o volume geral do sintetizador.
      */
@@ -178,5 +192,11 @@ class FluidSynthManager(private val context: Context) {
      */
     private external fun fluidsynthReverb(
         level: Int
+    )
+
+    private external fun fluidsynthProgramChange(
+        channel: Int,
+        bank: Int,
+        program: Int
     )
 }

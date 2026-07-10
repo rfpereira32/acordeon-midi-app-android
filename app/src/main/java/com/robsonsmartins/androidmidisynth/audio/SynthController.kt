@@ -37,8 +37,10 @@ class SynthController(
 
     }
 
-    fun setProgram(channel: Int, program: Int) {
-        // próximo commit
+    fun setProgram(channel: Int, bank: Int, program: Int) {
+
+        synth.programChange(channel, bank, program)
+
     }
 
     fun noteOn(channel: Int, note: Int, velocity: Int) {
