@@ -13,11 +13,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import android.util.Log
 import android.media.midi.MidiDeviceInfo
-import java.io.File
-import java.io.FileOutputStream
-import com.robsonsmartins.androidmidisynth.audio.SoundFontManager
 import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 import com.robsonsmartins.androidmidisynth.audio.SynthController
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
     start()

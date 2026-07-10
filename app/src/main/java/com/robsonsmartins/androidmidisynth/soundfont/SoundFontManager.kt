@@ -1,15 +1,23 @@
 package com.robsonsmartins.androidmidisynth.soundfont
 
+import android.content.Context
+import java.io.File
+import java.io.FileOutputStream
 import androidx.compose.runtime.mutableStateListOf
 
-class SoundFontManager {
+class SoundFontManager(
+    private val context: Context
+) {
 
+    // =============================================================================
     // Lista observável pelo Compose
+    // =============================================================================
+
     private val soundFonts = mutableStateListOf<SoundFontInfo>()
 
     init {
 
-        // Temporário: lista fictícia para desenvolvimento da interface
+        // SoundFonts fictícias durante o desenvolvimento da interface
 
         soundFonts.add(
             SoundFontInfo(
@@ -48,6 +56,10 @@ class SoundFontManager {
         )
     }
 
+    // =============================================================================
+    // Gerenciamento da lista
+    // =============================================================================
+
     fun listar(): List<SoundFontInfo> = soundFonts
 
     fun adicionar(soundFont: SoundFontInfo) {
@@ -81,5 +93,67 @@ class SoundFontManager {
 
     fun disponiveis(): List<SoundFontInfo> =
         soundFonts.filter { !it.carregada }
+
+    // =============================================================================
+    // Arquivos
+    // =============================================================================
+
+    /**
+     * Garante que a SoundFont exista no armazenamento interno.
+     *
+     * Caso ainda não exista, copia automaticamente da pasta assets.
+     *
+     * Retorna o caminho absoluto do arquivo.
+     */
+    fun prepareSoundFont(nomeArquivo: String): String {
+
+        val arquivoDestino = File(
+            context.filesDir,
+            nomeArquivo
+        )
+
+        if (!arquivoDestino.exists()) {
+
+            context.assets.open(nomeArquivo).use { input ->
+
+                FileOutputStream(arquivoDestino).use { output ->
+
+                    val buffer = ByteArray(8192)
+
+                    var bytes: Int
+
+                    while (true) {
+
+                        bytes = input.read(buffer)
+
+                        if (bytes <= 0)
+                            break
+
+                        output.write(
+                            buffer,
+                            0,
+                            bytes
+                        )
+                    }
+
+                    output.flush()
+                }
+            }
+        }
+
+        return arquivoDestino.absolutePath
+    }
+
+    /**
+     * Retorna o arquivo interno correspondente à SoundFont.
+     */
+    fun getArquivo(nomeArquivo: String): File {
+
+        return File(
+            context.filesDir,
+            nomeArquivo
+        )
+
+    }
 
 }

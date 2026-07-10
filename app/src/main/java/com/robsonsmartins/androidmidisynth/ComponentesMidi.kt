@@ -95,21 +95,19 @@ fun MixerScreenContent(
     if (exibirDialogoSoundFont) {
 
         SoundFontDialog(
-
             soundFonts = soundFonts,
 
             onDismiss = {
-
                 exibirDialogoSoundFont = false
-
             },
 
             onApply = {
-
                 exibirDialogoSoundFont = false
+            },
 
+            onImport = {
+                // Próximo commit
             }
-
         )
 
     }

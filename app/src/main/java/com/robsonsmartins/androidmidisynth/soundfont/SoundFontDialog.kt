@@ -1,31 +1,37 @@
 package com.robsonsmartins.androidmidisynth.soundfont
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ListItem
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun SoundFontDialog(
     soundFonts: List<SoundFontInfo>,
     onDismiss: () -> Unit,
-    onApply: (List<SoundFontInfo>) -> Unit
+    onApply: (List<SoundFontInfo>) -> Unit,
+    onImport: () -> Unit
 ) {
 
     val lista = remember {
-
-        soundFonts.map {
-            it.copy()
-        }.toMutableStateList()
-
+        soundFonts.map { it.copy() }.toMutableList()
     }
+
+    val carregadas = lista.count { it.carregada }
 
     AlertDialog(
 
@@ -33,41 +39,79 @@ fun SoundFontDialog(
 
         title = {
 
-            Text("Selecionar SoundFonts")
+            Column {
+
+                Text(
+                    text = "Selecionar SoundFonts",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Text(
+                    text = "$carregadas de ${lista.size} carregadas",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+            }
 
         },
 
         text = {
 
-            LazyColumn {
+            Column {
 
-                items(lista) { sf ->
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 320.dp)
+                ) {
 
-                    ListItem(
+                    items(
+                        items = lista,
+                        key = { it.id }
+                    ) { sf ->
 
-                        headlineContent = {
+                        ListItem(
 
-                            Text(sf.nome)
+                            headlineContent = {
 
-                        },
+                                Text(sf.nome)
 
-                        leadingContent = {
+                            },
 
-                            Checkbox(
+                            leadingContent = {
 
-                                checked = sf.carregada,
+                                Checkbox(
 
-                                onCheckedChange = {
+                                    checked = sf.carregada,
 
-                                    sf.carregada = it
+                                    onCheckedChange = {
 
-                                }
+                                        sf.carregada = it
 
-                            )
+                                    }
 
-                        }
+                                )
 
-                    )
+                            }
+
+                        )
+
+                    }
+
+                }
+
+                Divider()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+
+                    TextButton(
+                        onClick = onImport
+                    ) {
+
+                        Text("Importar...")
+
+                    }
 
                 }
 
