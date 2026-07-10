@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontDialog
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,8 +52,67 @@ fun MixerScreenContent(
     var exibirGavetaConfig by remember { mutableStateOf(false) }
     var modoSetupOtaAtivado by remember { mutableStateOf(false) }
 
+    var exibirDialogoSoundFont by remember { mutableStateOf(false) }
+
+    val soundFonts = remember {
+
+        mutableStateListOf(
+
+            SoundFontInfo(
+                id = 1,
+                nome = "Acordeoes.sf2",
+                caminho = "",
+                carregada = true
+            ),
+
+            SoundFontInfo(
+                id = 2,
+                nome = "Baixos.sf2",
+                caminho = "",
+                carregada = true
+            ),
+
+            SoundFontInfo(
+                id = 3,
+                nome = "GeneralUser.sf2",
+                caminho = "",
+                carregada = false
+            ),
+
+            SoundFontInfo(
+                id = 4,
+                nome = "Strings.sf2",
+                caminho = "",
+                carregada = false
+            )
+
+        )
+    }
+
     // Estados locais controlando os faders em tempo real
     val canais = viewModel.getChannels()
+
+    if (exibirDialogoSoundFont) {
+
+        SoundFontDialog(
+
+            soundFonts = soundFonts,
+
+            onDismiss = {
+
+                exibirDialogoSoundFont = false
+
+            },
+
+            onApply = {
+
+                exibirDialogoSoundFont = false
+
+            }
+
+        )
+
+    }
 
     Column(
         modifier = Modifier
@@ -219,7 +280,23 @@ fun MixerScreenContent(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Card(modifier = Modifier.height(60.dp).weight(1f), colors = CardDefaults.cardColors(containerColor = ColorCardBg)) {
+            Card(
+
+                onClick = {
+
+                    exibirDialogoSoundFont = true
+
+                },
+
+                modifier = Modifier
+                    .height(60.dp)
+                    .weight(1f),
+
+                colors = CardDefaults.cardColors(
+                    containerColor = ColorCardBg
+                )
+
+            ) {
                 Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.height(4.dp))
