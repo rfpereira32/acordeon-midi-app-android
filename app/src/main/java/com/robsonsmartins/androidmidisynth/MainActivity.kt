@@ -60,9 +60,10 @@ class MainActivity : ComponentActivity() {
 
         val synthController = SynthController(synthManager)
 
-        viewModel.setSynthController(synthController)
-
         soundFontManager = SoundFontManager(this)
+
+        viewModel.setSynthController(synthController)
+        viewModel.setSoundFontManager(soundFontManager)
 
         val caminhoSoundFont =
             soundFontManager.prepareSoundFont("AcordeonGiulietti.sf2")

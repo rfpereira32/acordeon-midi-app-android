@@ -1,5 +1,6 @@
 package com.robsonsmartins.androidmidisynth.viewmodel
 import com.robsonsmartins.androidmidisynth.audio.SynthController
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 
 import android.media.midi.MidiDeviceInfo
 import androidx.compose.runtime.getValue
@@ -17,6 +18,11 @@ class MainViewModel : ViewModel() {
 
     private lateinit var synthController: SynthController
 
+    private lateinit var soundFontManager: SoundFontManager
+
+    fun setSoundFontManager(manager: SoundFontManager) {
+        soundFontManager = manager
+    }
     fun setSynthController(controller: SynthController) {
         synthController = controller
     }
@@ -134,4 +140,16 @@ class MainViewModel : ViewModel() {
     // =============================================================================
 
     var soundFontAtual by mutableStateOf("AcordeonGiulietti.sf2")
+
+    fun listarSoundFonts() =
+        soundFontManager.listar()
+
+    fun carregarSoundFont(id: Int) =
+        soundFontManager.carregar(id)
+
+    fun descarregarSoundFont(id: Int) =
+        soundFontManager.descarregar(id)
+
+    fun alternarSoundFont(id: Int) =
+        soundFontManager.alternar(id)
 }
