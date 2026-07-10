@@ -152,4 +152,10 @@ class MainViewModel : ViewModel() {
 
     fun alternarSoundFont(id: Int) =
         soundFontManager.alternar(id)
+
+    fun importarSoundFont(uri: android.net.Uri) {
+
+        soundFontManager.importarSoundFont(uri)
+
+    }
 }

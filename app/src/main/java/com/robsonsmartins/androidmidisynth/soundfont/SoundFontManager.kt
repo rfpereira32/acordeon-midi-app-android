@@ -1,9 +1,10 @@
 package com.robsonsmartins.androidmidisynth.soundfont
 
 import android.content.Context
+import android.net.Uri
+import androidx.compose.runtime.mutableStateListOf
 import java.io.File
 import java.io.FileOutputStream
-import androidx.compose.runtime.mutableStateListOf
 
 class SoundFontManager(
     private val context: Context
@@ -100,10 +101,6 @@ class SoundFontManager(
 
     /**
      * Garante que a SoundFont exista no armazenamento interno.
-     *
-     * Caso ainda não exista, copia automaticamente da pasta assets.
-     *
-     * Retorna o caminho absoluto do arquivo.
      */
     fun prepareSoundFont(nomeArquivo: String): String {
 
@@ -142,6 +139,53 @@ class SoundFontManager(
         }
 
         return arquivoDestino.absolutePath
+    }
+
+    /**
+     * Importa uma SoundFont escolhida pelo usuário.
+     *
+     * (Implementação no próximo commit.)
+     */
+    fun importarSoundFont(uri: Uri) {
+
+        val nomeArquivo = uri.lastPathSegment
+            ?.substringAfterLast('/')
+            ?: "SoundFont_${System.currentTimeMillis()}.sf2"
+
+        val arquivoDestino = File(
+            context.filesDir,
+            nomeArquivo
+        )
+
+        context.contentResolver.openInputStream(uri)?.use { input ->
+
+            FileOutputStream(arquivoDestino).use { output ->
+
+                input.copyTo(output)
+
+            }
+
+        }
+
+        val novoId =
+            (soundFonts.maxOfOrNull { it.id } ?: 0) + 1
+
+        soundFonts.add(
+
+            SoundFontInfo(
+
+                id = novoId,
+
+                nome = nomeArquivo,
+
+                caminho = arquivoDestino.absolutePath,
+
+                carregada = false
+
+            )
+
+        )
+
     }
 
     /**
