@@ -3,6 +3,7 @@ package com.robsonsmartins.androidmidisynth.audio
 import com.robsonsmartins.androidmidisynth.FluidSynthManager
 import android.util.Log
 
+
 /**
  * Centraliza todas as operações relacionadas ao sintetizador.
  *
@@ -30,7 +31,10 @@ class SynthController(
     }
 
     fun setMute(channel: Int, mute: Boolean) {
-        // próximo commit
+
+        if (mute)
+            synth.setChannelVolume(channel, 0)
+
     }
 
     fun setProgram(channel: Int, program: Int) {

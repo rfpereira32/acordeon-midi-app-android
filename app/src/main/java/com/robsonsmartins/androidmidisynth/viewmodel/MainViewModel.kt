@@ -15,7 +15,7 @@ import com.robsonsmartins.androidmidisynth.core.SystemState
 
 class MainViewModel : ViewModel() {
 
-    private var synthController: SynthController? = null
+    private lateinit var synthController: SynthController
 
     fun setSynthController(controller: SynthController) {
         synthController = controller
@@ -26,6 +26,8 @@ class MainViewModel : ViewModel() {
     // =============================================================================
 
     private val midiMixer = MidiMixer()
+
+
 
     // =============================================================================
     // Estado da aplicação
@@ -39,13 +41,11 @@ class MainViewModel : ViewModel() {
 
     fun setChannelVolume(channel: Int, volume: Int) {
 
-        midiMixer.setVolume(channel, volume)
+        mixerState.getChannel(channel).volume = volume
 
-        mixerState
-            .getChannel(channel)
-            .volume = volume
-
-        synthController?.setVolume(channel, volume)
+        if (!mixerState.getChannel(channel).muted) {
+            synthController.setVolume(channel, volume)
+        }
     }
 
     fun getChannel(channel: Int) =
@@ -53,11 +53,16 @@ class MainViewModel : ViewModel() {
 
     fun setChannelMute(channel: Int, mute: Boolean) {
 
-        midiMixer.setMute(channel, mute)
+        mixerState.getChannel(channel).muted = mute
 
-        mixerState
-            .getChannel(channel)
-            .muted = mute
+        if (mute) {
+            synthController.setVolume(channel, 0)
+        } else {
+            synthController.setVolume(
+                channel,
+                mixerState.getChannel(channel).volume
+            )
+        }
 
     }
 

@@ -85,29 +85,38 @@ fun MixerScreenContent(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             StaticChannelRow(
                 number = "1",
-                name = "Teclado / Melodia",
+                name = "Teclado",
                 accentColor = ColorChannel4,
                 volume = canais[0].volume * 100f / 127f,
-                isIndicatorOn = false
-            ) { novoVol ->
+                isIndicatorOn = false,
 
-                val valorMidi = percentToMidi(novoVol)
+                onVolumeChanged = { novoVol ->
 
-                viewModel.setChannelVolume(0, valorMidi)
+                    val valorMidi = percentToMidi(novoVol)
 
-                midiManager.despacharComandoMixerSysEx(
-                    0,
-                    valorMidi
-                )
-            }
+                    viewModel.setChannelVolume(0, valorMidi)
+
+                    midiManager.despacharComandoMixerSysEx(
+                        0,
+                        valorMidi
+                    )
+                },
+
+                onMuteChanged = { mute ->
+
+                    viewModel.setChannelMute(0, mute)
+
+                }
+            )
 
             StaticChannelRow(
-                number = "2",
-                name = "Baixos Fundamentais",
-                accentColor = ColorChannel4,
-                volume = canais[1].volume * 100f / 127f,
-                isIndicatorOn = false
-            ) { novoVol ->
+                    number = "2",
+            name = "Baixos fundamentais",
+            accentColor = ColorChannel4,
+            volume = canais[1].volume * 100f / 127f,
+            isIndicatorOn = false,
+
+            onVolumeChanged = { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
@@ -117,15 +126,23 @@ fun MixerScreenContent(
                     0,
                     valorMidi
                 )
+            },
+
+            onMuteChanged = { mute ->
+
+                viewModel.setChannelMute(0, mute)
+
             }
+            )
 
             StaticChannelRow(
-                number = "3",
-                name = "Acordes / Harmonia",
-                accentColor = ColorChannel4,
-                volume = canais[2].volume * 100f / 127f,
-                isIndicatorOn = false
-            ) { novoVol ->
+            number = "3",
+            name = "Acordes",
+            accentColor = ColorChannel4,
+            volume = canais[2].volume * 100f / 127f,
+            isIndicatorOn = false,
+
+            onVolumeChanged = { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
@@ -135,15 +152,23 @@ fun MixerScreenContent(
                     0,
                     valorMidi
                 )
+            },
+
+            onMuteChanged = { mute ->
+
+                viewModel.setChannelMute(0, mute)
+
             }
+        )
 
             StaticChannelRow(
                 number = "4",
-                name = "Instrumentos Extras 1",
-                accentColor = ColorChannel4,
-                volume = canais[3].volume * 100f / 127f,
-                isIndicatorOn = false
-            ) { novoVol ->
+            name = "Instrumentos Extras 1",
+            accentColor = ColorChannel4,
+            volume = canais[3].volume * 100f / 127f,
+            isIndicatorOn = false,
+
+            onVolumeChanged = { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
@@ -153,15 +178,23 @@ fun MixerScreenContent(
                     0,
                     valorMidi
                 )
+            },
+
+            onMuteChanged = { mute ->
+
+                viewModel.setChannelMute(0, mute)
+
             }
+            )
 
             StaticChannelRow(
-                number = "5",
-                name = "Instrumentos Extras 2",
-                accentColor = ColorChannel4,
-                volume = canais[4].volume * 100f / 127f,
-                isIndicatorOn = false
-            ) { novoVol ->
+            number = "5",
+            name = "Instrumentos Extras 2",
+            accentColor = ColorChannel4,
+            volume = canais[4].volume * 100f / 127f,
+            isIndicatorOn = false,
+
+            onVolumeChanged = { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
@@ -171,7 +204,14 @@ fun MixerScreenContent(
                     0,
                     valorMidi
                 )
+            },
+
+            onMuteChanged = { mute ->
+
+                viewModel.setChannelMute(0, mute)
+
             }
+        )
         }
         Spacer(modifier = Modifier.height(8.dp))
         // OS 4 BOTÕES DE AÇÕES RÁPIDAS NO RODAPÉ DO MIXER (CONFIG AGORA ATIVA A GAVETA)
@@ -363,7 +403,8 @@ fun StaticChannelRow(
     accentColor: Color,
     volume: Float,
     isIndicatorOn: Boolean = false,
-    onVolumeChanged: (Float) -> Unit
+    onVolumeChanged: (Float) -> Unit,
+    onMuteChanged: (Boolean) -> Unit
 ) {
     var isMuted by remember { mutableStateOf(false) }
 
@@ -382,8 +423,19 @@ fun StaticChannelRow(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    IconButton(onClick = { isMuted = !isMuted; onVolumeChanged(if(isMuted) 0f else volume) }, modifier = Modifier.size(24.dp)) {
-                        Icon(imageVector = if (isMuted) Icons.Default.Clear else Icons.Default.Check, contentDescription = null, tint = if (isMuted) Color.Red else Color.Gray, modifier = Modifier.size(18.dp))
+                    IconButton(
+                        onClick = {
+                            isMuted = !isMuted
+                            onMuteChanged(isMuted)
+                        },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isMuted) Icons.Default.Clear else Icons.Default.Check,
+                            contentDescription = null,
+                            tint = if (isMuted) Color.Red else Color.Gray,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                     Box(modifier = Modifier.size(8.dp).background(if (isIndicatorOn) Color(0xFF4CAF50) else Color.DarkGray, RoundedCornerShape(4.dp)))
                     Text("${volume.toInt()}%", color = corTextoVolume, fontSize = 14.sp, fontWeight = FontWeight.Bold)
