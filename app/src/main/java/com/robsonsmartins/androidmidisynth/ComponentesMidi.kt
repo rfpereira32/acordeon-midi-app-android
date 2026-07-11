@@ -54,63 +54,23 @@ fun MixerScreenContent(
 
     var exibirDialogoSoundFont by remember { mutableStateOf(false) }
 
-    val soundFonts = remember {
+    val soundFonts = viewModel.listarSoundFonts()
 
-        mutableStateListOf(
+    val launcherSoundFont =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
 
-            SoundFontInfo(
-                id = 1,
-                nome = "Acordeoes.sf2",
-                caminho = "",
-                carregada = true
-            ),
+            uri?.let {
 
-            SoundFontInfo(
-                id = 2,
-                nome = "Baixos.sf2",
-                caminho = "",
-                carregada = true
-            ),
+                viewModel.importarSoundFont(it)
 
-            SoundFontInfo(
-                id = 3,
-                nome = "GeneralUser.sf2",
-                caminho = "",
-                carregada = false
-            ),
+            }
 
-            SoundFontInfo(
-                id = 4,
-                nome = "Strings.sf2",
-                caminho = "",
-                carregada = false
-            )
-
-        )
-    }
+        }
 
     // Estados locais controlando os faders em tempo real
     val canais = viewModel.getChannels()
-
-    if (exibirDialogoSoundFont) {
-
-        SoundFontDialog(
-            soundFonts = soundFonts,
-
-            onDismiss = {
-                exibirDialogoSoundFont = false
-            },
-
-            onApply = {
-                exibirDialogoSoundFont = false
-            },
-
-            onImport = {
-                // Próximo commit
-            }
-        )
-
-    }
 
     Column(
         modifier = Modifier
@@ -398,6 +358,35 @@ fun MixerScreenContent(
                 }
             }
         }
+    }
+    if (exibirDialogoSoundFont) {
+
+        SoundFontDialog(
+
+            soundFonts = soundFonts,
+
+            onDismiss = {
+
+                exibirDialogoSoundFont = false
+
+            },
+
+            onApply = {
+
+                exibirDialogoSoundFont = false
+
+            },
+
+            onImport = {
+
+                launcherSoundFont.launch(
+                    arrayOf("*/*")
+                )
+
+            }
+
+        )
+
     }
 }
 @Composable

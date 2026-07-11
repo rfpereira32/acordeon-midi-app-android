@@ -13,6 +13,7 @@ import com.robsonsmartins.androidmidisynth.core.MidiMixer
 import com.robsonsmartins.androidmidisynth.core.DeviceState
 import com.robsonsmartins.androidmidisynth.core.MixerState
 import com.robsonsmartins.androidmidisynth.core.SystemState
+import android.net.Uri
 
 class MainViewModel : ViewModel() {
 
@@ -140,7 +141,6 @@ class MainViewModel : ViewModel() {
     // =============================================================================
 
     var soundFontAtual by mutableStateOf("AcordeonGiulietti.sf2")
-
     fun listarSoundFonts() =
         soundFontManager.listar()
 
@@ -153,7 +153,7 @@ class MainViewModel : ViewModel() {
     fun alternarSoundFont(id: Int) =
         soundFontManager.alternar(id)
 
-    fun importarSoundFont(uri: android.net.Uri) {
+    fun importarSoundFont(uri: Uri) {
 
         soundFontManager.importarSoundFont(uri)
 
