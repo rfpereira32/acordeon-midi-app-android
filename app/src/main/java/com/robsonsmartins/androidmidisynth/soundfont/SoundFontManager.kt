@@ -18,43 +18,25 @@ class SoundFontManager(
 
     init {
 
-        // SoundFonts fictícias durante o desenvolvimento da interface
+        val caminhoInicial =
+            prepareSoundFont("AcordeonGiulietti.sf2")
 
         soundFonts.add(
+
             SoundFontInfo(
+
                 id = 1,
-                nome = "Acordeoes.sf2",
-                caminho = "",
+
+                nome = "AcordeonGiulietti.sf2",
+
+                caminho = caminhoInicial,
+
                 carregada = true
+
             )
+
         )
 
-        soundFonts.add(
-            SoundFontInfo(
-                id = 2,
-                nome = "Baixos.sf2",
-                caminho = "",
-                carregada = true
-            )
-        )
-
-        soundFonts.add(
-            SoundFontInfo(
-                id = 3,
-                nome = "GeneralUser.sf2",
-                caminho = "",
-                carregada = false
-            )
-        )
-
-        soundFonts.add(
-            SoundFontInfo(
-                id = 4,
-                nome = "Strings.sf2",
-                caminho = "",
-                carregada = false
-            )
-        )
     }
 
     // =============================================================================
@@ -62,6 +44,18 @@ class SoundFontManager(
     // =============================================================================
 
     fun listar(): List<SoundFontInfo> = soundFonts
+
+    /**
+     * Retorna a SoundFont inicial do aplicativo.
+     *
+     * Temporariamente é a Giulietti.
+     * No futuro poderá retornar null.
+     */
+    fun soundFontInicial(): SoundFontInfo? {
+
+        return soundFonts.firstOrNull()
+
+    }
 
     fun adicionar(soundFont: SoundFontInfo) {
         soundFonts.add(soundFont)
@@ -143,8 +137,6 @@ class SoundFontManager(
 
     /**
      * Importa uma SoundFont escolhida pelo usuário.
-     *
-     * (Implementação no próximo commit.)
      */
     fun importarSoundFont(uri: Uri) {
 
@@ -162,14 +154,17 @@ class SoundFontManager(
 
             if (cursor.moveToFirst()) {
 
-                val index = cursor.getColumnIndex(
-                    android.provider.OpenableColumns.DISPLAY_NAME
-                )
+                val index =
+                    cursor.getColumnIndex(
+                        android.provider.OpenableColumns.DISPLAY_NAME
+                    )
 
                 if (index >= 0) {
                     nomeArquivo = cursor.getString(index)
                 }
+
             }
+
         }
 
         val arquivoDestino = File(
