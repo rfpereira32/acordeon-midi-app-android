@@ -148,16 +148,36 @@ class SoundFontManager(
      */
     fun importarSoundFont(uri: Uri) {
 
-        val nomeArquivo = uri.lastPathSegment
-            ?.substringAfterLast('/')
-            ?: "SoundFont_${System.currentTimeMillis()}.sf2"
+        val resolver = context.contentResolver
+
+        var nomeArquivo = "SoundFont_${System.currentTimeMillis()}.sf2"
+
+        resolver.query(
+            uri,
+            arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+
+            if (cursor.moveToFirst()) {
+
+                val index = cursor.getColumnIndex(
+                    android.provider.OpenableColumns.DISPLAY_NAME
+                )
+
+                if (index >= 0) {
+                    nomeArquivo = cursor.getString(index)
+                }
+            }
+        }
 
         val arquivoDestino = File(
             context.filesDir,
             nomeArquivo
         )
 
-        context.contentResolver.openInputStream(uri)?.use { input ->
+        resolver.openInputStream(uri)?.use { input ->
 
             FileOutputStream(arquivoDestino).use { output ->
 
