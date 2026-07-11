@@ -111,7 +111,13 @@ class MidiManager(
                     }
                 }
                 override fun onDeviceRemoved(deviceInfo: MidiDeviceInfo) {
-                    onMidiMessageReceived("Desconectado: ${nomeDispositivo(deviceInfo)}")
+
+                    onMidiMessageReceived(
+                        "Desconectado: ${nomeDispositivo(deviceInfo)}"
+                    )
+
+                    tratarDesconexao()
+
                 }
             }, mainHandler
         )
@@ -276,7 +282,18 @@ class MidiManager(
                                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                                     gatt?.discoverServices()
                                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                                    try { gatt?.close() } catch(_: Exception) {}
+
+                                    try {
+                                        gatt?.close()
+                                    } catch (_: Exception) {
+                                    }
+
+                                    mainHandler.post {
+
+                                        tratarDesconexao()
+
+                                    }
+
                                 }
                             }
 
@@ -344,6 +361,39 @@ class MidiManager(
         if (deviceInfo.outputPortCount > 0) {
             startReadingMidi(dispositivo, 0)
         }
+    }
+
+    private fun tratarDesconexao() {
+
+        stopReadingMidi()
+
+        try {
+            inputPort?.close()
+            dispositivoAberto?.close()
+        } catch (_: Exception) {
+        }
+
+        inputPort = null
+        dispositivoAberto = null
+
+        MidiEstadoCompartilhado.receiverMidiAtivo = null
+
+        MidiEstadoCompartilhado.atualizarEstado(
+            "Nenhum dispositivo pareado",
+            false
+        )
+
+        _nomeDispositivoConectado.value = "Nenhum dispositivo pareado"
+        _isBleConectado.value = false
+
+        bluetoothDevicesEmAbertura.clear()
+
+        iniciarBuscaBleMidi()
+
+        onMidiMessageReceived("Aguardando reconexão do Cordovox...")
+
+        Log.d(TAG, "Desconexão tratada com sucesso.")
+
     }
 
     fun finalize() {
