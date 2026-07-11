@@ -365,6 +365,10 @@ class MidiManager(
 
     private fun tratarDesconexao() {
 
+        if (temPermissaoBluetooth()) {
+            iniciarBuscaBleMidi()
+        }
+
         stopReadingMidi()
 
         try {
