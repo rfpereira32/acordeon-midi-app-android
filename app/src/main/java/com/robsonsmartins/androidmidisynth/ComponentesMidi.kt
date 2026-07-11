@@ -371,7 +371,9 @@ fun MixerScreenContent(
 
             },
 
-            onApply = {
+            onApply = { listaAtualizada ->
+
+                viewModel.aplicarSoundFonts(listaAtualizada)
 
                 exibirDialogoSoundFont = false
 

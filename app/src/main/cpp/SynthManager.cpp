@@ -141,6 +141,24 @@ int SynthManager::loadSF(const char *soundfontPath, int program)
     return sfid;
 }
 
+void SynthManager::unloadSF(int sfid)
+{
+    if (synth == nullptr)
+        return;
+
+    if (sfid < 0)
+        return;
+
+    fluid_synth_sfunload(
+            synth,
+            sfid,
+            1
+    );
+
+    if (soundfontId == sfid)
+        soundfontId = -1;
+}
+
 void SynthManager::programChange(int channel, int bank, int program){
     if (synth == nullptr)
         return;
@@ -227,6 +245,16 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthLoadSF(
             soundfontPath,
             program
     );
+}
+
+JNIEXPORT void JNICALL
+Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthUnloadSF(
+        JNIEnv *env,
+        jobject,
+        jint sfid) {
+
+    SynthManager::getInstance()->unloadSF(sfid);
+
 }
 
 /**

@@ -1,19 +1,20 @@
 package com.robsonsmartins.androidmidisynth.viewmodel
-import com.robsonsmartins.androidmidisynth.audio.SynthController
-import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 
 import android.media.midi.MidiDeviceInfo
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.robsonsmartins.androidmidisynth.core.MidiMixer
+import com.robsonsmartins.androidmidisynth.audio.SynthController
 import com.robsonsmartins.androidmidisynth.core.DeviceState
+import com.robsonsmartins.androidmidisynth.core.MidiMixer
 import com.robsonsmartins.androidmidisynth.core.MixerState
 import com.robsonsmartins.androidmidisynth.core.SystemState
-import android.net.Uri
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 
 class MainViewModel : ViewModel() {
 
@@ -24,6 +25,7 @@ class MainViewModel : ViewModel() {
     fun setSoundFontManager(manager: SoundFontManager) {
         soundFontManager = manager
     }
+
     fun setSynthController(controller: SynthController) {
         synthController = controller
     }
@@ -33,8 +35,6 @@ class MainViewModel : ViewModel() {
     // =============================================================================
 
     private val midiMixer = MidiMixer()
-
-
 
     // =============================================================================
     // Estado da aplicação
@@ -141,6 +141,7 @@ class MainViewModel : ViewModel() {
     // =============================================================================
 
     var soundFontAtual by mutableStateOf("AcordeonGiulietti.sf2")
+
     fun listarSoundFonts() =
         soundFontManager.listar()
 
@@ -158,4 +159,27 @@ class MainViewModel : ViewModel() {
         soundFontManager.importarSoundFont(uri)
 
     }
+
+    /**
+     * Sincroniza as SoundFonts marcadas na interface
+     * com as realmente carregadas no FluidSynth.
+     */
+    fun aplicarSoundFonts(lista: List<SoundFontInfo>) {
+
+        lista.forEach { soundFont ->
+
+            if (soundFont.carregada) {
+
+                synthController.carregarSoundFont(soundFont)
+
+            } else {
+
+                synthController.descarregarSoundFont(soundFont)
+
+            }
+
+        }
+
+    }
+
 }

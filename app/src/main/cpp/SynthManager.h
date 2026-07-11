@@ -49,53 +49,92 @@ public:
      * @return A SynthManager instance.
      */
     static SynthManager* getInstance();
+
     /** @brief Free the unique SynthManager instance. */
     static void freeInstance();
+
     /**
      * @brief Load a soundfont file.
      * @param soundfontPath Full soundfont filename path.
      * @param program Program number to select (default = 0).
-     * @return True if successful. False otherwise.
+     * @return SoundFont ID (sfid) ou FLUID_FAILED.
      */
     int loadSF(const char *soundfontPath, int program = 0);
 
     /**
- * @brief Seleciona banco e programa para um canal MIDI.
- *
- * @param channel Canal MIDI.
- * @param bank Banco do instrumento.
- * @param program Programa (Preset).
- */
-    void programChange(int channel, int bank, int program);
+     * @brief Remove uma SoundFont previamente carregada.
+     * @param sfid Identificador retornado por loadSF().
+     */
+    void unloadSF(int sfid);
+
+    /**
+     * @brief Seleciona banco e programa para um canal MIDI.
+     *
+     * @param channel Canal MIDI.
+     * @param bank Banco do instrumento.
+     * @param program Programa (Preset).
+     */
+    void programChange(
+            int channel,
+            int bank,
+            int program
+    );
 
     /**
      * @brief Play a note.
      * @param note Note number.
      * @param velocity The velocity of the note.
      */
-    void noteOn(int channel, int note, int velocity);
-    void noteOff(int channel, int note);
-    void sendCC(int channel, int controller, int value);
-    void reverb(int level);
+    void noteOn(
+            int channel,
+            int note,
+            int velocity
+    );
+
+    void noteOff(
+            int channel,
+            int note
+    );
+
+    void sendCC(
+            int channel,
+            int controller,
+            int value
+    );
+
+    void reverb(
+            int level
+    );
 
 private:
+
     /* @brief Constructor. */
     SynthManager();
+
     /* @brief Destructor. */
     ~SynthManager();
-    /* @brief Set the FluidSynth latency.
-     * @param ms Latency value, in milliseconds. */
+
+    /**
+     * @brief Set the FluidSynth latency.
+     * @param ms Latency value, in milliseconds.
+     */
     void setLatency(int ms);
+
 private:
+
     /* @brief SynthManager unique instance. */
     static SynthManager *instance;
+
     /* @brief FluidSynth settings. */
     fluid_settings_t *settings;
+
     /* @brief FluidSynth synth object. */
     fluid_synth_t *synth;
+
     /* @brief FluidSynth audio driver object. */
     fluid_audio_driver_t *driver;
-    /* @brief FluidSynth loaded soundfont ID. */
+
+    /* @brief Última SoundFont carregada (mantido para compatibilidade). */
     int soundfontId;
 };
 

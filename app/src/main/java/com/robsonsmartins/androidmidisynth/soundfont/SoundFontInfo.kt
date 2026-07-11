@@ -15,12 +15,20 @@ class SoundFontInfo(
 
     carregada: Boolean = false,
 
-    quantidadePresets: Int = 0
+    quantidadePresets: Int = 0,
+
+    sfid: Int = -1
 
 ) {
 
     var carregada by mutableStateOf(carregada)
 
     var quantidadePresets by mutableIntStateOf(quantidadePresets)
+
+    /**
+     * ID retornado pelo FluidSynth (fluid_synth_sfload).
+     * -1 indica que a SoundFont ainda não está carregada.
+     */
+    var sfid by mutableIntStateOf(sfid)
 
 }

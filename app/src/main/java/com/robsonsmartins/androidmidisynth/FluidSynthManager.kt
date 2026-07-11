@@ -33,7 +33,6 @@ package com.robsonsmartins.androidmidisynth
 
 import android.content.Context
 import java.io.IOException
-import android.util.Log
 
 /**
  * Encapsula toda a comunicação entre o Kotlin e a biblioteca FluidSynth.
@@ -72,17 +71,47 @@ class FluidSynthManager(private val context: Context) {
     /**
      * Carrega uma SoundFont.
      *
-     * @param filename Nome do arquivo .sf2 localizado na pasta assets.
-     * @param program Programa MIDI inicial.
+     * @return sfid retornado pelo FluidSynth.
      */
-    fun loadSF(filename: String, program: Int = 0) {
+    fun loadSF(
+        filename: String,
+        program: Int = 0
+    ): Int {
+
         try {
-            if (fluidsynthLoadSF(filename, program) < 0) {
+
+            val sfid = fluidsynthLoadSF(
+                filename,
+                program
+            )
+
+            if (sfid < 0) {
                 throw IOException("Erro ao carregar $filename")
             }
+
+            return sfid
+
         } catch (e: IOException) {
+
             throw RuntimeException(e)
+
         }
+
+    }
+
+    /**
+     * Remove uma SoundFont do FluidSynth.
+     */
+    fun unloadSF(
+        sfid: Int
+    ) {
+
+        if (sfid >= 0) {
+
+            fluidsynthUnloadSF(sfid)
+
+        }
+
     }
 
     fun programChange(
@@ -106,6 +135,7 @@ class FluidSynthManager(private val context: Context) {
         channel: Int,
         volume: Int
     ) {
+
         fluidsynthCC(
             channel,
             7,
@@ -115,17 +145,28 @@ class FluidSynthManager(private val context: Context) {
     }
 
     fun setVolume(volume: Int) {
-        setChannelVolume(0, volume)
+
+        setChannelVolume(
+            0,
+            volume
+        )
+
     }
+
     /**
      * Toca uma nota.
      */
-    external fun fluidsynthNoteOn(note: Int, velocity: Int)
+    external fun fluidsynthNoteOn(
+        note: Int,
+        velocity: Int
+    )
 
     /**
      * Finaliza uma nota.
      */
-    external fun fluidsynthNoteOff(note: Int)
+    external fun fluidsynthNoteOff(
+        note: Int
+    )
 
     // =============================================================================================
     // Métodos Privados
@@ -141,19 +182,31 @@ class FluidSynthManager(private val context: Context) {
 
             val tempFilename = "tmp_$filename"
 
-            context.openFileOutput(tempFilename, Context.MODE_PRIVATE).use { output ->
+            context.openFileOutput(
+                tempFilename,
+                Context.MODE_PRIVATE
+            ).use { output ->
 
                 val buffer = ByteArray(4096)
 
                 var bytesRead: Int
 
                 while (input.read(buffer).also { bytesRead = it } != -1) {
-                    output.write(buffer, 0, bytesRead)
+
+                    output.write(
+                        buffer,
+                        0,
+                        bytesRead
+                    )
+
                 }
+
             }
 
             return "${context.filesDir}/$tempFilename"
+
         }
+
     }
 
     // =============================================================================================
@@ -172,6 +225,13 @@ class FluidSynthManager(private val context: Context) {
         soundfontPath: String?,
         program: Int
     ): Int
+
+    /**
+     * Descarrega uma SoundFont.
+     */
+    private external fun fluidsynthUnloadSF(
+        sfid: Int
+    )
 
     /**
      * Libera o FluidSynth.
@@ -194,6 +254,9 @@ class FluidSynthManager(private val context: Context) {
         level: Int
     )
 
+    /**
+     * Seleciona banco/programa.
+     */
     private external fun fluidsynthProgramChange(
         channel: Int,
         bank: Int,

@@ -1,8 +1,7 @@
 package com.robsonsmartins.androidmidisynth.audio
 
 import com.robsonsmartins.androidmidisynth.FluidSynthManager
-import android.util.Log
-
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 
 /**
  * Centraliza todas as operações relacionadas ao sintetizador.
@@ -27,27 +26,79 @@ class SynthController(
     fun setVolume(channel: Int, volume: Int) {
 
         val valor = volume.coerceIn(0, 127)
-        synth.setChannelVolume(channel, valor)
+
+        synth.setChannelVolume(
+            channel,
+            valor
+        )
+
     }
 
     fun setMute(channel: Int, mute: Boolean) {
 
-        if (mute)
+        if (mute) {
             synth.setChannelVolume(channel, 0)
+        }
 
     }
 
-    fun setProgram(channel: Int, bank: Int, program: Int) {
+    fun setProgram(
+        channel: Int,
+        bank: Int,
+        program: Int
+    ) {
 
-        synth.programChange(channel, bank, program)
+        synth.programChange(
+            channel,
+            bank,
+            program
+        )
 
     }
 
-    fun noteOn(channel: Int, note: Int, velocity: Int) {
+    /**
+     * Carrega uma SoundFont no FluidSynth.
+     *
+     * Não recarrega caso ela já esteja carregada.
+     */
+    fun carregarSoundFont(soundFont: SoundFontInfo) {
+
+        if (soundFont.sfid >= 0)
+            return
+
+        val sfid = synth.loadSF(soundFont.caminho)
+
+        soundFont.sfid = sfid
+
+    }
+
+    /**
+     * Remove uma SoundFont do FluidSynth.
+     */
+    fun descarregarSoundFont(soundFont: SoundFontInfo) {
+
+        if (soundFont.sfid < 0)
+            return
+
+        synth.unloadSF(soundFont.sfid)
+
+        soundFont.sfid = -1
+
+    }
+
+    fun noteOn(
+        channel: Int,
+        note: Int,
+        velocity: Int
+    ) {
         // futuro
     }
 
-    fun noteOff(channel: Int, note: Int) {
+    fun noteOff(
+        channel: Int,
+        note: Int
+    ) {
         // futuro
     }
+
 }
