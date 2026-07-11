@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -27,11 +26,7 @@ fun SoundFontDialog(
     onImport: () -> Unit
 ) {
 
-    val lista = remember {
-        soundFonts.map { it.copy() }.toMutableList()
-    }
-
-    val carregadas = lista.count { it.carregada }
+    val carregadas = soundFonts.count { it.carregada }
 
     AlertDialog(
 
@@ -47,7 +42,7 @@ fun SoundFontDialog(
                 )
 
                 Text(
-                    text = "$carregadas de ${lista.size} carregadas",
+                    text = "$carregadas de ${soundFonts.size} carregadas",
                     style = MaterialTheme.typography.bodySmall
                 )
 
@@ -64,7 +59,7 @@ fun SoundFontDialog(
                 ) {
 
                     items(
-                        items = lista,
+                        items = soundFonts,
                         key = { it.id }
                     ) { sf ->
 
@@ -125,7 +120,7 @@ fun SoundFontDialog(
 
                 onClick = {
 
-                    onApply(lista)
+                    onApply(soundFonts)
 
                 }
 
