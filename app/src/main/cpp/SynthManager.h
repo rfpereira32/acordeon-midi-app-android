@@ -36,6 +36,8 @@
 #include <fluidsynth/settings.h>
 #include <fluidsynth/synth.h>
 
+#include <vector>
+#include "PresetInfoNative.h"
 // -----------------------------------------------------------------------------------------------
 
 /**
@@ -97,6 +99,16 @@ public:
             int sfid,
             int bank,
             int program
+    );
+
+/**
+ * @brief Lista todos os presets existentes em uma SoundFont.
+ *
+ * @param sfid Identificador da SoundFont carregada.
+ * @return Vetor contendo todos os presets encontrados.
+ */
+    std::vector<PresetInfoNative> listPresets(
+            int sfid
     );
 
     /**

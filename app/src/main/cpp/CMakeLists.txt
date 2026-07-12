@@ -61,6 +61,7 @@ find_package(OpenMP REQUIRED)
 add_library(synth-lib SHARED
 		MidiManager.cpp
 		SynthManager.cpp
+		SoundFontParser.cpp
 )
 
 # Include fluidsynth header directory

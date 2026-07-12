@@ -2,6 +2,7 @@ package com.robsonsmartins.androidmidisynth.soundfont
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
@@ -42,8 +43,11 @@ class SoundFontInfo(
     var sfid by mutableIntStateOf(sfid)
 
     /**
-     * Futuramente:
+     * Lista de presets existentes nesta SoundFont.
      *
-     * val presets = mutableStateListOf<PresetInfo>()
+     * Será preenchida automaticamente após a
+     * leitura da SoundFont pelo FluidSynth.
      */
+    val presets = mutableStateListOf<PresetInfo>()
+
 }
