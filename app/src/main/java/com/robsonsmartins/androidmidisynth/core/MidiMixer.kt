@@ -1,5 +1,7 @@
 package com.robsonsmartins.androidmidisynth.core
 
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
+
 data class MidiChannel(
 
     val channel: Int,
@@ -8,19 +10,15 @@ data class MidiChannel(
     var expression: Int = 127,
     var pan: Int = 64,
 
-    // Seleção da SoundFont
-    var sfid: Int = -1,
+    // SoundFont utilizada por este canal
+    var soundFont: SoundFontInfo? = null,
 
     // Seleção do instrumento
     var bankMsb: Int = 0,
     var bankLsb: Int = 0,
     var program: Int = 0,
 
-    var muted: Boolean = false,
-
-    // Apenas informações para a interface
-    var instrumentName: String = "",
-    var soundFontName: String = ""
+    var muted: Boolean = false
 
 )
 
@@ -59,9 +57,9 @@ class MidiMixer(numberOfChannels: Int = 5) {
         return channels[channel].program
     }
 
-    fun getSoundFontId(channel: Int): Int {
+    fun getSoundFont(channel: Int): SoundFontInfo? {
         requireChannel(channel)
-        return channels[channel].sfid
+        return channels[channel].soundFont
     }
 
     fun isMuted(channel: Int): Boolean {
@@ -83,23 +81,16 @@ class MidiMixer(numberOfChannels: Int = 5) {
         channels[channel].program = program.coerceIn(0, 127)
     }
 
-    fun setSoundFontId(channel: Int, sfid: Int) {
+    fun setSoundFont(
+        channel: Int,
+        soundFont: SoundFontInfo?
+    ) {
         requireChannel(channel)
-        channels[channel].sfid = sfid
+        channels[channel].soundFont = soundFont
     }
 
     fun setMute(channel: Int, mute: Boolean) {
         requireChannel(channel)
         channels[channel].muted = mute
-    }
-
-    fun setInstrumentName(channel: Int, name: String) {
-        requireChannel(channel)
-        channels[channel].instrumentName = name
-    }
-
-    fun setSoundFontName(channel: Int, name: String) {
-        requireChannel(channel)
-        channels[channel].soundFontName = name
     }
 }

@@ -103,19 +103,19 @@ class MainViewModel : ViewModel() {
     /**
      * Nova API.
      *
-     * Seleciona completamente o instrumento
-     * utilizado por um canal MIDI.
+     * Associa uma SoundFont a um canal e seleciona
+     * banco/preset no FluidSynth.
      */
     fun setChannelInstrument(
         channel: Int,
-        sfid: Int,
+        soundFont: SoundFontInfo,
         bank: Int,
         preset: Int
     ) {
 
-        midiMixer.setSoundFontId(
+        midiMixer.setSoundFont(
             channel,
-            sfid
+            soundFont
         )
 
         val midiChannel =
@@ -126,7 +126,7 @@ class MainViewModel : ViewModel() {
 
         synthController.setInstrument(
             channel,
-            sfid,
+            soundFont.sfid,
             bank,
             preset
         )
