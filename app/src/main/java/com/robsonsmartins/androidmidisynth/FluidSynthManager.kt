@@ -175,6 +175,14 @@ class FluidSynthManager(private val context: Context) {
 
     }
 
+    fun listPresets(
+        sfid: Int
+    ): List<com.robsonsmartins.androidmidisynth.soundfont.PresetInfo> {
+
+        return fluidsynthListPresets(sfid).toList()
+
+    }
+
     external fun criarPresetTeste(): com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 
     /**
@@ -265,6 +273,11 @@ class FluidSynthManager(private val context: Context) {
         bank: Int,
         program: Int
     )
+
+    external fun fluidsynthListPresets(
+        sfid: Int
+    ): Array<com.robsonsmartins.androidmidisynth.soundfont.PresetInfo>
+
 
     /**
      * Nova API.
