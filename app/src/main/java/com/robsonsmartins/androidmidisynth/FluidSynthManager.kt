@@ -175,6 +175,8 @@ class FluidSynthManager(private val context: Context) {
 
     }
 
+    external fun criarPresetTeste(): com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
+
     /**
      * Toca uma nota.
      */

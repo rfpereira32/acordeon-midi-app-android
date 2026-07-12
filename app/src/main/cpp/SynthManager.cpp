@@ -374,3 +374,41 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthReverb(
 }
 
 } // extern "C"
+
+JNIEXPORT jobject JNICALL
+Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_criarPresetTeste(
+        JNIEnv* env,
+        jobject)
+{
+    jclass presetClass = env->FindClass(
+            "com/robsonsmartins/androidmidisynth/soundfont/PresetInfo"
+    );
+
+    if (presetClass == nullptr)
+        return nullptr;
+
+    jmethodID ctor = env->GetMethodID(
+            presetClass,
+            "<init>",
+            "(IILjava/lang/String;)V"
+    );
+
+    if (ctor == nullptr)
+        return nullptr;
+
+    jstring nome = env->NewStringUTF(
+            "Accordion Test"
+    );
+
+    jobject preset = env->NewObject(
+            presetClass,
+            ctor,
+            0,
+            21,
+            nome
+    );
+
+    env->DeleteLocalRef(nome);
+
+    return preset;
+}
