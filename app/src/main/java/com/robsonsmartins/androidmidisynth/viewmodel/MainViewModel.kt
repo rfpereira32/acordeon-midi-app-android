@@ -88,12 +88,49 @@ class MainViewModel : ViewModel() {
             midiMixer.getVolume(channel)
     }
 
+    /**
+     * API antiga.
+     * Será removida futuramente.
+     */
     fun setChannelProgram(channel: Int, program: Int) {
         midiMixer.setProgram(channel, program)
     }
 
     fun getChannelProgram(channel: Int): Int {
         return midiMixer.getProgram(channel)
+    }
+
+    /**
+     * Nova API.
+     *
+     * Seleciona completamente o instrumento
+     * utilizado por um canal MIDI.
+     */
+    fun setChannelInstrument(
+        channel: Int,
+        sfid: Int,
+        bank: Int,
+        preset: Int
+    ) {
+
+        midiMixer.setSoundFontId(
+            channel,
+            sfid
+        )
+
+        val midiChannel =
+            midiMixer.getChannel(channel)
+
+        midiChannel.bankMsb = bank
+        midiChannel.program = preset
+
+        synthController.setInstrument(
+            channel,
+            sfid,
+            bank,
+            preset
+        )
+
     }
 
     fun getChannels() = mixerState.channels

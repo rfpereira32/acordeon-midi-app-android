@@ -42,6 +42,11 @@ class SynthController(
 
     }
 
+    /**
+     * API antiga.
+     *
+     * Mantida temporariamente por compatibilidade.
+     */
     fun setProgram(
         channel: Int,
         bank: Int,
@@ -52,6 +57,28 @@ class SynthController(
             channel,
             bank,
             program
+        )
+
+    }
+
+    /**
+     * Nova API.
+     *
+     * Seleciona explicitamente a SoundFont,
+     * banco e preset do canal.
+     */
+    fun setInstrument(
+        channel: Int,
+        sfid: Int,
+        bank: Int,
+        preset: Int
+    ) {
+
+        synth.programSelect(
+            channel,
+            sfid,
+            bank,
+            preset
         )
 
     }

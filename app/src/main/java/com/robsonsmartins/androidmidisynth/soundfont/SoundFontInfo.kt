@@ -21,14 +21,29 @@ class SoundFontInfo(
 
 ) {
 
+    /**
+     * Indica se esta SoundFont está carregada no FluidSynth.
+     */
     var carregada by mutableStateOf(carregada)
 
+    /**
+     * Quantidade de presets disponíveis.
+     *
+     * Será preenchida automaticamente quando
+     * implementarmos a leitura dos presets.
+     */
     var quantidadePresets by mutableIntStateOf(quantidadePresets)
 
     /**
      * ID retornado pelo FluidSynth (fluid_synth_sfload).
+     *
      * -1 indica que a SoundFont ainda não está carregada.
      */
     var sfid by mutableIntStateOf(sfid)
 
+    /**
+     * Futuramente:
+     *
+     * val presets = mutableStateListOf<PresetInfo>()
+     */
 }
