@@ -114,6 +114,9 @@ class FluidSynthManager(private val context: Context) {
 
     }
 
+    /**
+     * Mantido por compatibilidade.
+     */
     fun programChange(
         channel: Int,
         bank: Int,
@@ -122,6 +125,25 @@ class FluidSynthManager(private val context: Context) {
 
         fluidsynthProgramChange(
             channel,
+            bank,
+            program
+        )
+
+    }
+
+    /**
+     * Seleciona explicitamente uma SoundFont, banco e preset.
+     */
+    fun programSelect(
+        channel: Int,
+        sfid: Int,
+        bank: Int,
+        program: Int
+    ) {
+
+        fluidsynthProgramSelect(
+            channel,
+            sfid,
             bank,
             program
         )
@@ -172,9 +194,6 @@ class FluidSynthManager(private val context: Context) {
     // Métodos Privados
     // =============================================================================================
 
-    /**
-     * Copia uma SoundFont da pasta assets para a área privada do aplicativo.
-     */
     @Throws(IOException::class)
     private fun copyAssetToTmpFile(filename: String): String {
 
@@ -213,52 +232,44 @@ class FluidSynthManager(private val context: Context) {
     // JNI
     // =============================================================================================
 
-    /**
-     * Inicializa o FluidSynth.
-     */
     private external fun fluidsynthInit()
 
-    /**
-     * Carrega uma SoundFont.
-     */
     private external fun fluidsynthLoadSF(
         soundfontPath: String?,
         program: Int
     ): Int
 
-    /**
-     * Descarrega uma SoundFont.
-     */
     private external fun fluidsynthUnloadSF(
         sfid: Int
     )
 
-    /**
-     * Libera o FluidSynth.
-     */
     private external fun fluidsynthFree()
 
-    /**
-     * Envia um Control Change.
-     */
     private external fun fluidsynthCC(
         channel: Int,
         controller: Int,
         value: Int
     )
 
-    /**
-     * Ajusta o nível de Reverb.
-     */
     private external fun fluidsynthReverb(
         level: Int
     )
 
     /**
-     * Seleciona banco/programa.
+     * API antiga.
      */
     private external fun fluidsynthProgramChange(
         channel: Int,
+        bank: Int,
+        program: Int
+    )
+
+    /**
+     * Nova API.
+     */
+    private external fun fluidsynthProgramSelect(
+        channel: Int,
+        sfid: Int,
         bank: Int,
         program: Int
     )

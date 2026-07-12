@@ -168,6 +168,24 @@ void SynthManager::programChange(int channel, int bank, int program){
     fluid_synth_program_change(synth, channel, program);
 }
 
+void SynthManager::programSelect(
+        int channel,
+        int sfid,
+        int bank,
+        int program)
+{
+    if (synth == nullptr)
+        return;
+
+    fluid_synth_program_select(
+            synth,
+            channel,
+            sfid,
+            bank,
+            program
+    );
+}
+
 void SynthManager::noteOn(int channel, int note, int velocity) {
     if (synth == nullptr) return;
 
@@ -323,6 +341,24 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthProgramChan
 
     SynthManager::getInstance()->programChange(channel, bank, program);
 }
+
+JNIEXPORT void JNICALL
+Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthProgramSelect(
+        JNIEnv *,
+        jobject,
+        jint channel,
+        jint sfid,
+        jint bank,
+        jint program)
+{
+    SynthManager::getInstance()->programSelect(
+            channel,
+            sfid,
+            bank,
+            program
+    );
+}
+
 
 /**
  * @brief   Native implementation of SynthManager.fluidsynthReverb() method.

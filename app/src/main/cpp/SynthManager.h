@@ -6,7 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, subject to the following conditions.
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -44,6 +44,7 @@
  */
 class SynthManager {
 public:
+
     /**
      * @brief Get an unique SynthManager instance.
      * @return A SynthManager instance.
@@ -59,20 +60,22 @@ public:
      * @param program Program number to select (default = 0).
      * @return SoundFont ID (sfid) ou FLUID_FAILED.
      */
-    int loadSF(const char *soundfontPath, int program = 0);
+    int loadSF(
+            const char *soundfontPath,
+            int program = 0
+    );
 
     /**
      * @brief Remove uma SoundFont previamente carregada.
      * @param sfid Identificador retornado por loadSF().
      */
-    void unloadSF(int sfid);
+    void unloadSF(
+            int sfid
+    );
 
     /**
-     * @brief Seleciona banco e programa para um canal MIDI.
-     *
-     * @param channel Canal MIDI.
-     * @param bank Banco do instrumento.
-     * @param program Programa (Preset).
+     * @brief API antiga.
+     * Mantida temporariamente para compatibilidade.
      */
     void programChange(
             int channel,
@@ -81,9 +84,23 @@ public:
     );
 
     /**
+     * @brief Seleciona explicitamente uma SoundFont,
+     * banco e preset para um canal MIDI.
+     *
+     * @param channel Canal MIDI.
+     * @param sfid SoundFont ID retornado por loadSF().
+     * @param bank Banco do instrumento.
+     * @param program Preset.
+     */
+    void programSelect(
+            int channel,
+            int sfid,
+            int bank,
+            int program
+    );
+
+    /**
      * @brief Play a note.
-     * @param note Note number.
-     * @param velocity The velocity of the note.
      */
     void noteOn(
             int channel,
@@ -108,10 +125,8 @@ public:
 
 private:
 
-    /* @brief Constructor. */
     SynthManager();
 
-    /* @brief Destructor. */
     ~SynthManager();
 
     /**
@@ -122,19 +137,20 @@ private:
 
 private:
 
-    /* @brief SynthManager unique instance. */
     static SynthManager *instance;
 
-    /* @brief FluidSynth settings. */
     fluid_settings_t *settings;
 
-    /* @brief FluidSynth synth object. */
     fluid_synth_t *synth;
 
-    /* @brief FluidSynth audio driver object. */
     fluid_audio_driver_t *driver;
 
-    /* @brief Última SoundFont carregada (mantido para compatibilidade). */
+    /**
+     * Última SoundFont carregada.
+     *
+     * Será removido quando toda a aplicação
+     * utilizar sfid por canal.
+     */
     int soundfontId;
 };
 
