@@ -101,6 +101,13 @@ public:
             int program
     );
 
+    /**
+ * @brief Retorna a instância interna do FluidSynth.
+ *
+ * Utilizado por classes auxiliares, como o SoundFontParser.
+ */
+    fluid_synth_t* getSynth() const;
+
 /**
  * @brief Lista todos os presets existentes em uma SoundFont.
  *

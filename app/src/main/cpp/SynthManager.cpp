@@ -186,6 +186,11 @@ void SynthManager::programSelect(
     );
 }
 
+fluid_synth_t* SynthManager::getSynth() const
+{
+    return synth;
+}
+
 void SynthManager::noteOn(int channel, int note, int velocity) {
     if (synth == nullptr) return;
 
@@ -411,4 +416,24 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_criarPresetTeste(
     env->DeleteLocalRef(nome);
 
     return preset;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthListPresets(
+        JNIEnv* env,
+        jobject,
+        jint)
+{
+    jclass presetClass = env->FindClass(
+            "com/robsonsmartins/androidmidisynth/soundfont/PresetInfo"
+    );
+
+    if (presetClass == nullptr)
+        return nullptr;
+
+    return env->NewObjectArray(
+            0,
+            presetClass,
+            nullptr
+    );
 }
