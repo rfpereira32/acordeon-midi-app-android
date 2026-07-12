@@ -40,7 +40,7 @@ val cpuTelemetryFlow = kotlinx.coroutines.flow.MutableStateFlow(0f)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TelaMidiSintetizador(
+fun  TelaMidiSintetizador(
     listaDispositivos: List<MidiDeviceInfo>,
     onVolumeChanged: (Float) -> Unit,
     onDispositivoSelecionado: (MidiDeviceInfo) -> Unit,

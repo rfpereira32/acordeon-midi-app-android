@@ -35,6 +35,7 @@
 #include "SynthManager.h"
 #include <android/log.h>
 #include "SoundFontParser.h"
+#include <android/log.h>
 
 /* @brief Default sample rate of the FluidSynth, in kHz. */
 static const int kFluidSynthSampleRate = 48000;
@@ -419,16 +420,22 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_criarPresetTeste(
     return preset;
 }
 
+extern "C"
 JNIEXPORT jobjectArray JNICALL
 Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthListPresets(
         JNIEnv* env,
         jobject,
         jint sfid)
 {
-    SoundFontParser parser;
 
-    auto presets =
-            parser.listPresets(
+    __android_log_print(
+            ANDROID_LOG_ERROR,
+            "SF2",
+            "Entrou em fluidsynthListPresets()"
+    );
+
+     auto presets =
+            SoundFontParser::listPresets(
                     SynthManager::getInstance()->getSynth(),
                     sfid
             );
@@ -440,9 +447,51 @@ Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthListPresets
     if (presetClass == nullptr)
         return nullptr;
 
-    return env->NewObjectArray(
-            0,
+    jmethodID ctor = env->GetMethodID(
             presetClass,
-            nullptr
+            "<init>",
+            "(IILjava/lang/String;)V"
     );
+
+    if (ctor == nullptr)
+        return nullptr;
+
+    jobjectArray array =
+            env->NewObjectArray(
+                    static_cast<jsize>(presets.size()),
+                    presetClass,
+                    nullptr
+            );
+
+    for (jsize i = 0;
+         i < static_cast<jsize>(presets.size());
+         i++)
+    {
+        const PresetInfoNative& preset = presets[i];
+
+        jstring nome =
+                env->NewStringUTF(
+                        preset.name.c_str()
+                );
+
+        jobject presetObject =
+                env->NewObject(
+                        presetClass,
+                        ctor,
+                        preset.bank,
+                        preset.program,
+                        nome
+                );
+
+        env->SetObjectArrayElement(
+                array,
+                i,
+                presetObject
+        );
+
+        env->DeleteLocalRef(nome);
+        env->DeleteLocalRef(presetObject);
+    }
+
+    return array;
 }

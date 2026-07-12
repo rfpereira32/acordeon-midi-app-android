@@ -67,7 +67,27 @@ class MainActivity : ComponentActivity() {
 
         soundFontManager.soundFontInicial()?.let { soundFont ->
 
-            val sfid = synthManager.loadSF(soundFont.caminho)
+            val sfid =
+                synthManager.loadSF(
+                    soundFont.caminho
+                )
+
+            val presets =
+                synthManager.listPresets(sfid)
+
+            Log.d(
+                "SF2",
+                "Quantidade de presets = ${presets.size}"
+            )
+
+            presets.forEach {
+
+                Log.d(
+                    "SF2",
+                    "Banco=${it.bank} Programa=${it.program} Nome=${it.nome}"
+                )
+
+            }
 
             soundFont.sfid = sfid
 
@@ -122,7 +142,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    TelaMidiSintetizador(
+                    com.robsonsmartins.androidmidisynth.TelaMidiSintetizador(
                         listaDispositivos = viewModel.dispositivosMidi,
                         onVolumeChanged = { novoVolume: Float ->
                             viewModel.masterVolume = novoVolume
