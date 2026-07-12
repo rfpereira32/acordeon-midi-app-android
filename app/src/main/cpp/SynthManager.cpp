@@ -34,6 +34,7 @@
 #include "MidiSpec.h"
 #include "SynthManager.h"
 #include <android/log.h>
+#include "SoundFontParser.h"
 
 /* @brief Default sample rate of the FluidSynth, in kHz. */
 static const int kFluidSynthSampleRate = 48000;
@@ -422,8 +423,16 @@ JNIEXPORT jobjectArray JNICALL
 Java_com_robsonsmartins_androidmidisynth_FluidSynthManager_fluidsynthListPresets(
         JNIEnv* env,
         jobject,
-        jint)
+        jint sfid)
 {
+    SoundFontParser parser;
+
+    auto presets =
+            parser.listPresets(
+                    SynthManager::getInstance()->getSynth(),
+                    sfid
+            );
+
     jclass presetClass = env->FindClass(
             "com/robsonsmartins/androidmidisynth/soundfont/PresetInfo"
     );

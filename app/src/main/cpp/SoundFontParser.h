@@ -22,19 +22,10 @@ class SoundFontParser
 {
 public:
 
-    /**
-     * Lista todos os presets existentes em uma SoundFont.
-     *
-     * @param synth Instância do FluidSynth.
-     * @param sfid  ID da SoundFont.
-     *
-     * @return Vetor contendo todos os presets encontrados.
-     */
-    std::vector<PresetInfoNative> listPresets(
+    static std::vector<PresetInfoNative> listPresets(
             fluid_synth_t* synth,
             int sfid
     );
-
 };
 
 #endif
