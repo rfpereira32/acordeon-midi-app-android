@@ -7,8 +7,12 @@ import java.io.File
 import java.io.FileOutputStream
 
 class SoundFontManager(
-    private val context: Context
-) {
+
+    private val context: Context,
+
+    private val synthController: SynthController
+
+)
 
     // =============================================================================
     // Lista observável pelo Compose
@@ -54,6 +58,38 @@ class SoundFontManager(
     fun soundFontInicial(): SoundFontInfo? {
 
         return soundFonts.firstOrNull()
+
+    }
+
+    /**
+     * Retorna uma SoundFont pelo ID.
+     */
+    fun getSoundFont(id: Int): SoundFontInfo? {
+
+        return soundFonts.find { it.id == id }
+
+    }
+
+    /**
+     * Retorna uma SoundFont pelo sfid do FluidSynth.
+     */
+    fun getSoundFontBySfid(sfid: Int): SoundFontInfo? {
+
+        return soundFonts.find { it.sfid == sfid }
+
+    }
+
+    /**
+     * Limpa todas as informações carregadas
+     * de uma SoundFont.
+     */
+    fun limparPresets(soundFont: SoundFontInfo) {
+
+        soundFont.presets.clear()
+
+        soundFont.quantidadePresets = 0
+
+        soundFont.presetSelecionado = null
 
     }
 

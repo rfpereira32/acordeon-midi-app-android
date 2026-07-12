@@ -1,6 +1,7 @@
 package com.robsonsmartins.androidmidisynth.audio
 
 import com.robsonsmartins.androidmidisynth.FluidSynthManager
+import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 
 /**
@@ -23,6 +24,10 @@ class SynthController(
 
 ) {
 
+    // =============================================================================
+    // Mixer
+    // =============================================================================
+
     fun setVolume(channel: Int, volume: Int) {
 
         val valor = volume.coerceIn(0, 127)
@@ -41,6 +46,10 @@ class SynthController(
         }
 
     }
+
+    // =============================================================================
+    // Instrumentos
+    // =============================================================================
 
     /**
      * API antiga.
@@ -83,24 +92,27 @@ class SynthController(
 
     }
 
+    // =============================================================================
+    // SoundFonts
+    // =============================================================================
+
     /**
-     * Carrega uma SoundFont no FluidSynth.
-     *
-     * Não recarrega caso ela já esteja carregada.
+     * Carrega uma SoundFont.
      */
     fun carregarSoundFont(soundFont: SoundFontInfo) {
 
         if (soundFont.sfid >= 0)
             return
 
-        val sfid = synth.loadSF(soundFont.caminho)
-
-        soundFont.sfid = sfid
+        soundFont.sfid =
+            synth.loadSF(
+                soundFont.caminho
+            )
 
     }
 
     /**
-     * Remove uma SoundFont do FluidSynth.
+     * Descarrega uma SoundFont.
      */
     fun descarregarSoundFont(soundFont: SoundFontInfo) {
 
@@ -112,6 +124,27 @@ class SynthController(
         soundFont.sfid = -1
 
     }
+
+    /**
+     * Retorna todos os presets existentes
+     * em uma SoundFont já carregada.
+     */
+    fun listarPresets(
+        soundFont: SoundFontInfo
+    ): List<PresetInfo> {
+
+        if (soundFont.sfid < 0)
+            return emptyList()
+
+        return synth.listPresets(
+            soundFont.sfid
+        )
+
+    }
+
+    // =============================================================================
+    // MIDI
+    // =============================================================================
 
     fun noteOn(
         channel: Int,
