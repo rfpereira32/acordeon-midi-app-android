@@ -1,5 +1,6 @@
 package com.robsonsmartins.androidmidisynth.ui.components
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
@@ -22,28 +23,32 @@ fun MainHeader(
 
 ) {
 
-    MainTopBar(
+    Column {
 
-        deviceName = deviceName,
+        MainTopBar(
 
-        showBackButton = showBackButton,
+            deviceName = deviceName,
 
-        onMenuClick = onMenuClick,
+            showBackButton = showBackButton,
 
-        onBackClick = onBackClick,
+            onMenuClick = onMenuClick,
 
-        backgroundColor = Color(0xFF0F0F11)
+            onBackClick = onBackClick,
 
-    )
+            backgroundColor = Color(0xFF0F0F11)
 
-    StatusBar(
+        )
 
-        bleState = bleState,
+        StatusBar(
 
-        batteryVoltage = batteryVoltage,
+            bleState = bleState,
 
-        batteryLevel = batteryLevel
+            batteryVoltage = batteryVoltage,
 
-    )
+            batteryLevel = batteryLevel
+
+        )
+
+    }
 
 }
