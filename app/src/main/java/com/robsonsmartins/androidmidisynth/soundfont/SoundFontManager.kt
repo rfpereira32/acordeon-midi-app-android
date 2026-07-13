@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.runtime.mutableStateListOf
 import java.io.File
 import java.io.FileOutputStream
+import com.robsonsmartins.androidmidisynth.audio.SynthController
 
 class SoundFontManager(
 
@@ -12,7 +13,7 @@ class SoundFontManager(
 
     private val synthController: SynthController
 
-)
+){
 
     // =============================================================================
     // Lista observável pelo Compose

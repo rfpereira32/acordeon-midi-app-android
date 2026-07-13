@@ -56,11 +56,15 @@ class MainActivity : ComponentActivity() {
         }
 
         // Inicializa o motor de áudio FluidSynth interno do projeto
+        // Inicializa o motor de áudio FluidSynth interno do projeto
         synthManager = FluidSynthManager(this)
 
-        val synthController = SynthController(synthManager)
+        synthController = SynthController(synthManager)
 
-        soundFontManager = SoundFontManager(this)
+        soundFontManager = SoundFontManager(
+            this,
+            synthController
+        )
 
         viewModel.setSynthController(synthController)
         viewModel.setSoundFontManager(soundFontManager)

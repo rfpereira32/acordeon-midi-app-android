@@ -1,5 +1,6 @@
 package com.robsonsmartins.androidmidisynth.core
 
+import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 
 data class MidiChannel(
@@ -10,10 +11,22 @@ data class MidiChannel(
     var expression: Int = 127,
     var pan: Int = 64,
 
-    // SoundFont utilizada por este canal
+    /**
+     * SoundFont atualmente utilizada por este canal.
+     */
     var soundFont: SoundFontInfo? = null,
 
-    // Seleção do instrumento
+    /**
+     * Preset atualmente selecionado.
+     */
+    var preset: PresetInfo? = null,
+
+    /**
+     * Mantidos temporariamente por compatibilidade.
+     *
+     * Aos poucos o código passará a utilizar apenas
+     * o objeto PresetInfo.
+     */
     var bankMsb: Int = 0,
     var bankLsb: Int = 0,
     var program: Int = 0,
@@ -57,6 +70,11 @@ class MidiMixer(numberOfChannels: Int = 5) {
         return channels[channel].program
     }
 
+    fun getPreset(channel: Int): PresetInfo? {
+        requireChannel(channel)
+        return channels[channel].preset
+    }
+
     fun getSoundFont(channel: Int): SoundFontInfo? {
         requireChannel(channel)
         return channels[channel].soundFont
@@ -79,6 +97,20 @@ class MidiMixer(numberOfChannels: Int = 5) {
     fun setProgram(channel: Int, program: Int) {
         requireChannel(channel)
         channels[channel].program = program.coerceIn(0, 127)
+    }
+
+    fun setPreset(
+        channel: Int,
+        preset: PresetInfo?
+    ) {
+        requireChannel(channel)
+
+        channels[channel].preset = preset
+
+        if (preset != null) {
+            channels[channel].bankMsb = preset.bank
+            channels[channel].program = preset.program
+        }
     }
 
     fun setSoundFont(
