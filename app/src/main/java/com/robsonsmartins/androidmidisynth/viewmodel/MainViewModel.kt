@@ -16,6 +16,7 @@ import com.robsonsmartins.androidmidisynth.core.SystemState
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
+import com.robsonsmartins.androidmidisynth.soundfont.InstrumentItem
 
 class MainViewModel : ViewModel() {
 
@@ -232,6 +233,48 @@ class MainViewModel : ViewModel() {
     fun importarSoundFont(uri: Uri) {
 
         soundFontManager.importarSoundFont(uri)
+
+    }
+
+    /**
+     * Retorna todos os instrumentos disponíveis
+     * em todas as SoundFonts carregadas.
+     *
+     * A lista é ordenada alfabeticamente pelo
+     * nome do instrumento.
+     */
+    fun listarInstrumentos(): List<InstrumentItem> {
+
+        val instrumentos = mutableListOf<InstrumentItem>()
+
+        soundFontManager
+            .listar()
+            .filter { it.carregada }
+            .forEach { soundFont ->
+
+                soundFont.presets.forEach { preset ->
+
+                    instrumentos.add(
+
+                        InstrumentItem(
+
+                            soundFont = soundFont,
+
+                            preset = preset
+
+                        )
+
+                    )
+
+                }
+
+            }
+
+        return instrumentos.sortedBy {
+
+            it.preset.nome.lowercase()
+
+        }
 
     }
 
