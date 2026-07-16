@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontDialog
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
+import androidx.compose.foundation.clickable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -469,6 +470,7 @@ fun StaticChannelRow(
     accentColor: Color,
     volume: Float,
     isIndicatorOn: Boolean = false,
+    onInstrumentClick: (() -> Unit)? = null,
     onVolumeChanged: (Float) -> Unit,
     onMuteChanged: (Boolean) -> Unit
 ) {
@@ -487,7 +489,17 @@ fun StaticChannelRow(
         }
         Column(modifier = Modifier.weight(1f).fillMaxHeight().padding(horizontal = 14.dp, vertical = 12.dp).alpha(if (isMuted) 0.4f else 1.0f), verticalArrangement = Arrangement.SpaceBetween) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    text = name,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable {
+
+                        onInstrumentClick?.invoke()
+
+                    }
+                )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     IconButton(
                         onClick = {
