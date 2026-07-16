@@ -15,6 +15,7 @@ import com.robsonsmartins.androidmidisynth.core.MixerState
 import com.robsonsmartins.androidmidisynth.core.SystemState
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
+import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 
 class MainViewModel : ViewModel() {
 
@@ -128,6 +129,43 @@ class MainViewModel : ViewModel() {
             channel,
             soundFont.sfid,
             bank,
+            preset
+        )
+
+    }
+
+    /**
+     * Nova API.
+     *
+     * Seleciona um instrumento utilizando diretamente
+     * um PresetInfo.
+     */
+    fun setChannelInstrument(
+        channel: Int,
+        soundFont: SoundFontInfo,
+        preset: PresetInfo
+    ) {
+
+        // Garante que a SoundFont esteja carregada
+        synthController.carregarSoundFont(soundFont)
+
+        midiMixer.setSoundFont(
+            channel,
+            soundFont
+        )
+
+        val midiChannel =
+            midiMixer.getChannel(channel)
+
+        midiChannel.soundFont = soundFont
+        midiChannel.bankMsb = preset.bank
+        midiChannel.program = preset.program
+
+        soundFont.presetSelecionado = preset
+
+        synthController.setInstrument(
+            channel,
+            soundFont,
             preset
         )
 

@@ -121,16 +121,29 @@ class SynthController(
 
     /**
      * Carrega uma SoundFont.
+     *
+     * Após o carregamento, todos os presets são
+     * lidos do FluidSynth e armazenados na própria
+     * SoundFontInfo.
      */
     fun carregarSoundFont(soundFont: SoundFontInfo) {
 
         if (soundFont.sfid >= 0)
             return
 
-        soundFont.sfid =
-            synth.loadSF(
-                soundFont.caminho
-            )
+        val sfid = synth.loadSF(
+            soundFont.caminho
+        )
+
+        soundFont.sfid = sfid
+
+        val presets = synth.listPresets(sfid)
+
+        soundFont.presets.clear()
+
+        soundFont.presets.addAll(presets)
+
+        soundFont.quantidadePresets = presets.size
 
     }
 
@@ -145,6 +158,12 @@ class SynthController(
         synth.unloadSF(soundFont.sfid)
 
         soundFont.sfid = -1
+
+        soundFont.presets.clear()
+
+        soundFont.quantidadePresets = 0
+
+        soundFont.presetSelecionado = null
 
     }
 
