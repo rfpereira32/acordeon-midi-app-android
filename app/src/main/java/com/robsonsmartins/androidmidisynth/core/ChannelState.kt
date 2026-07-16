@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 
 class ChannelState(
 
@@ -25,9 +27,15 @@ class ChannelState(
 
     var program by mutableIntStateOf(0)
 
-    var instrumentName by mutableStateOf("")
+    /**
+     * Instrumento atualmente selecionado.
+     */
+    var preset by mutableStateOf<PresetInfo?>(null)
 
-    var soundFont by mutableStateOf("")
+    /**
+     * SoundFont atualmente utilizada.
+     */
+    var soundFont by mutableStateOf<SoundFontInfo?>(null)
 
     var led by mutableStateOf(false)
 

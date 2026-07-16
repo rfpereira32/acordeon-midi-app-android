@@ -127,6 +127,14 @@ class MainViewModel : ViewModel() {
             preset
         )
 
+        val channelState = mixerState.getChannel(channel)
+
+        channelState.soundFont = soundFont
+        channelState.preset = preset
+
+        channelState.bankMsb = preset.bank
+        channelState.program = preset.program
+
         val midiChannel =
             midiMixer.getChannel(channel)
 

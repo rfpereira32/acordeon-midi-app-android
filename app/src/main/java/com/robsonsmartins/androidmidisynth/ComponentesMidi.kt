@@ -110,17 +110,14 @@ fun MixerScreenContent(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             StaticChannelRow(
                 number = "1",
-                name = "Teclado",
+                name = canais[0].preset?.nome ?: "Teclado",
                 accentColor = ColorChannel4,
                 volume = canais[0].volume * 100f / 127f,
                 isIndicatorOn = false,
 
                 onInstrumentClick = {
-                    Log.d("InstrumentPicker", "Abrindo dialogo")
                     canalSelecionado = 0
-
                     exibirInstrumentPicker = true
-
                 },
 
                 onVolumeChanged = { novoVol ->
@@ -144,17 +141,13 @@ fun MixerScreenContent(
 
             StaticChannelRow(
                     number = "2",
-            name = "Baixos fundamentais",
+            name = canais[1].preset?.nome ?: "Baixos fundamentais",
             accentColor = ColorChannel4,
             volume = canais[1].volume * 100f / 127f,
             isIndicatorOn = false,
-
                 onInstrumentClick = {
-
                     canalSelecionado = 1
-
                     exibirInstrumentPicker = true
-
                 },
 
             onVolumeChanged = { novoVol ->
@@ -178,17 +171,13 @@ fun MixerScreenContent(
 
             StaticChannelRow(
             number = "3",
-            name = "Acordes",
+            name = canais[2].preset?.nome ?: "Acordes",
             accentColor = ColorChannel4,
             volume = canais[2].volume * 100f / 127f,
             isIndicatorOn = false,
-
                 onInstrumentClick = {
-
                     canalSelecionado = 2
-
                     exibirInstrumentPicker = true
-
                 },
 
             onVolumeChanged = { novoVol ->
@@ -212,17 +201,13 @@ fun MixerScreenContent(
 
             StaticChannelRow(
                 number = "4",
-            name = "Instrumentos Extras 1",
+                name = canais[3].preset?.nome ?: "Instrumentos Extras 1",
             accentColor = ColorChannel4,
             volume = canais[3].volume * 100f / 127f,
             isIndicatorOn = false,
-
                 onInstrumentClick = {
-
                     canalSelecionado = 3
-
                     exibirInstrumentPicker = true
-
                 },
 
                 onVolumeChanged = { novoVol ->
@@ -246,17 +231,13 @@ fun MixerScreenContent(
 
             StaticChannelRow(
             number = "5",
-            name = "Instrumentos Extras 2",
+            name = canais[4].preset?.nome ?: "Instrumentos Extras 2",
             accentColor = ColorChannel4,
             volume = canais[4].volume * 100f / 127f,
             isIndicatorOn = false,
-
                 onInstrumentClick = {
-
                     canalSelecionado = 4
-
                     exibirInstrumentPicker = true
-
                 },
 
                 onVolumeChanged = { novoVol ->
