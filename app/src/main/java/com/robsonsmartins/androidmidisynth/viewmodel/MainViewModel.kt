@@ -111,39 +111,6 @@ class MainViewModel : ViewModel() {
     fun setChannelInstrument(
         channel: Int,
         soundFont: SoundFontInfo,
-        bank: Int,
-        preset: Int
-    ) {
-
-        midiMixer.setSoundFont(
-            channel,
-            soundFont
-        )
-
-        val midiChannel =
-            midiMixer.getChannel(channel)
-
-        midiChannel.bankMsb = bank
-        midiChannel.program = preset
-
-        synthController.setInstrument(
-            channel,
-            soundFont.sfid,
-            bank,
-            preset
-        )
-
-    }
-
-    /**
-     * Nova API.
-     *
-     * Seleciona um instrumento utilizando diretamente
-     * um PresetInfo.
-     */
-    fun setChannelInstrument(
-        channel: Int,
-        soundFont: SoundFontInfo,
         preset: PresetInfo
     ) {
 
@@ -155,10 +122,16 @@ class MainViewModel : ViewModel() {
             soundFont
         )
 
+        midiMixer.setPreset(
+            channel,
+            preset
+        )
+
         val midiChannel =
             midiMixer.getChannel(channel)
 
         midiChannel.soundFont = soundFont
+        midiChannel.preset = preset
         midiChannel.bankMsb = preset.bank
         midiChannel.program = preset.program
 
@@ -171,6 +144,7 @@ class MainViewModel : ViewModel() {
         )
 
     }
+
 
     fun getChannels() = mixerState.channels
 
