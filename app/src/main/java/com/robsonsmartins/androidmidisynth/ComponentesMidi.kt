@@ -40,6 +40,7 @@ import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontDialog
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 import androidx.compose.foundation.clickable
+import com.robsonsmartins.androidmidisynth.ui.components.InstrumentPickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +55,10 @@ fun MixerScreenContent(
     var modoSetupOtaAtivado by remember { mutableStateOf(false) }
 
     var exibirDialogoSoundFont by remember { mutableStateOf(false) }
+
+    var exibirInstrumentPicker by remember { mutableStateOf(false) }
+
+    var canalSelecionado by remember { mutableIntStateOf(0) }
 
     val soundFonts = viewModel.listarSoundFonts()
 
@@ -110,6 +115,14 @@ fun MixerScreenContent(
                 volume = canais[0].volume * 100f / 127f,
                 isIndicatorOn = false,
 
+                onInstrumentClick = {
+                    Log.d("InstrumentPicker", "Abrindo dialogo")
+                    canalSelecionado = 0
+
+                    exibirInstrumentPicker = true
+
+                },
+
                 onVolumeChanged = { novoVol ->
 
                     val valorMidi = percentToMidi(novoVol)
@@ -135,6 +148,14 @@ fun MixerScreenContent(
             accentColor = ColorChannel4,
             volume = canais[1].volume * 100f / 127f,
             isIndicatorOn = false,
+
+                onInstrumentClick = {
+
+                    canalSelecionado = 1
+
+                    exibirInstrumentPicker = true
+
+                },
 
             onVolumeChanged = { novoVol ->
 
@@ -162,6 +183,14 @@ fun MixerScreenContent(
             volume = canais[2].volume * 100f / 127f,
             isIndicatorOn = false,
 
+                onInstrumentClick = {
+
+                    canalSelecionado = 2
+
+                    exibirInstrumentPicker = true
+
+                },
+
             onVolumeChanged = { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
@@ -174,7 +203,7 @@ fun MixerScreenContent(
                 )
             },
 
-            onMuteChanged = { mute ->
+                onMuteChanged = { mute ->
 
                 viewModel.setChannelMute(2, mute)
 
@@ -188,7 +217,15 @@ fun MixerScreenContent(
             volume = canais[3].volume * 100f / 127f,
             isIndicatorOn = false,
 
-            onVolumeChanged = { novoVol ->
+                onInstrumentClick = {
+
+                    canalSelecionado = 3
+
+                    exibirInstrumentPicker = true
+
+                },
+
+                onVolumeChanged = { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
@@ -214,7 +251,15 @@ fun MixerScreenContent(
             volume = canais[4].volume * 100f / 127f,
             isIndicatorOn = false,
 
-            onVolumeChanged = { novoVol ->
+                onInstrumentClick = {
+
+                    canalSelecionado = 4
+
+                    exibirInstrumentPicker = true
+
+                },
+
+                onVolumeChanged = { novoVol ->
 
                 val valorMidi = percentToMidi(novoVol)
 
@@ -389,8 +434,40 @@ fun MixerScreenContent(
             }
 
         )
+        }
 
-    }
+        if (exibirInstrumentPicker) {
+
+            InstrumentPickerDialog(
+
+                instrumentos = viewModel.listarInstrumentos(),
+
+                onDismiss = {
+
+                    exibirInstrumentPicker = false
+
+                },
+
+                onInstrumentSelected = { item ->
+
+                    viewModel.setChannelInstrument(
+
+                        canalSelecionado,
+
+                        item.soundFont,
+
+                        item.preset
+
+                    )
+
+                    exibirInstrumentPicker = false
+
+                }
+
+            )
+
+        }
+    //}
 }
 @Composable
 fun MonitorScreenContent(
@@ -495,7 +572,7 @@ fun StaticChannelRow(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.clickable {
-
+                        Log.d("InstrumentPicker", "Nome clicado")
                         onInstrumentClick?.invoke()
 
                     }
