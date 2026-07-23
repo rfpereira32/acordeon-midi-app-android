@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+
 private var inputPort: MidiInputPort? = null
 
 class MidiManager(
@@ -67,10 +68,10 @@ class MidiManager(
         if (rádio != null) {
             try {
                 val envelopeOtaSysEx = byteArrayOf(
-                    0xF0.toByte(),
-                    0x7D.toByte(),
-                    0x0A.toByte(),
-                    0xF7.toByte()
+                    SysExProtocol.START.toByte(),
+                    SysExProtocol.MANUFACTURER.toByte(),
+                    SysExProtocol.CMD_OTA.toByte(),
+                    SysExProtocol.END.toByte()
                 )
                 rádio.send(envelopeOtaSysEx, 0, envelopeOtaSysEx.size)
                 onMidiMessageReceived("Sinal OTA via Wi-Fi AP injetado no fluxo BLE.")
@@ -81,21 +82,45 @@ class MidiManager(
             onMidiMessageReceived("Erro: Acordeon desconectado. Impossivel carregar comando.")
         }
     }
+
     fun despacharComandoMixerSysEx(canal: Int, volume: Int) {
         val rádio = inputPort
         if (rádio != null) {
             try {
                 val envelopeSysEx = byteArrayOf(
-                    0xF0.toByte(),
-                    0x7D.toByte(),
-                    0x05.toByte(),
-                    (canal and 0x7F).toByte(),
-                    (volume and 0x7F).toByte(),
-                    0xF7.toByte()
+                    SysExProtocol.START.toByte(),
+                    SysExProtocol.MANUFACTURER.toByte(),
+                    SysExProtocol.CMD_MIXER_VOLUME.toByte(),
+                    (canal and SysExProtocol.DATA_MASK).toByte(),
+                    (volume and SysExProtocol.DATA_MASK).toByte(),
+                    SysExProtocol.END.toByte()
                 )
+
                 rádio.send(envelopeSysEx, 0, envelopeSysEx.size)
+
             } catch (e: Exception) {
                 Log.e(TAG, "Falha ao escoar fader SysEx no rádio: ${e.message}")
+            }
+        }
+    }
+
+    fun despacharComandoInstrumentoSysEx(canal: Int, instrumento: Int) {
+        val rádio = inputPort
+        if (rádio != null) {
+            try {
+                val envelopeSysEx = byteArrayOf(
+                    SysExProtocol.START.toByte(),
+                    SysExProtocol.MANUFACTURER.toByte(),
+                    SysExProtocol.CMD_INSTRUMENTO.toByte(),
+                    (canal and SysExProtocol.DATA_MASK).toByte(),
+                    (instrumento and SysExProtocol.DATA_MASK).toByte(),
+                    SysExProtocol.END.toByte()
+                )
+
+                rádio.send(envelopeSysEx, 0, envelopeSysEx.size)
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Falha ao enviar instrumento SysEx: ${e.message}")
             }
         }
     }

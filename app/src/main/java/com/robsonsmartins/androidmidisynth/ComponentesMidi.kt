@@ -111,7 +111,7 @@ fun MixerScreenContent(
             StaticChannelRow(
                 number = "1",
                 name = canais[0].preset?.nome ?: "Teclado",
-                accentColor = ColorChannel4,
+                accentColor = ColorChannel1,
                 volume = canais[0].volume * 100f / 127f,
                 isIndicatorOn = false,
 
@@ -142,7 +142,7 @@ fun MixerScreenContent(
             StaticChannelRow(
                     number = "2",
             name = canais[1].preset?.nome ?: "Baixos fundamentais",
-            accentColor = ColorChannel4,
+                accentColor = ColorChannel1,
             volume = canais[1].volume * 100f / 127f,
             isIndicatorOn = false,
                 onInstrumentClick = {
@@ -172,7 +172,7 @@ fun MixerScreenContent(
             StaticChannelRow(
             number = "3",
             name = canais[2].preset?.nome ?: "Acordes",
-            accentColor = ColorChannel4,
+            accentColor = ColorChannel1,
             volume = canais[2].volume * 100f / 127f,
             isIndicatorOn = false,
                 onInstrumentClick = {
