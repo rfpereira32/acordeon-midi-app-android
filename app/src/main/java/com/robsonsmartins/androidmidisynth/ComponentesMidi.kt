@@ -157,7 +157,7 @@ fun MixerScreenContent(
                 viewModel.setChannelVolume(1, valorMidi)
 
                 midiManager.despacharComandoMixerSysEx(
-                    0,
+                    1,
                     valorMidi
                 )
             },
@@ -187,7 +187,7 @@ fun MixerScreenContent(
                 viewModel.setChannelVolume(2, valorMidi)
 
                 midiManager.despacharComandoMixerSysEx(
-                    0,
+                    2,
                     valorMidi
                 )
             },
@@ -217,7 +217,7 @@ fun MixerScreenContent(
                 viewModel.setChannelVolume(3, valorMidi)
 
                 midiManager.despacharComandoMixerSysEx(
-                    0,
+                    3,
                     valorMidi
                 )
             },
@@ -247,7 +247,7 @@ fun MixerScreenContent(
                 viewModel.setChannelVolume(4, valorMidi)
 
                 midiManager.despacharComandoMixerSysEx(
-                    0,
+                    4,
                     valorMidi
                 )
             },
