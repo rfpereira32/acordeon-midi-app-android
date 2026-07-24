@@ -441,6 +441,11 @@ fun MixerScreenContent(
 
                     )
 
+                    midiManager.despacharComandoInstrumentoSysEx(
+                        canalSelecionado,
+                        item.preset.program
+                    )
+
                     exibirInstrumentPicker = false
 
                 }
