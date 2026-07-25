@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 
 private var inputPort: MidiInputPort? = null
-
+private var configCharacteristic: BluetoothGattCharacteristic? = null
 class MidiManager(
     private val context: Context,
     private val onMidiMessageReceived: (String) -> Unit
@@ -44,6 +44,7 @@ class MidiManager(
     companion object {
         private const val TAG = "MIDI_C"
         private val BLE_MIDI_SERVICE_UUID = ParcelUuid.fromString("03B80E5A-EDE8-4B33-A751-6CE34EC4C700")
+        private val CONFIG_CHARACTERISTIC_UUID = java.util.UUID.fromString("8c2f4c10-45f1-4b6b-9b1a-1d6d7e5f1001")
     }
 
     private val midiManager = context.getSystemService(Context.MIDI_SERVICE) as AndroidMidiManager
@@ -292,7 +293,16 @@ class MidiManager(
                     // 3. Conecta a escuta paralela de energia se o alvo foi mapeado no hardware
                     if (targetDevice != null) {
                         targetDevice.connectGatt(context, false, object : BluetoothGattCallback() {
-
+                            override fun onDescriptorWrite(
+                                gatt: BluetoothGatt,
+                                descriptor: BluetoothGattDescriptor,
+                                status: Int
+                            ) {
+                                Log.d(
+                                    TAG,
+                                    "Descriptor escrito: ${descriptor.characteristic.uuid} status=$status"
+                                )
+                            }
                             private fun atualizarInterfaceComValor(valoresBytes: ByteArray, characteristic: BluetoothGattCharacteristic) {
                                 if (characteristic.uuid.toString().contains("2a19") && valoresBytes.isNotEmpty()) {
                                     val nivelCargaBateria = valoresBytes[0].toInt() and 0xFF
@@ -323,9 +333,63 @@ class MidiManager(
                             }
 
                             override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+                                gatt?.services?.forEach { service ->
+
+                                    Log.d(TAG, "SERVICE ${service.uuid}")
+
+                                    service.characteristics.forEach { characteristic ->
+
+                                        Log.d(
+                                            TAG,
+                                            "   CHARACTERISTIC ${characteristic.uuid}"
+                                        )
+                                    }
+                                }
                                 if (status == BluetoothGatt.GATT_SUCCESS && gatt != null) {
                                     val servicoBateria = gatt.getService(java.util.UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb"))
                                     val caracteristicaBateria = servicoBateria?.getCharacteristic(java.util.UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb"))
+                                    val servicoConfig =
+                                        gatt.getService(
+                                            java.util.UUID.fromString("8c2f4c00-45f1-4b6b-9b1a-1d6d7e5f1001")
+                                        )
+
+                                    configCharacteristic =
+                                        servicoConfig?.getCharacteristic(CONFIG_CHARACTERISTIC_UUID)
+
+                                    if (configCharacteristic != null)
+                                    {
+                                        Log.d(TAG, "✅ Config Characteristic encontrada.")
+
+                                        gatt.setCharacteristicNotification(configCharacteristic, true)
+
+                                        mainHandler.postDelayed({
+
+                                            try {
+
+                                                val descriptor = configCharacteristic!!.getDescriptor(
+                                                    java.util.UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+                                                )
+
+                                                if (descriptor != null)
+                                                {
+                                                    descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                                    val ok = gatt.writeDescriptor(descriptor)
+
+                                                    Log.d(TAG, "Config descriptor enviado: $ok")
+                                                }
+
+                                            } catch (e: Exception) {
+
+                                                Log.e(TAG, "Erro habilitando notify Config: ${e.message}")
+
+                                            }
+
+                                        }, 200)
+                                    }
+                                    else
+                                    {
+                                        Log.e(TAG, "❌ Config Characteristic NÃO encontrada.")
+                                    }
 
                                     if (caracteristicaBateria != null) {
                                         Log.d("BATERIA_GATT", "Serviço de bateria localizado. Inscrevendo notificações...")
@@ -366,8 +430,24 @@ class MidiManager(
                                 }
                             }
 
-                            override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-                                atualizarInterfaceComValor(value, characteristic)
+                            override fun onCharacteristicChanged(
+                                gatt: BluetoothGatt,
+                                characteristic: BluetoothGattCharacteristic,
+                                value: ByteArray
+                            ) {
+                                Log.d(
+                                    TAG,
+                                    "RX ${characteristic.uuid} -> ${
+                                        value.joinToString(" ") { "%02X".format(it) }
+                                    }"
+                                )
+
+                                if (characteristic.uuid == CONFIG_CHARACTERISTIC_UUID) {
+                                    Log.d(TAG, "######## CONFIG RECEBIDA ########")
+                                    return
+                                }
+
+                               atualizarInterfaceComValor(value, characteristic)
                             }
                         }, BluetoothDevice.TRANSPORT_LE)
                     } else {
