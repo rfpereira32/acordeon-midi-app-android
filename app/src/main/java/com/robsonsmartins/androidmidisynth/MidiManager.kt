@@ -435,6 +435,7 @@ class MidiManager(
                                 characteristic: BluetoothGattCharacteristic,
                                 value: ByteArray
                             ) {
+                                Log.d(TAG, "Gatt hash = ${gatt.hashCode()}")
                                 Log.d(
                                     TAG,
                                     "RX ${characteristic.uuid} -> ${
@@ -443,7 +444,11 @@ class MidiManager(
                                 )
 
                                 if (characteristic.uuid == CONFIG_CHARACTERISTIC_UUID) {
+
                                     Log.d(TAG, "######## CONFIG RECEBIDA ########")
+
+                                    interpretarPacoteConfiguracao(value)
+
                                     return
                                 }
 
@@ -468,6 +473,46 @@ class MidiManager(
         }
     }
 
+    private fun interpretarPacoteConfiguracao(dados: ByteArray)
+    {
+        if (dados.size < 2) {
+            Log.e(TAG, "Pacote inválido.")
+            return
+        }
+
+        val comando = dados[0].toInt() and 0xFF
+        val tamanho = dados[1].toInt() and 0xFF
+
+        Log.d(TAG, "Comando: $comando")
+        Log.d(TAG, "Payload: $tamanho bytes")
+
+        when (comando)
+        {
+            1 -> {      // CMD_BATTERY
+
+                if (tamanho < 3 || dados.size < 5) {
+                    Log.e(TAG, "CMD_BATTERY inválido.")
+                    return
+                }
+
+                val percentual = dados[2].toInt() and 0xFF
+
+                val tensao =
+                    (dados[3].toInt() and 0xFF) or
+                            ((dados[4].toInt() and 0xFF) shl 8)
+
+                Log.d(TAG, "===== BATERIA =====")
+                Log.d(TAG, "Percentual : $percentual %")
+                Log.d(TAG, "Tensão     : ${tensao / 100.0f} V")
+            }
+
+            else -> {
+
+                Log.d(TAG, "Comando desconhecido.")
+
+            }
+        }
+    }
     private fun tratarDesconexao() {
 
         if (temPermissaoBluetooth()) {
