@@ -42,6 +42,7 @@ class MidiManager(
     private val onMidiMessageReceived: (String) -> Unit
 ) {
     companion object {
+        private var configGatt: BluetoothGatt? = null
         private const val TAG = "MIDI_C"
         private val BLE_MIDI_SERVICE_UUID = ParcelUuid.fromString("03B80E5A-EDE8-4B33-A751-6CE34EC4C700")
         private val CONFIG_CHARACTERISTIC_UUID = java.util.UUID.fromString("8c2f4c10-45f1-4b6b-9b1a-1d6d7e5f1001")
@@ -51,6 +52,7 @@ class MidiManager(
     private val mainHandler = Handler(Looper.getMainLooper())
     private val bluetoothAdapter: BluetoothAdapter? by lazy { BluetoothAdapter.getDefaultAdapter() }
     private var dispositivoAberto: MidiDevice? = null
+    private var bluetoothDeviceAtual: BluetoothDevice? = null
     private var scanningBleMidi = false
     private val bluetoothDevicesEmAbertura = mutableSetOf<String>()
 
@@ -175,6 +177,7 @@ class MidiManager(
     }
 
     private fun abrirDispositivoBluetoothMidi(device: BluetoothDevice) {
+        bluetoothDeviceAtual = device
         if (!temPermissaoBluetooth()) return
         val endereco = device.address ?: return
         if (!bluetoothDevicesEmAbertura.add(endereco)) return
@@ -262,37 +265,25 @@ class MidiManager(
                 // VARREDURA GATT POR DISPOSITIVO CONECTADO RE REAL-TIME (CORREÇÃO DE MAC NULO)
                 // ==============================================================================
                 try {
-                    val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
 
-                    // Varre a lista de conexões GATT ativas no barramento do smartphone
-                    val dispositivosGattConectados = bluetoothManager.getConnectedDevices(BluetoothProfile.GATT)
-                    var targetDevice: BluetoothDevice? = null
+                    val targetDevice = bluetoothDeviceAtual
 
-                    // 1. Primeiro tenta achar o dispositivo pelo nome de anúncio público (Infalível em BLE)
-                    for (btDevice in dispositivosGattConectados) {
-                        val nomeDispositivoBt = try { btDevice.name } catch(_: SecurityException) { "" }
-                        if (nomeDispositivoBt?.contains("Cordovox", ignoreCase = true) == true ||
-                            nomeDispositivoBt?.contains("ACORDEON", ignoreCase = true) == true ||
-                            nomeDispositivoBt?.contains("MIDI", ignoreCase = true) == true) {
-                            targetDevice = btDevice
-                            Log.d("BATERIA_GATT", "Dispositivo alvo localizado pelo nome: $nomeDispositivoBt [${btDevice.address}]")
-                            break
-                        }
+                    if (targetDevice == null) {
+                        Log.e(TAG, "BluetoothDevice não disponível.")
+                        return@post
                     }
 
-                    // 2. Se falhar pelo nome, tenta resgatar por Fallback usando a propriedade MIDI limpa
-                    if (targetDevice == null && bluetoothAdapter != null) {
-                        val fallbackMac = deviceInfo.properties.getParcelable<BluetoothDevice>(MidiDeviceInfo.PROPERTY_BLUETOOTH_DEVICE)?.address
-                            ?: deviceInfo.properties.getString("bluetooth_device") ?: ""
-                        if (fallbackMac.isNotEmpty()) {
-                            targetDevice = bluetoothAdapter!!.getRemoteDevice(fallbackMac)
-                            Log.d("BATERIA_GATT", "Dispositivo alvo localizado via Fallback MAC: $fallbackMac")
-                        }
+                    try {
+                        configGatt?.close()
+                    } catch (_: Exception) {
                     }
 
-                    // 3. Conecta a escuta paralela de energia se o alvo foi mapeado no hardware
-                    if (targetDevice != null) {
-                        targetDevice.connectGatt(context, false, object : BluetoothGattCallback() {
+                    configGatt = null
+
+                    configGatt = targetDevice.connectGatt(
+                        context,
+                        false,
+                        object : BluetoothGattCallback() {
                             override fun onDescriptorWrite(
                                 gatt: BluetoothGatt,
                                 descriptor: BluetoothGattDescriptor,
@@ -435,7 +426,7 @@ class MidiManager(
                                 characteristic: BluetoothGattCharacteristic,
                                 value: ByteArray
                             ) {
-                                Log.d(TAG, "Gatt hash = ${gatt.hashCode()}")
+//                                Log.d(TAG, "Gatt hash = ${gatt.hashCode()}")
                                 Log.d(
                                     TAG,
                                     "RX ${characteristic.uuid} -> ${
@@ -455,10 +446,7 @@ class MidiManager(
                                atualizarInterfaceComValor(value, characteristic)
                             }
                         }, BluetoothDevice.TRANSPORT_LE)
-                    } else {
-                        Log.e("BATERIA_GATT", "Impossível acoplar: O dispositivo não foi listado nas conexões ativas do Android.")
-                    }
-                } catch (e: Exception) {
+                     } catch (e: Exception) {
                     Log.e("BATERIA_GATT", "Falha de barramento por injeção direta: ${e.message}")
                 }
             } else {
@@ -514,7 +502,13 @@ class MidiManager(
         }
     }
     private fun tratarDesconexao() {
+        try {
+            configGatt?.close()
+        } catch (_: Exception) {
+        }
 
+        configGatt = null
+        bluetoothDeviceAtual = null
         if (temPermissaoBluetooth()) {
             iniciarBuscaBleMidi()
         }
@@ -551,6 +545,13 @@ class MidiManager(
     }
 
     fun finalize() {
+        try {
+            configGatt?.close()
+        } catch (_: Exception) {
+        }
+
+        configGatt = null
+        bluetoothDeviceAtual = null
         mainHandler.post {
             MidiEstadoCompartilhado.atualizarEstado("Nenhum dispositivo pareado", false)
             MidiEstadoCompartilhado.receiverMidiAtivo = null
