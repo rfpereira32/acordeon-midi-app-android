@@ -33,7 +33,7 @@ import com.robsonsmartins.androidmidisynth.protocol.ConfigPacketParser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
+import com.robsonsmartins.androidmidisynth.protocol.ConfigPacketBuilder
 
 private var inputPort: MidiInputPort? = null
 private var configCharacteristic: BluetoothGattCharacteristic? = null
@@ -56,6 +56,8 @@ class MidiManager(
     private var scanningBleMidi = false
     private val bluetoothDevicesEmAbertura = mutableSetOf<String>()
     private val configPacketParser = ConfigPacketParser(mainHandler)
+
+    private val configPacketBuilder = ConfigPacketBuilder()
 
     private val _nomeDispositivoConectado = MutableStateFlow("Nenhum dispositivo pareado")
     val nomeDispositivoConectado: StateFlow<String> = _nomeDispositivoConectado.asStateFlow()
@@ -413,63 +415,25 @@ class MidiManager(
         }
     }
 
-//    private fun interpretarPacoteConfiguracao(dados: ByteArray)
-//    {
-//        if (dados.size < 2) {
-//            Log.e(TAG, "Pacote inválido.")
-//            return
-//        }
-//
-//        val comando = dados[0].toInt() and 0xFF
-//        val tamanho = dados[1].toInt() and 0xFF
-//
-//        if (dados.size < tamanho + 2) {
-//            Log.e(TAG, "Pacote incompleto. Esperado=${tamanho + 2} Recebido=${dados.size}")
-//            return
-//        }
-//
-//        Log.d(TAG, "Comando: $comando")
-//        Log.d(TAG, "Payload: $tamanho bytes")
-//
-//        val payload = dados.copyOfRange(2, 2 + tamanho)
-//
-//        when (comando) {
-//
-//            ConfigProtocol.CMD_BATTERY -> {
-//
-//                interpretarBattery(payload)
-//
-//            }
-//
-//            else -> {
-//
-//                Log.d(TAG, "Comando desconhecido.")
-//
-//            }
-//        }
-//    }
+    fun enviarPacoteConfiguracao(
+        pacote: ByteArray
+    ): Boolean {
 
-    private fun interpretarBattery(payload: ByteArray) {
+        val characteristic = configCharacteristic
+        val gatt = configGatt
 
-        if (payload.size < 3) {
-            Log.e(TAG, "CMD_BATTERY inválido.")
-            return
+        if (characteristic == null || gatt == null) {
+            Log.w(TAG, "Não foi possível enviar pacote: BLE desconectado.")
+            return false
         }
 
-        val percentual = payload[0].toInt() and 0xFF
+        characteristic.value = pacote
 
-        val tensao =
-            (payload[1].toInt() and 0xFF) or
-                    ((payload[2].toInt() and 0xFF) shl 8)
+        Log.d(TAG,"TX ${pacote.joinToString(" ") {"%02X".format(it)}}")
 
-        mainHandler.post {
-            MidiEstadoCompartilhado.porcentagemBateriaReal = "$percentual%"
-        }
-
-        Log.d(TAG, "===== BATERIA =====")
-        Log.d(TAG, "Percentual : $percentual %")
-        Log.d(TAG, "Tensão     : ${tensao / 100.0f} V")
+        return gatt.writeCharacteristic(characteristic)
     }
+
     private fun tratarDesconexao() {
         try {
             configGatt?.close()
