@@ -422,31 +422,22 @@ class MidiManager(
         val comando = dados[0].toInt() and 0xFF
         val tamanho = dados[1].toInt() and 0xFF
 
+        if (dados.size < tamanho + 2) {
+            Log.e(TAG, "Pacote incompleto. Esperado=${tamanho + 2} Recebido=${dados.size}")
+            return
+        }
+
         Log.d(TAG, "Comando: $comando")
         Log.d(TAG, "Payload: $tamanho bytes")
 
-        when (comando)
-        {
-            1 -> {      // CMD_BATTERY
+        val payload = dados.copyOfRange(2, 2 + tamanho)
 
-                if (tamanho < 3 || dados.size < 5) {
-                    Log.e(TAG, "CMD_BATTERY inválido.")
-                    return
-                }
+        when (comando) {
 
-                val percentual = dados[2].toInt() and 0xFF
+            ConfigProtocol.CMD_BATTERY -> {
 
-                mainHandler.post {
-                    MidiEstadoCompartilhado.porcentagemBateriaReal = "$percentual%"
-                }
+                interpretarBattery(payload)
 
-                val tensao =
-                    (dados[3].toInt() and 0xFF) or
-                            ((dados[4].toInt() and 0xFF) shl 8)
-
-                Log.d(TAG, "===== BATERIA =====")
-                Log.d(TAG, "Percentual : $percentual %")
-                Log.d(TAG, "Tensão     : ${tensao / 100.0f} V")
             }
 
             else -> {
@@ -455,6 +446,28 @@ class MidiManager(
 
             }
         }
+    }
+
+    private fun interpretarBattery(payload: ByteArray) {
+
+        if (payload.size < 3) {
+            Log.e(TAG, "CMD_BATTERY inválido.")
+            return
+        }
+
+        val percentual = payload[0].toInt() and 0xFF
+
+        val tensao =
+            (payload[1].toInt() and 0xFF) or
+                    ((payload[2].toInt() and 0xFF) shl 8)
+
+        mainHandler.post {
+            MidiEstadoCompartilhado.porcentagemBateriaReal = "$percentual%"
+        }
+
+        Log.d(TAG, "===== BATERIA =====")
+        Log.d(TAG, "Percentual : $percentual %")
+        Log.d(TAG, "Tensão     : ${tensao / 100.0f} V")
     }
     private fun tratarDesconexao() {
         try {
