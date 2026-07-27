@@ -294,15 +294,6 @@ class MidiManager(
                                     "Descriptor escrito: ${descriptor.characteristic.uuid} status=$status"
                                 )
                             }
-                            private fun atualizarInterfaceComValor(valoresBytes: ByteArray, characteristic: BluetoothGattCharacteristic) {
-                                if (characteristic.uuid.toString().contains("2a19") && valoresBytes.isNotEmpty()) {
-                                    val nivelCargaBateria = valoresBytes[0].toInt() and 0xFF
-                                    mainHandler.post {
-                                        MidiEstadoCompartilhado.porcentagemBateriaReal = "$nivelCargaBateria%"
-                                    }
-                                    Log.d("BATERIA_GATT", "🔋 Telemetria injetada no layout: $nivelCargaBateria%")
-                                }
-                            }
 
                             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
                                 if (newState == BluetoothProfile.STATE_CONNECTED) {
@@ -337,9 +328,7 @@ class MidiManager(
                                     }
                                 }
                                 if (status == BluetoothGatt.GATT_SUCCESS && gatt != null) {
-                                    val servicoBateria = gatt.getService(java.util.UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb"))
-                                    val caracteristicaBateria = servicoBateria?.getCharacteristic(java.util.UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb"))
-                                    val servicoConfig =
+                                   val servicoConfig =
                                         gatt.getService(
                                             java.util.UUID.fromString("8c2f4c00-45f1-4b6b-9b1a-1d6d7e5f1001")
                                         )
@@ -382,44 +371,9 @@ class MidiManager(
                                         Log.e(TAG, "❌ Config Characteristic NÃO encontrada.")
                                     }
 
-                                    if (caracteristicaBateria != null) {
-                                        Log.d("BATERIA_GATT", "Serviço de bateria localizado. Inscrevendo notificações...")
-
-                                        // 1. Ativa a escuta de notificações na camada de software do Android
-                                        gatt.setCharacteristicNotification(caracteristicaBateria, true)
-
-                                        // 2. CRÍTICO: Dá um respiro de 150 milissegundos para o rádio processar a troca de estado
-                                        // antes de gravar o descritor físico 0x2902 no chip do ESP32-S3
-                                        mainHandler.postDelayed({
-                                            try {
-                                                val descriptor = caracteristicaBateria.getDescriptor(java.util.UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
-                                                if (descriptor != null) {
-                                                    descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                                                    val sucessoEscrita = gatt.writeDescriptor(descriptor)
-                                                    Log.d("BATERIA_GATT", "✍️ Escrita do descritor 0x2902 enviada? $sucessoEscrita")
-                                                }
-                                            } catch (e: Exception) {
-                                                Log.e("BATERIA_GATT", "Falha ao assinar descritor: ${e.message}")
-                                            }
-                                        }, 150)
-
-                                        // 3. Dá outro respiro de 300 milissegundos para executar a primeira leitura síncrona,
-                                        // garantindo que uma operação não atropele a outra no barramento GATT
-                                        mainHandler.postDelayed({
-                                            try {
-                                                gatt.readCharacteristic(caracteristicaBateria)
-                                            } catch (_: Exception) {}
-                                        }, 450)
-                                    }
                                 }
                             }
 
-
-                            override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray, status: Int) {
-                                if (status == BluetoothGatt.GATT_SUCCESS) {
-                                    atualizarInterfaceComValor(value, characteristic)
-                                }
-                            }
 
                             override fun onCharacteristicChanged(
                                 gatt: BluetoothGatt,
@@ -436,14 +390,11 @@ class MidiManager(
 
                                 if (characteristic.uuid == CONFIG_CHARACTERISTIC_UUID) {
 
-                                    Log.d(TAG, "######## CONFIG RECEBIDA ########")
-
                                     interpretarPacoteConfiguracao(value)
 
                                     return
                                 }
 
-                               atualizarInterfaceComValor(value, characteristic)
                             }
                         }, BluetoothDevice.TRANSPORT_LE)
                      } catch (e: Exception) {
@@ -484,6 +435,10 @@ class MidiManager(
                 }
 
                 val percentual = dados[2].toInt() and 0xFF
+
+                mainHandler.post {
+                    MidiEstadoCompartilhado.porcentagemBateriaReal = "$percentual%"
+                }
 
                 val tensao =
                     (dados[3].toInt() and 0xFF) or
