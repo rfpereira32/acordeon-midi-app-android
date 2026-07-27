@@ -1,4 +1,4 @@
-package com.robsonsmartins.androidmidisynth
+package com.robsonsmartins.androidmidisynth.protocol
 
 object ConfigProtocol {
 

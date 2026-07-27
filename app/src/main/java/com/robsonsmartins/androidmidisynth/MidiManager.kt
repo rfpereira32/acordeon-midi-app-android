@@ -13,7 +13,6 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothProfile
-import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
@@ -30,6 +29,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
+import com.robsonsmartins.androidmidisynth.protocol.ConfigPacketParser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +55,7 @@ class MidiManager(
     private var bluetoothDeviceAtual: BluetoothDevice? = null
     private var scanningBleMidi = false
     private val bluetoothDevicesEmAbertura = mutableSetOf<String>()
+    private val configPacketParser = ConfigPacketParser(mainHandler)
 
     private val _nomeDispositivoConectado = MutableStateFlow("Nenhum dispositivo pareado")
     val nomeDispositivoConectado: StateFlow<String> = _nomeDispositivoConectado.asStateFlow()
@@ -390,8 +391,8 @@ class MidiManager(
 
                                 if (characteristic.uuid == CONFIG_CHARACTERISTIC_UUID) {
 
-                                    interpretarPacoteConfiguracao(value)
-
+//                                    interpretarPacoteConfiguracao(value)
+                                    configPacketParser.interpretar(value)
                                     return
                                 }
 
@@ -412,41 +413,41 @@ class MidiManager(
         }
     }
 
-    private fun interpretarPacoteConfiguracao(dados: ByteArray)
-    {
-        if (dados.size < 2) {
-            Log.e(TAG, "Pacote inválido.")
-            return
-        }
-
-        val comando = dados[0].toInt() and 0xFF
-        val tamanho = dados[1].toInt() and 0xFF
-
-        if (dados.size < tamanho + 2) {
-            Log.e(TAG, "Pacote incompleto. Esperado=${tamanho + 2} Recebido=${dados.size}")
-            return
-        }
-
-        Log.d(TAG, "Comando: $comando")
-        Log.d(TAG, "Payload: $tamanho bytes")
-
-        val payload = dados.copyOfRange(2, 2 + tamanho)
-
-        when (comando) {
-
-            ConfigProtocol.CMD_BATTERY -> {
-
-                interpretarBattery(payload)
-
-            }
-
-            else -> {
-
-                Log.d(TAG, "Comando desconhecido.")
-
-            }
-        }
-    }
+//    private fun interpretarPacoteConfiguracao(dados: ByteArray)
+//    {
+//        if (dados.size < 2) {
+//            Log.e(TAG, "Pacote inválido.")
+//            return
+//        }
+//
+//        val comando = dados[0].toInt() and 0xFF
+//        val tamanho = dados[1].toInt() and 0xFF
+//
+//        if (dados.size < tamanho + 2) {
+//            Log.e(TAG, "Pacote incompleto. Esperado=${tamanho + 2} Recebido=${dados.size}")
+//            return
+//        }
+//
+//        Log.d(TAG, "Comando: $comando")
+//        Log.d(TAG, "Payload: $tamanho bytes")
+//
+//        val payload = dados.copyOfRange(2, 2 + tamanho)
+//
+//        when (comando) {
+//
+//            ConfigProtocol.CMD_BATTERY -> {
+//
+//                interpretarBattery(payload)
+//
+//            }
+//
+//            else -> {
+//
+//                Log.d(TAG, "Comando desconhecido.")
+//
+//            }
+//        }
+//    }
 
     private fun interpretarBattery(payload: ByteArray) {
 

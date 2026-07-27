@@ -1,0 +1,3 @@
+package com.robsonsmartins.androidmidisynth.protocol
+
+class ConfigPacketBuilder
