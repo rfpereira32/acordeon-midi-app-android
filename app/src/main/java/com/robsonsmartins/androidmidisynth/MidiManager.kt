@@ -296,6 +296,18 @@ class MidiManager(
                                     TAG,
                                     "Descriptor escrito: ${descriptor.characteristic.uuid} status=$status"
                                 )
+
+                                if (
+                                    status == BluetoothGatt.GATT_SUCCESS &&
+                                    descriptor.characteristic.uuid == CONFIG_CHARACTERISTIC_UUID
+                                ) {
+
+                                    Log.d(TAG, "Solicitando sincronização ao ESP...")
+
+                                    enviarPacoteConfiguracao(
+                                        configPacketBuilder.criarPacoteRequestSync()
+                                    )
+                                }
                             }
 
                             override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
@@ -390,10 +402,19 @@ class MidiManager(
                                         value.joinToString(" ") { "%02X".format(it) }
                                     }"
                                 )
-
+                                Log.d(TAG, "Characteristic: ${characteristic.uuid}")
                                 if (characteristic.uuid == CONFIG_CHARACTERISTIC_UUID) {
-
+                                    Log.d(TAG, "Pacote de configuração recebido")
 //                                    interpretarPacoteConfiguracao(value)
+                                    Log.d(TAG, "UUID = ${characteristic.uuid}")
+                                    Log.d(TAG, "value = ${value.joinToString(" ") { "%02X".format(it) }}")
+
+                                    Log.d(
+                                        TAG,
+                                        "characteristic.value = ${
+                                            characteristic.value.joinToString(" ") { "%02X".format(it) }
+                                        }"
+                                    )
                                     configPacketParser.interpretar(value)
                                     return
                                 }

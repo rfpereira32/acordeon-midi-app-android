@@ -8,6 +8,6 @@ object ConfigProtocol {
     const val CMD_PRESET = 4
     const val CMD_STATUS = 5
     const val CMD_VERSION = 6
-    const val CMD_ACK = 7
-
+    const val CMD_SYNC = 7
+    const val CMD_REQUEST_SYNC = 8
 }

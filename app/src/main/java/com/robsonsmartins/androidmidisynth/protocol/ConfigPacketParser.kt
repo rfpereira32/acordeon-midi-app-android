@@ -22,6 +22,10 @@ class ConfigPacketParser(
         val comando = dados[0].toInt() and 0xFF
         val tamanho = dados[1].toInt() and 0xFF
 
+        Log.d(TAG, "Comando = $comando")
+        Log.d(TAG, "Tamanho = $tamanho")
+        Log.d(TAG, "Pacote = ${dados.joinToString(" ") { "%02X".format(it) }}")
+
         if (dados.size < tamanho + 2) {
             Log.e(TAG, "Pacote incompleto.")
             return
@@ -30,6 +34,9 @@ class ConfigPacketParser(
         val payload = dados.copyOfRange(2, 2 + tamanho)
 
         when (comando) {
+
+            ConfigProtocol.CMD_SYNC ->
+                interpretarSync(payload)
 
             ConfigProtocol.CMD_BATTERY ->
                 interpretarBattery(payload)
@@ -59,5 +66,18 @@ class ConfigPacketParser(
         Log.d(TAG, "===== BATERIA =====")
         Log.d(TAG, "Percentual : $percentual %")
         Log.d(TAG, "Tensão     : ${tensao / 100.0f} V")
+    }
+
+    private fun interpretarSync(payload: ByteArray) {
+
+        Log.d(TAG, "===== CMD_SYNC =====")
+        Log.d(TAG, "Payload recebido (${payload.size} bytes)")
+
+        payload.forEachIndexed { indice, valor ->
+            Log.d(
+                TAG,
+                String.format("[%02d] = %02X", indice, valor.toInt() and 0xFF)
+            )
+        }
     }
 }

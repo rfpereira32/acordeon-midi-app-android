@@ -14,6 +14,12 @@ class ConfigPacketBuilder {
         )
     }
 
+    fun criarPacoteRequestSync(): ByteArray {
+        return criarPacote(
+            ConfigProtocol.CMD_REQUEST_SYNC
+        )
+    }
+
     fun criarPacotePreset(
         preset: Int
     ): ByteArray {
