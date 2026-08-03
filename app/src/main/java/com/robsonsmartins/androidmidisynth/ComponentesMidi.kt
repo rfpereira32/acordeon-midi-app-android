@@ -97,7 +97,7 @@ fun MixerScreenContent(
             )
 
             Text(
-                text = if (isConnected) " BLE Ativo   |   🎵 $nomeInstrumento ▾" else " BLE Desconectado   |   🎵 $nomeInstrumento ▾",
+                text = if (isConnected) " BLE Ativo" else " BLE Desconectado",
                 color = Color.Gray,
                 fontSize = 14.sp,
                 modifier = Modifier.padding(start = 8.dp)
@@ -125,11 +125,6 @@ fun MixerScreenContent(
                     val valorMidi = percentToMidi(novoVol)
 
                     viewModel.setChannelVolume(0, valorMidi)
-
-                    midiManager.despacharComandoMixerSysEx(
-                        0,
-                        valorMidi
-                    )
                 },
 
                 onMuteChanged = { mute ->
@@ -156,10 +151,6 @@ fun MixerScreenContent(
 
                 viewModel.setChannelVolume(1, valorMidi)
 
-                midiManager.despacharComandoMixerSysEx(
-                    1,
-                    valorMidi
-                )
             },
 
             onMuteChanged = { mute ->
@@ -185,11 +176,6 @@ fun MixerScreenContent(
                 val valorMidi = percentToMidi(novoVol)
 
                 viewModel.setChannelVolume(2, valorMidi)
-
-                midiManager.despacharComandoMixerSysEx(
-                    2,
-                    valorMidi
-                )
             },
 
                 onMuteChanged = { mute ->
@@ -215,11 +201,6 @@ fun MixerScreenContent(
                 val valorMidi = percentToMidi(novoVol)
 
                 viewModel.setChannelVolume(3, valorMidi)
-
-                midiManager.despacharComandoMixerSysEx(
-                    3,
-                    valorMidi
-                )
             },
 
             onMuteChanged = { mute ->
@@ -245,11 +226,6 @@ fun MixerScreenContent(
                 val valorMidi = percentToMidi(novoVol)
 
                 viewModel.setChannelVolume(4, valorMidi)
-
-                midiManager.despacharComandoMixerSysEx(
-                    4,
-                    valorMidi
-                )
             },
 
             onMuteChanged = { mute ->

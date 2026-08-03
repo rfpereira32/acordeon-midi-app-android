@@ -16,6 +16,7 @@ import android.media.midi.MidiDeviceInfo
 import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 import com.robsonsmartins.androidmidisynth.audio.SynthController
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
+import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
     start()
@@ -36,6 +37,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private lateinit var synthManager: FluidSynthManager
     private lateinit var midiManager: MidiManager
+    private lateinit var configurationSynchronizer: ConfigurationSynchronizer
     private lateinit var soundFontManager: SoundFontManager
     private lateinit var synthController: SynthController
 
@@ -108,6 +110,13 @@ class MainActivity : ComponentActivity() {
         midiManager = MidiManager(this) { mensagem: String ->
             Log.d(TAG, "Callback MIDI: $mensagem")
         }
+
+        configurationSynchronizer =
+            ConfigurationSynchronizer(midiManager)
+
+        viewModel.setConfigurationSynchronizer(
+            configurationSynchronizer
+        )
 
 
         midiManager.iniciarEscaneamentoAutomatico()
@@ -253,10 +262,17 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+
         try {
+
+            configurationSynchronizer.destroy()
+
             midiManager.finalize()
+
             synthManager.finalize()
+
         } catch (_: Exception) {}
+
         super.onDestroy()
     }
 }

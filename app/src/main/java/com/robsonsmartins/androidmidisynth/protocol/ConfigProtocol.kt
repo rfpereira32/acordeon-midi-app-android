@@ -10,4 +10,5 @@ object ConfigProtocol {
     const val CMD_VERSION = 6
     const val CMD_SYNC = 7
     const val CMD_REQUEST_SYNC = 8
+    const val CMD_SET_VOLUME = 9
 }

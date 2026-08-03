@@ -77,4 +77,18 @@ class ConfigPacketBuilder {
 
         return pacote
     }
+
+    fun criarPacoteSetVolume(
+        canal: Int,
+        volume: Int
+    ): ByteArray {
+
+        return criarPacote(
+            ConfigProtocol.CMD_SET_VOLUME,
+            byteArrayOf(
+                canal.toByte(),
+                volume.toByte()
+            )
+        )
+    }
 }

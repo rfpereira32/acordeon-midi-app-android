@@ -17,6 +17,7 @@ import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 import com.robsonsmartins.androidmidisynth.soundfont.InstrumentItem
+import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
 
 class MainViewModel : ViewModel() {
 
@@ -24,12 +25,20 @@ class MainViewModel : ViewModel() {
 
     private lateinit var soundFontManager: SoundFontManager
 
+    private lateinit var configurationSynchronizer: ConfigurationSynchronizer
+
     fun setSoundFontManager(manager: SoundFontManager) {
         soundFontManager = manager
     }
 
     fun setSynthController(controller: SynthController) {
         synthController = controller
+    }
+
+    fun setConfigurationSynchronizer(
+        synchronizer: ConfigurationSynchronizer
+    ) {
+        configurationSynchronizer = synchronizer
     }
 
     // =============================================================================
@@ -54,6 +63,12 @@ class MainViewModel : ViewModel() {
 
         if (!mixerState.getChannel(channel).muted) {
             synthController.setVolume(channel, volume)
+        }
+        if (::configurationSynchronizer.isInitialized) {
+            configurationSynchronizer.setVolume(
+                channel,
+                volume
+            )
         }
     }
 
