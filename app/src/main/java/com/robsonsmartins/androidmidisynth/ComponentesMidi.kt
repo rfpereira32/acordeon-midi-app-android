@@ -85,10 +85,57 @@ fun MixerScreenContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
+        val conectado = MidiEstadoCompartilhado.isDispositivoConectado
+
+        val corBluetooth =
+            if (conectado)
+                Color(0xFF2196F3)
+            else
+                Color.Gray
+
+        val corBateria =
+            if (!conectado) {
+                Color.Gray
+            } else {
+                when {
+                    MidiEstadoCompartilhado.percentualBateria > 60 ->
+                        Color(0xFF4CAF50)
+
+                    MidiEstadoCompartilhado.percentualBateria > 30 ->
+                        Color(0xFFFFC107)
+
+                    MidiEstadoCompartilhado.percentualBateria > 15 ->
+                        Color(0xFFFF9800)
+
+                    else ->
+                        Color.Red
+                }
+            }
+
+        val textoPercentual =
+            if (conectado)
+                "${MidiEstadoCompartilhado.percentualBateria}%"
+            else
+                "-%"
+
+        val textoTensao =
+            if (conectado)
+                String.format(
+                    "%.2f V",
+                    MidiEstadoCompartilhado.tensaoBateria
+                )
+            else
+                "--.-- V"
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(
+                    start = 8.dp,
+                    end = 8.dp,
+                    top = 2.dp,
+                    bottom = 4.dp
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -100,10 +147,7 @@ fun MixerScreenContent(
                 Icon(
                     painter = painterResource(R.drawable.ic_bluetooth),
                     contentDescription = "Bluetooth",
-                    tint = if (isConnected)
-                        Color(0xFF2196F3)
-                    else
-                        Color.Gray
+                    tint = corBluetooth
                 )
 
                 Spacer(modifier = Modifier.width(6.dp))
@@ -128,13 +172,13 @@ fun MixerScreenContent(
                     Icon(
                         painter = painterResource(R.drawable.ic_battery),
                         contentDescription = "Bateria",
-                        tint = Color(0xFF4CAF50)
+                        tint = corBateria
                     )
 
                     Spacer(modifier = Modifier.width(4.dp))
 
                     Text(
-                        text = "${MidiEstadoCompartilhado.percentualBateria}%",
+                        text = textoPercentual,
                         color = Color.LightGray,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
@@ -145,10 +189,7 @@ fun MixerScreenContent(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
-                    text = String.format(
-                        "%.2f V",
-                        MidiEstadoCompartilhado.tensaoBateria
-                    ),
+                    text = textoTensao,
                     color = Color.Gray,
                     fontSize = 13.sp
                 )
