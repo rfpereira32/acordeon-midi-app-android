@@ -59,13 +59,20 @@ class ConfigPacketParser(
             (payload[1].toInt() and 0xFF) or
                     ((payload[2].toInt() and 0xFF) shl 8)
 
+        val tensaoReal = tensao / 100.0f
+
         mainHandler.post {
-            MidiEstadoCompartilhado.porcentagemBateriaReal = "$percentual%"
+
+            MidiEstadoCompartilhado.percentualBateria =
+                percentual
+
+            MidiEstadoCompartilhado.tensaoBateria =
+                tensaoReal
         }
 
         Log.d(TAG, "===== BATERIA =====")
         Log.d(TAG, "Percentual : $percentual %")
-        Log.d(TAG, "Tensão     : ${tensao / 100.0f} V")
+        Log.d(TAG, "Tensão     : %.2f V".format(tensaoReal))
     }
 
     private fun interpretarSync(payload: ByteArray) {
@@ -74,10 +81,18 @@ class ConfigPacketParser(
         Log.d(TAG, "Payload recebido (${payload.size} bytes)")
 
         payload.forEachIndexed { indice, valor ->
+
             Log.d(
                 TAG,
-                String.format("[%02d] = %02X", indice, valor.toInt() and 0xFF)
+                String.format(
+                    "[%02d] = %02X",
+                    indice,
+                    valor.toInt() and 0xFF
+                )
             )
+
         }
+
     }
+
 }

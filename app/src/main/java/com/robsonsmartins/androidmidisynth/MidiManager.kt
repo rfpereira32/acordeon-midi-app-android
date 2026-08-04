@@ -197,7 +197,25 @@ class MidiManager(
                 return@openBluetoothDevice
             }
             mainHandler.postDelayed({
-                configurarDispositivoAberto(dispositivo, dispositivo.info)
+
+                val info = dispositivo.info
+
+                if (info == null) {
+
+                    Log.e(TAG, "MidiDevice.info ainda não disponível.")
+
+                    bluetoothDevicesEmAbertura.remove(endereco)
+
+                    iniciarBuscaBleMidi()
+
+                    return@postDelayed
+                }
+
+                configurarDispositivoAberto(
+                    dispositivo,
+                    info
+                )
+
             }, 300)
         }, mainHandler)
     }

@@ -1,50 +1,96 @@
 package com.robsonsmartins.androidmidisynth
 
+import android.media.midi.MidiReceiver
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import android.media.midi.MidiReceiver
 
 object MidiEstadoCompartilhado {
-    // Escutador legado mantido por retrocompatibilidade se outros arquivos usarem
+
+    // Escutador legado mantido por retrocompatibilidade
     var onConexaoAlterada: ((String, Boolean) -> Unit)? = null
 
-    // Referência física de envio (Usada pelo OtaManager e transmissão)
+    // Referência física de envio
     var receiverMidiAtivo: MidiReceiver? = null
 
-    // Estados Reativos do Jetpack Compose - A UI observa e muda o LED na hora
-    var nomeDispositivoPareado by mutableStateOf("Nenhum dispositivo pareado")
+    // =============================================================================
+    // Estado da conexão
+    // =============================================================================
+
+    var nomeDispositivoPareado by mutableStateOf(
+        "Nenhum dispositivo pareado"
+    )
+
     var isDispositivoConectado by mutableStateOf(false)
 
-    // MONITOR REATIVO DA BATERIA REAL INJETADO DE FORMA LIMPA
-    var porcentagemBateriaReal by mutableStateOf("100%")
+    // =============================================================================
+    // Estado da bateria
+    // =============================================================================
 
-    // Getters e Setters para compatibilidade com códigos antigos que buscam as variáveis antigas
+    var percentualBateria by mutableIntStateOf(100)
+
+    var tensaoBateria by mutableFloatStateOf(0.0f)
+
+    // =============================================================================
+    // Compatibilidade
+    // =============================================================================
+
     var nomeAtual: String
         get() = nomeDispositivoPareado
-        set(value) { nomeDispositivoPareado = value }
+        set(value) {
+            nomeDispositivoPareado = value
+        }
 
     var conectadoAtual: Boolean
         get() = isDispositivoConectado
-        set(value) { isDispositivoConectado = value }
+        set(value) {
+            isDispositivoConectado = value
+        }
 
     /**
      * Centraliza a atualização em uma única chamada segura
      */
-    fun atualizarEstado(nome: String, conectado: Boolean) {
+    fun atualizarEstado(
+        nome: String,
+        conectado: Boolean
+    ) {
+
         nomeDispositivoPareado = nome
         isDispositivoConectado = conectado
-        if (!conectado) porcentagemBateriaReal = "--%"
-        onConexaoAlterada?.invoke(nome, conectado)
+
+        if (!conectado) {
+
+            percentualBateria = 0
+            tensaoBateria = 0f
+
+        }
+
+        onConexaoAlterada?.invoke(
+            nome,
+            conectado
+        )
+
     }
 
     /**
      * Reseta os estados e limpa a porta ao desconectar
      */
-    fun finalizarConexao() {
+    fun finalizarConexao()
+    {
+
         receiverMidiAtivo = null
-        nomeDispositivoPareado = "Nenhum dispositivo pareado"
+
+        nomeDispositivoPareado =
+            "Nenhum dispositivo pareado"
+
         isDispositivoConectado = false
-        porcentagemBateriaReal = "--%"
+
+        percentualBateria = 0
+
+        tensaoBateria = 0f
+
     }
+
 }

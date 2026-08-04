@@ -113,27 +113,6 @@ fun  TelaMidiSintetizador(
                             maxLines = 1 // Garante que o texto fique em uma única linha sem quebrar o layout
                         )
                     }
-
-                    // BLOCO DA DIREITA: LED REATIVO + TEXTO DA BATERIA REAL (FIXO NA MARGEM DIREITA)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp) // Reduzido ligeiramente de 14 para 10dp para melhor respiro visual
-                                .clip(CircleShape)
-                                .background(if (ledVerdeAtivo) Color(0xFF4CAF50) else Color.Red)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        Text(
-                            text = MidiEstadoCompartilhado.porcentagemBateriaReal,
-                            color = if (ledVerdeAtivo) Color.LightGray else Color.Gray,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold // Negrito para destacar a leitura do ADC do ESP32
-                        )
-                    }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBgDark)

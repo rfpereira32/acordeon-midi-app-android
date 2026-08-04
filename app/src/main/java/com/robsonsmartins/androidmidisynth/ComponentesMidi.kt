@@ -41,6 +41,8 @@ import com.robsonsmartins.androidmidisynth.soundfont.SoundFontDialog
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 import androidx.compose.foundation.clickable
 import com.robsonsmartins.androidmidisynth.ui.components.InstrumentPickerDialog
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,27 +86,76 @@ fun MixerScreenContent(
             .verticalScroll(rememberScrollState())
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        color = if (isConnected) Color(0xFF4CAF50) else Color.Red,
-                        shape = RoundedCornerShape(4.dp)
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Icon(
+                    painter = painterResource(R.drawable.ic_bluetooth),
+                    contentDescription = "Bluetooth",
+                    tint = if (isConnected)
+                        Color(0xFF2196F3)
+                    else
+                        Color.Gray
+                )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Text(
+                    text = "BLE",
+                    color = Color.LightGray,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        painter = painterResource(R.drawable.ic_battery),
+                        contentDescription = "Bateria",
+                        tint = Color(0xFF4CAF50)
                     )
-            )
 
-            Text(
-                text = if (isConnected) " BLE Ativo" else " BLE Desconectado",
-                color = Color.Gray,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(start = 8.dp)
-            )
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Text(
+                        text = "${MidiEstadoCompartilhado.percentualBateria}%",
+                        color = Color.LightGray,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = String.format(
+                        "%.2f V",
+                        MidiEstadoCompartilhado.tensaoBateria
+                    ),
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+
+            }
+
         }
-
-        Spacer(modifier = Modifier.height(4.dp))
 
         // OS 5 SLIDERS INTEGRADOS À ESCALA MIDI DE 7 BITS (0 A 127) VIA STRING CHAVEADA
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -415,11 +466,6 @@ fun MixerScreenContent(
 
                         item.preset
 
-                    )
-
-                    midiManager.despacharComandoInstrumentoSysEx(
-                        canalSelecionado,
-                        item.preset.program
                     )
 
                     exibirInstrumentPicker = false

@@ -19,6 +19,9 @@ class ConfigurationSynchronizer(
     private val volumeJobs =
         Array<Job?>(5) { null }
 
+    private val instrumentJobs =
+        Array<Job?>(5) { null }
+
     fun setVolume(
         canal: Int,
         volume: Int
@@ -38,6 +41,33 @@ class ConfigurationSynchronizer(
                 packetBuilder.criarPacoteSetVolume(
                     canal,
                     volume
+                )
+
+            )
+
+        }
+
+    }
+
+    fun setInstrumento(
+        canal: Int,
+        instrumento: Int
+    ) {
+
+        if (canal !in 0..4)
+            return
+
+        instrumentJobs[canal]?.cancel()
+
+        instrumentJobs[canal] = scope.launch {
+
+            delay(300)
+
+            midiManager.enviarPacoteConfiguracao(
+
+                packetBuilder.criarPacoteSetInstrumento(
+                    canal,
+                    instrumento
                 )
 
             )

@@ -166,6 +166,12 @@ class MainViewModel : ViewModel() {
             preset
         )
 
+        if (::configurationSynchronizer.isInitialized) {
+            configurationSynchronizer.setInstrumento(
+                channel,
+                preset.program
+            )
+        }
     }
 
 

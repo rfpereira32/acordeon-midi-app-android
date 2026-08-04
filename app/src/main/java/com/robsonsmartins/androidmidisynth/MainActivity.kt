@@ -17,6 +17,8 @@ import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 import com.robsonsmartins.androidmidisynth.audio.SynthController
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.Icon
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
     start()
@@ -207,33 +209,22 @@ class MainActivity : ComponentActivity() {
     // INTERCEPTADOR TEXTUAL DIRETO: PESCA A BATERIA ANTES DO FILTRO DE MENSAGENS MIDI
     // ==============================================================================
     private fun onMidiMessageReceived(message: String) {
-        // Log de bancada essencial: Imprime TUDO o que o rádio joga para o Kotlin
-        Log.d(TAG, "📥 [RADIO_RAW] Texto puro vindo do fole: $message")
 
-        // GATILHO CRÍTICO: Captura a string de bateria enviada pelo ESP32-S3
-        if (message.contains("BAT:", ignoreCase = true)) {
-            try {
-                // Extrai o número que vem após o marcador "BAT:"
-                val valorNumericoTexto = message.substringAfter("BAT:").trim()
-                val porcentagemCarga = valorNumericoTexto.toInt().coerceIn(0, 100)
+        Log.d(
+            TAG,
+            "📥 [RADIO_RAW] Texto puro vindo do fole: $message"
+        )
 
-                // Atualiza instantaneamente o Singleton reativo que a TelaMidi observa
-                runOnUiThread {
-                    MidiEstadoCompartilhado.porcentagemBateriaReal = "$porcentagemCarga%"
-                }
-                Log.d(TAG, "🔋 [TELEMETRIA] Interface atualizada com sucesso: $porcentagemCarga%")
-                return // Retorna para não enviar resíduos para o processador SysEx
-            } catch (e: Exception) {
-                Log.e(TAG, "Falha ao decodificar telemetria de bateria: ${e.message}")
-            }
-        }
-
-        // Fluxo original preservado para mensagens SysEx padrão e CPU
         runOnUiThread {
-            if (message.startsWith("F0") || message.contains("F0")) {
+
+            if (message.startsWith("F0") ||
+                message.contains("F0"))
+            {
                 processarSysExCpu(message)
             }
+
         }
+
     }
 
 

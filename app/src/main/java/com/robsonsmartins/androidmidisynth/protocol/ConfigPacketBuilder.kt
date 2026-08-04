@@ -91,4 +91,18 @@ class ConfigPacketBuilder {
             )
         )
     }
+
+    fun criarPacoteSetInstrumento(
+        canal: Int,
+        instrumento: Int
+    ): ByteArray {
+
+        return criarPacote(
+            ConfigProtocol.CMD_SET_INSTRUMENT,
+            byteArrayOf(
+                canal.toByte(),
+                instrumento.toByte()
+            )
+        )
+    }
 }
