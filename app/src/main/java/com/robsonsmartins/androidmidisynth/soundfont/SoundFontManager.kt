@@ -174,8 +174,11 @@ class SoundFontManager(
 
     /**
      * Importa uma SoundFont escolhida pelo usuário.
+     *
+     * @return true se a SoundFont foi importada.
+     *         false se ela já existia.
      */
-    fun importarSoundFont(uri: Uri) {
+    fun importarSoundFont(uri: Uri): Boolean {
 
         val resolver = context.contentResolver
 
@@ -202,6 +205,18 @@ class SoundFontManager(
 
             }
 
+        }
+
+        // Evita importar duas vezes a mesma SoundFont
+        if (
+            soundFonts.any {
+                it.nome.equals(
+                    nomeArquivo,
+                    ignoreCase = true
+                )
+            }
+        ) {
+            return false
         }
 
         val arquivoDestino = File(
@@ -237,6 +252,8 @@ class SoundFontManager(
             )
 
         )
+
+        return true
 
     }
 

@@ -233,9 +233,9 @@ class MainViewModel : ViewModel() {
     fun alternarSoundFont(id: Int) =
         soundFontManager.alternar(id)
 
-    fun importarSoundFont(uri: Uri) {
+    fun importarSoundFont(uri: Uri): Boolean {
 
-        soundFontManager.importarSoundFont(uri)
+        return soundFontManager.importarSoundFont(uri)
 
     }
 
