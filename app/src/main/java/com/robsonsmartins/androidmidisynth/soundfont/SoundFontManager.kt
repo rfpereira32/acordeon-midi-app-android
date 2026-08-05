@@ -102,24 +102,7 @@ class SoundFontManager(
 
     private fun criarSessaoInicial() {
 
-        val caminhoInicial =
-            prepareSoundFont("AcordeonGiulietti.sf2")
-
-        soundFonts.add(
-
-            SoundFontInfo(
-
-                id = 1,
-
-                nome = "AcordeonGiulietti.sf2",
-
-                caminho = caminhoInicial,
-
-                carregada = true
-
-            )
-
-        )
+        soundFonts.clear()
 
         salvarSessao()
 
@@ -130,18 +113,6 @@ class SoundFontManager(
     // =============================================================================
 
     fun listar(): List<SoundFontInfo> = soundFonts
-
-    /**
-     * Retorna a SoundFont inicial do aplicativo.
-     *
-     * Temporariamente é a Giulietti.
-     * No futuro poderá retornar null.
-     */
-    fun soundFontInicial(): SoundFontInfo? {
-
-        return soundFonts.firstOrNull()
-
-    }
 
     /**
      * Retorna uma SoundFont pelo ID.
@@ -260,48 +231,6 @@ class SoundFontManager(
     // =============================================================================
     // Arquivos
     // =============================================================================
-
-    /**
-     * Garante que a SoundFont exista no armazenamento interno.
-     */
-    fun prepareSoundFont(nomeArquivo: String): String {
-
-        val arquivoDestino = File(
-            context.filesDir,
-            nomeArquivo
-        )
-
-        if (!arquivoDestino.exists()) {
-
-            context.assets.open(nomeArquivo).use { input ->
-
-                FileOutputStream(arquivoDestino).use { output ->
-
-                    val buffer = ByteArray(8192)
-
-                    var bytes: Int
-
-                    while (true) {
-
-                        bytes = input.read(buffer)
-
-                        if (bytes <= 0)
-                            break
-
-                        output.write(
-                            buffer,
-                            0,
-                            bytes
-                        )
-                    }
-
-                    output.flush()
-                }
-            }
-        }
-
-        return arquivoDestino.absolutePath
-    }
 
     /**
      * Importa uma SoundFont escolhida pelo usuário.

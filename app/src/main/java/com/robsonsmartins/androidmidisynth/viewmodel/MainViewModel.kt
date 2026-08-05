@@ -12,7 +12,6 @@ import com.robsonsmartins.androidmidisynth.audio.SynthController
 import com.robsonsmartins.androidmidisynth.core.DeviceState
 import com.robsonsmartins.androidmidisynth.core.MidiMixer
 import com.robsonsmartins.androidmidisynth.core.MixerState
-import com.robsonsmartins.androidmidisynth.core.SystemState
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
@@ -54,8 +53,6 @@ class MainViewModel : ViewModel() {
     val mixerState = MixerState()
 
     val deviceState = DeviceState()
-
-    val systemState = SystemState()
 
     fun setChannelVolume(channel: Int, volume: Int) {
 
@@ -219,8 +216,6 @@ class MainViewModel : ViewModel() {
     // SoundFont
     // =============================================================================
 
-    var soundFontAtual by mutableStateOf("AcordeonGiulietti.sf2")
-
     fun listarSoundFonts() =
         soundFontManager.listar()
 
@@ -251,8 +246,7 @@ class MainViewModel : ViewModel() {
         val instrumentos = mutableListOf<InstrumentItem>()
 
         soundFontManager
-            .listar()
-            .filter { it.carregada }
+            .carregadas()
             .forEach { soundFont ->
 
                 soundFont.presets.forEach { preset ->
