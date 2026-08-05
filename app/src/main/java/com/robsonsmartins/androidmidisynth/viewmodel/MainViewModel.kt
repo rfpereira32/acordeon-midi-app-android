@@ -281,25 +281,9 @@ class MainViewModel : ViewModel() {
 
     }
 
-    /**
-     * Sincroniza as SoundFonts marcadas na interface
-     * com as realmente carregadas no FluidSynth.
-     */
-    fun aplicarSoundFonts(lista: List<SoundFontInfo>) {
+    fun sincronizarBiblioteca() {
 
-        lista.forEach { soundFont ->
-
-            if (soundFont.carregada) {
-
-                synthController.carregarSoundFont(soundFont)
-
-            } else {
-
-                synthController.descarregarSoundFont(soundFont)
-
-            }
-
-        }
+        soundFontManager.sincronizarBiblioteca()
 
     }
 

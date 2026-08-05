@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 fun SoundFontDialog(
     soundFonts: List<SoundFontInfo>,
     onDismiss: () -> Unit,
-    onApply: (List<SoundFontInfo>) -> Unit,
+    onApply: () -> Unit,
     onImport: () -> Unit
 ) {
 
@@ -120,7 +120,7 @@ fun SoundFontDialog(
 
                 onClick = {
 
-                    onApply(soundFonts)
+                    onApply()
 
                 }
 

@@ -6,6 +6,9 @@ import androidx.compose.runtime.mutableStateListOf
 import java.io.File
 import java.io.FileOutputStream
 import com.robsonsmartins.androidmidisynth.audio.SynthController
+import com.robsonsmartins.androidmidisynth.session.SessionManager
+import com.robsonsmartins.androidmidisynth.session.SessionState
+import com.robsonsmartins.androidmidisynth.session.SessionSoundFont
 
 class SoundFontManager(
 
@@ -20,8 +23,83 @@ class SoundFontManager(
     // =============================================================================
 
     private val soundFonts = mutableStateListOf<SoundFontInfo>()
+    private val sessionManager = SessionManager(context)
 
     init {
+
+        if (!restaurarSessao()) {
+
+            criarSessaoInicial()
+
+        }
+
+    }
+
+    private fun salvarSessao() {
+
+        val session = SessionState()
+
+        soundFonts.forEach { soundFont ->
+
+            session.soundFonts.add(
+
+                SessionSoundFont(
+
+                    id = soundFont.id,
+
+                    nome = soundFont.nome,
+
+                    arquivo = File(soundFont.caminho).name,
+
+                    carregada = soundFont.carregada
+
+                )
+
+            )
+
+        }
+
+        sessionManager.salvar(session)
+
+    }
+
+    private fun restaurarSessao(): Boolean {
+
+        val session = sessionManager.carregar()
+
+        if (session.soundFonts.isEmpty())
+            return false
+
+        soundFonts.clear()
+
+        session.soundFonts.forEach { item ->
+
+            soundFonts.add(
+
+                SoundFontInfo(
+
+                    id = item.id,
+
+                    nome = item.nome,
+
+                    caminho = File(
+                        context.filesDir,
+                        item.arquivo
+                    ).absolutePath,
+
+                    carregada = item.carregada
+
+                )
+
+            )
+
+        }
+
+        return true
+
+    }
+
+    private fun criarSessaoInicial() {
 
         val caminhoInicial =
             prepareSoundFont("AcordeonGiulietti.sf2")
@@ -41,6 +119,8 @@ class SoundFontManager(
             )
 
         )
+
+        salvarSessao()
 
     }
 
@@ -95,26 +175,64 @@ class SoundFontManager(
     }
 
     fun adicionar(soundFont: SoundFontInfo) {
+
         soundFonts.add(soundFont)
+
+        salvarSessao()
+
     }
 
     fun remover(soundFont: SoundFontInfo) {
+
         soundFonts.remove(soundFont)
+
+        salvarSessao()
+
     }
 
     fun carregar(id: Int) {
-        soundFonts.find { it.id == id }?.carregada = true
+
+        val soundFont =
+            soundFonts.find { it.id == id }
+                ?: return
+
+        if (!soundFont.carregada) {
+            soundFont.carregada = true
+        }
+
+        synthController.carregarSoundFont(soundFont)
+
+        salvarSessao()
+
     }
 
     fun descarregar(id: Int) {
-        soundFonts.find { it.id == id }?.carregada = false
+
+        val soundFont =
+            soundFonts.find { it.id == id }
+                ?: return
+
+        synthController.descarregarSoundFont(soundFont)
+
+        soundFont.carregada = false
+
+        salvarSessao()
+
     }
 
     fun alternar(id: Int) {
 
-        soundFonts.find { it.id == id }?.let {
+        val soundFont =
+            soundFonts.find { it.id == id }
+                ?: return
 
-            it.carregada = !it.carregada
+        if (soundFont.carregada) {
+
+            descarregar(id)
+
+        } else {
+
+            carregar(id)
 
         }
 
@@ -125,6 +243,18 @@ class SoundFontManager(
 
     fun disponiveis(): List<SoundFontInfo> =
         soundFonts.filter { !it.carregada }
+
+    fun restaurarBiblioteca() {
+
+        soundFonts
+            .filter { it.carregada }
+            .forEach {
+
+                synthController.carregarSoundFont(it)
+
+            }
+
+    }
 
     // =============================================================================
     // Arquivos
@@ -252,7 +382,7 @@ class SoundFontManager(
             )
 
         )
-
+        salvarSessao()
         return true
 
     }
@@ -269,4 +399,43 @@ class SoundFontManager(
 
     }
 
+    fun aplicarBiblioteca() {
+
+        soundFonts.forEach { soundFont ->
+
+            if (soundFont.carregada) {
+
+                synthController.carregarSoundFont(soundFont)
+
+            } else {
+
+                synthController.descarregarSoundFont(soundFont)
+
+            }
+
+        }
+
+        salvarSessao()
+
+    }
+
+    fun sincronizarBiblioteca() {
+
+        soundFonts.forEach { soundFont ->
+
+            if (soundFont.carregada) {
+
+                synthController.carregarSoundFont(soundFont)
+
+            } else {
+
+                synthController.descarregarSoundFont(soundFont)
+
+            }
+
+        }
+
+        salvarSessao()
+
+    }
 }
