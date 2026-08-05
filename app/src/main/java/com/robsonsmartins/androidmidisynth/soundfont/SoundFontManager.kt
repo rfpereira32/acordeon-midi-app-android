@@ -9,6 +9,7 @@ import com.robsonsmartins.androidmidisynth.audio.SynthController
 import com.robsonsmartins.androidmidisynth.session.SessionManager
 import com.robsonsmartins.androidmidisynth.session.SessionState
 import com.robsonsmartins.androidmidisynth.session.SessionSoundFont
+import android.util.Log
 
 class SoundFontManager(
 
@@ -420,6 +421,11 @@ class SoundFontManager(
     }
 
     fun sincronizarBiblioteca() {
+
+        Log.d(
+            "SoundFontManager",
+            "Sincronizando ${soundFonts.size} SoundFonts"
+        )
 
         soundFonts.forEach { soundFont ->
 

@@ -73,33 +73,8 @@ class MainActivity : ComponentActivity() {
         viewModel.setSynthController(synthController)
         viewModel.setSoundFontManager(soundFontManager)
 
-        soundFontManager.soundFontInicial()?.let { soundFont ->
+        soundFontManager.sincronizarBiblioteca()
 
-            val sfid =
-                synthManager.loadSF(
-                    soundFont.caminho
-                )
-
-            val presets =
-                synthManager.listPresets(sfid)
-
-            Log.d(
-                "SF2",
-                "Quantidade de presets = ${presets.size}"
-            )
-
-            presets.forEach {
-
-                Log.d(
-                    "SF2",
-                    "Banco=${it.bank} Programa=${it.program} Nome=${it.nome}"
-                )
-
-            }
-
-            soundFont.sfid = sfid
-
-        }
         synthController.setVolume(
             0,
             (viewModel.masterVolume * 127).toInt()
