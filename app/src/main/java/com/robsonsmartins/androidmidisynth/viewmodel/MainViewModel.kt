@@ -281,4 +281,28 @@ class MainViewModel : ViewModel() {
 
     }
 
+    fun podeExcluirSoundFont(id: Int): Boolean {
+
+        val soundFont =
+            soundFontManager
+                .getSoundFont(id)
+                ?: return false
+
+        return soundFontManager.podeExcluir(soundFont) {
+
+            mixerState.usaSoundFont(it.id)
+
+        }
+
+    }
+
+    fun excluirSoundFont(id: Int): Boolean {
+
+        return soundFontManager.excluir(id) {
+
+            mixerState.usaSoundFont(it.id)
+
+        }
+
+    }
 }

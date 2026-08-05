@@ -117,27 +117,6 @@ int SynthManager::loadSF(const char *soundfontPath, int program)
     if (sfid == FLUID_FAILED)
         return FLUID_FAILED;
 
-    for (int ch = 0; ch < 16; ch++) {
-
-        fluid_synth_sfont_select(
-                synth,
-                ch,
-                sfid
-        );
-
-        fluid_synth_bank_select(
-                synth,
-                ch,
-                0
-        );
-
-        fluid_synth_program_change(
-                synth,
-                ch,
-                0
-        );
-    }
-
     soundfontId = sfid;
 
     return sfid;

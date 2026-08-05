@@ -373,4 +373,49 @@ class SoundFontManager(
         salvarSessao()
 
     }
+
+    fun podeExcluir(
+        soundFont: SoundFontInfo,
+        estaEmUso: (SoundFontInfo) -> Boolean
+    ): Boolean {
+
+        if (soundFont.carregada)
+            return false
+
+        if (estaEmUso(soundFont))
+            return false
+
+        return true
+
+    }
+
+    fun excluir(
+        id: Int,
+        estaEmUso: (SoundFontInfo) -> Boolean
+    ): Boolean {
+
+        val soundFont =
+            soundFonts.find { it.id == id }
+                ?: return false
+
+        if (!podeExcluir(soundFont, estaEmUso))
+            return false
+
+        try {
+
+            File(soundFont.caminho).delete()
+
+        } catch (_: Exception) {
+
+            return false
+
+        }
+
+        soundFonts.remove(soundFont)
+
+        salvarSessao()
+
+        return true
+
+    }
 }

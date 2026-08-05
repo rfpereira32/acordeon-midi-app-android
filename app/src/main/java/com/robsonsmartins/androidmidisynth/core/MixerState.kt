@@ -17,4 +17,14 @@ class MixerState(
     fun getChannel(index: Int): ChannelState {
         return channels[index]
     }
+
+    fun usaSoundFont(id: Int): Boolean {
+
+        return channels.any {
+
+            it.soundFont?.id == id
+
+        }
+
+    }
 }

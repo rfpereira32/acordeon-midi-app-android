@@ -480,6 +480,18 @@ fun MixerScreenContent(
                     arrayOf("*/*")
                 )
 
+            },
+
+            podeExcluir = {
+
+                viewModel.podeExcluirSoundFont(it)
+
+            },
+
+            onExcluir = {
+
+                viewModel.excluirSoundFont(it)
+
             }
 
         )
