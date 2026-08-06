@@ -6,8 +6,6 @@ import androidx.compose.runtime.mutableStateListOf
 import java.io.File
 import java.io.FileOutputStream
 import com.robsonsmartins.androidmidisynth.audio.SynthController
-import com.robsonsmartins.androidmidisynth.session.SessionManager
-import com.robsonsmartins.androidmidisynth.session.SessionState
 import com.robsonsmartins.androidmidisynth.session.SessionSoundFont
 import android.util.Log
 
@@ -24,51 +22,10 @@ class SoundFontManager(
     // =============================================================================
 
     private val soundFonts = mutableStateListOf<SoundFontInfo>()
-    private val sessionManager = SessionManager(context)
 
     init {
 
         criarSessaoInicial()
-
-    }
-
-    private fun salvarSessao() {
-
-        val session = SessionState()
-
-        soundFonts.forEach { soundFont ->
-
-            session.soundFonts.add(
-
-                SessionSoundFont(
-
-                    id = soundFont.id,
-
-                    nome = soundFont.nome,
-
-                    arquivo = File(soundFont.caminho).name,
-
-                    carregada = soundFont.carregada
-
-                )
-
-            )
-
-        }
-
-        sessionManager.salvar(session)
-
-    }
-
-    private fun restaurarSessao(): Boolean {
-
-        val session = sessionManager.carregar()
-
-        return aplicarSessao(
-
-            session.soundFonts
-
-        )
 
     }
 
