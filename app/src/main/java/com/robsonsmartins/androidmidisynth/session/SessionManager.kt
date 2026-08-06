@@ -1,6 +1,8 @@
 package com.robsonsmartins.androidmidisynth.session
 
 import android.content.Context
+import com.robsonsmartins.androidmidisynth.configuration.ChannelConfiguration
+import com.robsonsmartins.androidmidisynth.configuration.MixerConfiguration
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -17,23 +19,11 @@ data class SessionSoundFont(
 
 )
 
-data class SessionChannel(
-
-    val bank: Int,
-
-    val program: Int,
-
-    val volume: Int,
-
-    val mute: Boolean
-
-)
-
 data class SessionState(
 
     val soundFonts: MutableList<SessionSoundFont> = mutableListOf(),
 
-    val channels: MutableList<SessionChannel> = mutableListOf()
+    var mixer: MixerConfiguration = MixerConfiguration()
 
 )
 
@@ -58,9 +48,9 @@ class SessionManager(
 
         val json = JSONObject()
 
-        //------------------------------------------
+        //----------------------------------------------------
         // SoundFonts
-        //------------------------------------------
+        //----------------------------------------------------
 
         val soundFonts = JSONArray()
 
@@ -68,25 +58,10 @@ class SessionManager(
 
             val sf = JSONObject()
 
-            sf.put(
-                "id",
-                it.id
-            )
-
-            sf.put(
-                "nome",
-                it.nome
-            )
-
-            sf.put(
-                "arquivo",
-                it.arquivo
-            )
-
-            sf.put(
-                "carregada",
-                it.carregada
-            )
+            sf.put("id", it.id)
+            sf.put("nome", it.nome)
+            sf.put("arquivo", it.arquivo)
+            sf.put("carregada", it.carregada)
 
             soundFonts.put(sf)
 
@@ -97,15 +72,25 @@ class SessionManager(
             soundFonts
         )
 
-        //------------------------------------------
-        // Canais
-        //------------------------------------------
+        //----------------------------------------------------
+        // Mixer
+        //----------------------------------------------------
 
         val channels = JSONArray()
 
-        session.channels.forEach {
+        session.mixer.channels.forEach {
 
             val canal = JSONObject()
+
+            canal.put(
+                "enabled",
+                it.enabled
+            )
+
+            canal.put(
+                "soundFontId",
+                it.soundFontId
+            )
 
             canal.put(
                 "bank",
@@ -158,14 +143,12 @@ class SessionManager(
 
         val session = SessionState()
 
-        //------------------------------------------
+        //----------------------------------------------------
         // SoundFonts
-        //------------------------------------------
+        //----------------------------------------------------
 
         val soundFonts = json.optJSONArray(
-
             "soundFonts"
-
         ) ?: JSONArray()
 
         for (i in 0 until soundFonts.length()) {
@@ -190,31 +173,49 @@ class SessionManager(
 
         }
 
-        //------------------------------------------
-        // Canais
-        //------------------------------------------
+        //----------------------------------------------------
+        // Mixer
+        //----------------------------------------------------
 
         val channels = json.optJSONArray(
-
             "channels"
-
         ) ?: JSONArray()
+
+        session.mixer.channels.clear()
 
         for (i in 0 until channels.length()) {
 
             val canal = channels.getJSONObject(i)
 
-            session.channels.add(
+            session.mixer.channels.add(
 
-                SessionChannel(
+                ChannelConfiguration(
 
-                    bank = canal.getInt("bank"),
+                    enabled = canal.optBoolean(
+                        "enabled",
+                        true
+                    ),
 
-                    program = canal.getInt("program"),
+                    soundFontId = canal.optInt(
+                        "soundFontId",
+                        -1
+                    ),
 
-                    volume = canal.getInt("volume"),
+                    bank = canal.getInt(
+                        "bank"
+                    ),
 
-                    mute = canal.getBoolean("mute")
+                    program = canal.getInt(
+                        "program"
+                    ),
+
+                    volume = canal.getInt(
+                        "volume"
+                    ),
+
+                    mute = canal.getBoolean(
+                        "mute"
+                    )
 
                 )
 

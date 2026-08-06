@@ -1,6 +1,8 @@
 package com.robsonsmartins.androidmidisynth.core
 
 import androidx.compose.runtime.mutableStateListOf
+import com.robsonsmartins.androidmidisynth.configuration.ChannelConfiguration
+import com.robsonsmartins.androidmidisynth.configuration.MixerConfiguration
 
 class MixerState(
     numberOfChannels: Int = 5
@@ -9,13 +11,19 @@ class MixerState(
     val channels = mutableStateListOf<ChannelState>()
 
     init {
+
         repeat(numberOfChannels) {
+
             channels += ChannelState(channel = it)
+
         }
+
     }
 
     fun getChannel(index: Int): ChannelState {
+
         return channels[index]
+
     }
 
     fun usaSoundFont(id: Int): Boolean {
@@ -27,4 +35,68 @@ class MixerState(
         }
 
     }
+
+    /**
+     * Exporta o estado atual do mixer para uma configuração.
+     */
+    fun exportarConfiguracao(): MixerConfiguration {
+
+        return MixerConfiguration(
+
+            channels.map { channel ->
+
+                ChannelConfiguration(
+
+                    enabled = true,
+
+                    soundFontId = channel.soundFont?.id ?: -1,
+
+                    bank = channel.bankMsb,
+
+                    program = channel.program,
+
+                    volume = channel.volume,
+
+                    mute = channel.muted
+
+                )
+
+            }.toMutableList()
+
+        )
+
+    }
+
+    /**
+     * Aplica uma configuração ao estado do mixer.
+     *
+     * Nesta etapa apenas atualiza o estado interno.
+     * A sincronização com o FluidSynth será feita
+     * posteriormente pelo SynthController.
+     */
+    fun aplicarConfiguracao(
+        configuracao: MixerConfiguration
+    ) {
+
+        configuracao.channels.forEachIndexed { index, channelConfig ->
+
+            if (index >= channels.size)
+                return@forEachIndexed
+
+            val channel = channels[index]
+
+            channel.volume = channelConfig.volume
+            channel.muted = channelConfig.mute
+
+            channel.bankMsb = channelConfig.bank
+            channel.program = channelConfig.program
+
+            // A SoundFont e o Preset serão restaurados
+            // posteriormente, após todas as SoundFonts
+            // estarem carregadas.
+
+        }
+
+    }
+
 }
