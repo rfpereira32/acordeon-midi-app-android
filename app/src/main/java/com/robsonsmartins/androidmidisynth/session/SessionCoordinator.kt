@@ -18,4 +18,59 @@ class SessionCoordinator(
 
     private val mixerState: MixerState
 
-)
+) {
+
+    fun salvar() {
+
+        val session = SessionState()
+
+        //------------------------------------------------------
+        // Biblioteca de SoundFonts
+        //------------------------------------------------------
+
+        soundFontManager.listar().forEach { soundFont ->
+
+            session.soundFonts.add(
+
+                SessionSoundFont(
+
+                    id = soundFont.id,
+
+                    nome = soundFont.nome,
+
+                    arquivo = soundFont.getArquivo().name,
+
+                    carregada = soundFont.carregada
+
+                )
+
+            )
+
+        }
+
+        //------------------------------------------------------
+        // Mixer
+        //------------------------------------------------------
+
+        session.mixer =
+            mixerState.exportarConfiguracao()
+
+        //------------------------------------------------------
+
+        sessionManager.salvar(session)
+
+    }
+
+    fun restaurar() {
+
+        val session = sessionManager.carregar()
+
+        soundFontManager.aplicarSessao(
+
+            session.soundFonts
+
+        )
+
+    }
+
+}

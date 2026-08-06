@@ -17,6 +17,8 @@ import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 import com.robsonsmartins.androidmidisynth.soundfont.InstrumentItem
 import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
+import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
+
 
 class MainViewModel : ViewModel() {
 
@@ -25,6 +27,7 @@ class MainViewModel : ViewModel() {
     private lateinit var soundFontManager: SoundFontManager
 
     private lateinit var configurationSynchronizer: ConfigurationSynchronizer
+    private lateinit var sessionCoordinator: SessionCoordinator
 
     fun setSoundFontManager(manager: SoundFontManager) {
         soundFontManager = manager
@@ -38,6 +41,14 @@ class MainViewModel : ViewModel() {
         synchronizer: ConfigurationSynchronizer
     ) {
         configurationSynchronizer = synchronizer
+    }
+
+    fun setSessionCoordinator(
+        coordinator: SessionCoordinator
+    ) {
+
+        sessionCoordinator = coordinator
+
     }
 
     // =============================================================================
@@ -219,18 +230,43 @@ class MainViewModel : ViewModel() {
     fun listarSoundFonts() =
         soundFontManager.listar()
 
-    fun carregarSoundFont(id: Int) =
+    fun carregarSoundFont(id: Int) {
+
         soundFontManager.carregar(id)
 
-    fun descarregarSoundFont(id: Int) =
+        salvarSessao()
+
+    }
+
+    fun descarregarSoundFont(id: Int) {
+
         soundFontManager.descarregar(id)
 
-    fun alternarSoundFont(id: Int) =
+        salvarSessao()
+
+    }
+
+    fun alternarSoundFont(id: Int) {
+
         soundFontManager.alternar(id)
+
+        salvarSessao()
+
+    }
 
     fun importarSoundFont(uri: Uri): Boolean {
 
-        return soundFontManager.importarSoundFont(uri)
+        val sucesso =
+
+            soundFontManager.importarSoundFont(uri)
+
+        if (sucesso) {
+
+            salvarSessao()
+
+        }
+
+        return sucesso
 
     }
 
@@ -295,7 +331,6 @@ class MainViewModel : ViewModel() {
         }
 
     }
-
     fun excluirSoundFont(id: Int): Boolean {
 
         return soundFontManager.excluir(id) {
@@ -303,6 +338,37 @@ class MainViewModel : ViewModel() {
             mixerState.usaSoundFont(it.id)
 
         }
+
+    }
+
+    fun salvarSessao() {
+
+        if (::sessionCoordinator.isInitialized) {
+
+            sessionCoordinator.salvar()
+
+        }
+    }
+
+    fun excluirSoundFont(
+        id: Int,
+        estaEmUso: (SoundFontInfo) -> Boolean
+    ): Boolean {
+
+        val sucesso =
+
+            soundFontManager.excluir(
+                id,
+                estaEmUso
+            )
+
+        if (sucesso) {
+
+            salvarSessao()
+
+        }
+
+        return sucesso
 
     }
 }

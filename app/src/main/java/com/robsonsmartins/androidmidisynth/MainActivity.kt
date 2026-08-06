@@ -19,6 +19,8 @@ import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
+import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
+import com.robsonsmartins.androidmidisynth.session.SessionManager
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
     start()
@@ -42,6 +44,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var configurationSynchronizer: ConfigurationSynchronizer
     private lateinit var soundFontManager: SoundFontManager
     private lateinit var synthController: SynthController
+    private lateinit var sessionCoordinator: SessionCoordinator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +75,22 @@ class MainActivity : ComponentActivity() {
 
         viewModel.setSynthController(synthController)
         viewModel.setSoundFontManager(soundFontManager)
+
+        sessionCoordinator = SessionCoordinator(
+
+            SessionManager(this),
+
+            soundFontManager,
+
+            viewModel.mixerState
+
+        )
+
+        viewModel.setSessionCoordinator(
+            sessionCoordinator
+        )
+
+        sessionCoordinator.restaurar()
 
         soundFontManager.sincronizarBiblioteca()
 
@@ -241,4 +260,5 @@ class MainActivity : ComponentActivity() {
 
         super.onDestroy()
     }
+
 }

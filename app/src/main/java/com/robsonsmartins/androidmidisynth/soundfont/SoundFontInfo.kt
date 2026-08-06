@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.io.File
 
 class SoundFontInfo(
 
@@ -49,5 +50,14 @@ class SoundFontInfo(
      * Preset atualmente selecionado.
      */
     var presetSelecionado by mutableStateOf<PresetInfo?>(null)
+
+    /**
+     * Retorna o arquivo físico da SoundFont.
+     */
+    fun getArquivo(): File {
+
+        return File(caminho)
+
+    }
 
 }

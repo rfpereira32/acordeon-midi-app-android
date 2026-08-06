@@ -28,11 +28,7 @@ class SoundFontManager(
 
     init {
 
-        if (!restaurarSessao()) {
-
-            criarSessaoInicial()
-
-        }
+        criarSessaoInicial()
 
     }
 
@@ -68,43 +64,17 @@ class SoundFontManager(
 
         val session = sessionManager.carregar()
 
-        if (session.soundFonts.isEmpty())
-            return false
+        return aplicarSessao(
 
-        soundFonts.clear()
+            session.soundFonts
 
-        session.soundFonts.forEach { item ->
-
-            soundFonts.add(
-
-                SoundFontInfo(
-
-                    id = item.id,
-
-                    nome = item.nome,
-
-                    caminho = File(
-                        context.filesDir,
-                        item.arquivo
-                    ).absolutePath,
-
-                    carregada = item.carregada
-
-                )
-
-            )
-
-        }
-
-        return true
+        )
 
     }
 
     private fun criarSessaoInicial() {
 
         soundFonts.clear()
-
-        salvarSessao()
 
     }
 
@@ -150,15 +120,11 @@ class SoundFontManager(
 
         soundFonts.add(soundFont)
 
-        salvarSessao()
-
     }
 
     fun remover(soundFont: SoundFontInfo) {
 
         soundFonts.remove(soundFont)
-
-        salvarSessao()
 
     }
 
@@ -174,8 +140,6 @@ class SoundFontManager(
 
         synthController.carregarSoundFont(soundFont)
 
-        salvarSessao()
-
     }
 
     fun descarregar(id: Int) {
@@ -187,8 +151,6 @@ class SoundFontManager(
         synthController.descarregarSoundFont(soundFont)
 
         soundFont.carregada = false
-
-        salvarSessao()
 
     }
 
@@ -312,7 +274,6 @@ class SoundFontManager(
             )
 
         )
-        salvarSessao()
         return true
 
     }
@@ -326,6 +287,50 @@ class SoundFontManager(
             context.filesDir,
             nomeArquivo
         )
+
+    }
+
+    private fun adicionarSoundFont(
+        item: SessionSoundFont
+    ) {
+
+        soundFonts.add(
+
+            SoundFontInfo(
+
+                id = item.id,
+
+                nome = item.nome,
+
+                caminho = File(
+                    context.filesDir,
+                    item.arquivo
+                ).absolutePath,
+
+                carregada = item.carregada
+
+            )
+
+        )
+
+    }
+
+    fun aplicarSessao(
+        sessaoSoundFonts: List<SessionSoundFont>
+    ): Boolean {
+
+        if (sessaoSoundFonts.isEmpty())
+            return false
+
+        soundFonts.clear()
+
+        sessaoSoundFonts.forEach { item ->
+
+            adicionarSoundFont(item)
+
+        }
+
+        return true
 
     }
 
@@ -344,8 +349,6 @@ class SoundFontManager(
             }
 
         }
-
-        salvarSessao()
 
     }
 
@@ -369,8 +372,6 @@ class SoundFontManager(
             }
 
         }
-
-        salvarSessao()
 
     }
 
@@ -412,8 +413,6 @@ class SoundFontManager(
         }
 
         soundFonts.remove(soundFont)
-
-        salvarSessao()
 
         return true
 
