@@ -60,6 +60,24 @@ class SoundFontManager(
     }
 
     /**
+     * Localiza um preset dentro de uma SoundFont.
+     */
+    fun localizarPreset(
+        soundFont: SoundFontInfo,
+        bank: Int,
+        program: Int
+    ): PresetInfo? {
+
+        return soundFont.presets.firstOrNull {
+
+            it.bank == bank &&
+                    it.program == program
+
+        }
+
+    }
+
+    /**
      * Limpa todas as informações carregadas
      * de uma SoundFont.
      */
