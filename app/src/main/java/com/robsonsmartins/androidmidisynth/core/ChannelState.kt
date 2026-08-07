@@ -27,6 +27,8 @@ class ChannelState(
 
     var program by mutableIntStateOf(0)
 
+    var soundFontId by mutableIntStateOf(-1)
+
     /**
      * Instrumento atualmente selecionado.
      */

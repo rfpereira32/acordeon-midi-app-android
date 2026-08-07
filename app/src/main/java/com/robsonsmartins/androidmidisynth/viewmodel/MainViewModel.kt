@@ -18,6 +18,7 @@ import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 import com.robsonsmartins.androidmidisynth.soundfont.InstrumentItem
 import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
 import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
+import android.util.Log
 
 
 class MainViewModel : ViewModel() {
@@ -78,8 +79,13 @@ class MainViewModel : ViewModel() {
                 volume
             )
         }
-    }
 
+        if (::sessionCoordinator.isInitialized) {
+
+            sessionCoordinator.salvar()
+
+        }
+    }
     fun getChannel(channel: Int) =
         midiMixer.getChannel(channel)
 
@@ -96,8 +102,12 @@ class MainViewModel : ViewModel() {
             )
         }
 
-    }
+        if (::sessionCoordinator.isInitialized) {
 
+            sessionCoordinator.salvar()
+
+        }
+    }
     fun isChannelMuted(channel: Int): Boolean {
 
         return mixerState
@@ -136,6 +146,10 @@ class MainViewModel : ViewModel() {
         soundFont: SoundFontInfo,
         preset: PresetInfo
     ) {
+        Log.d(
+            "MainViewModel",
+            "MixerState = ${System.identityHashCode(mixerState)}"
+        )
 
         // Garante que a SoundFont esteja carregada
         synthController.carregarSoundFont(soundFont)
@@ -153,10 +167,15 @@ class MainViewModel : ViewModel() {
         val channelState = mixerState.getChannel(channel)
 
         channelState.soundFont = soundFont
+        channelState.soundFontId = soundFont.id
         channelState.preset = preset
 
         channelState.bankMsb = preset.bank
         channelState.program = preset.program
+        Log.d(
+            "MainViewModel",
+            "Canal=$channel SF=${channelState.soundFontId} Program=${channelState.program}"
+        )
 
         val midiChannel =
             midiMixer.getChannel(channel)
@@ -180,9 +199,13 @@ class MainViewModel : ViewModel() {
                 preset.program
             )
         }
+
+        if (::sessionCoordinator.isInitialized) {
+
+            sessionCoordinator.salvar()
+
+        }
     }
-
-
     fun getChannels() = mixerState.channels
 
     fun toggleChannelMute(channel: Int) {

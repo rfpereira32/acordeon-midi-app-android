@@ -3,6 +3,7 @@ package com.robsonsmartins.androidmidisynth.core
 import androidx.compose.runtime.mutableStateListOf
 import com.robsonsmartins.androidmidisynth.configuration.ChannelConfiguration
 import com.robsonsmartins.androidmidisynth.configuration.MixerConfiguration
+import android.util.Log
 
 class MixerState(
     numberOfChannels: Int = 5
@@ -41,6 +42,18 @@ class MixerState(
      */
     fun exportarConfiguracao(): MixerConfiguration {
 
+        channels.forEachIndexed { index, channel ->
+
+            Log.d(
+                "MixerState",
+                "Exportando canal $index " +
+                        "SF=${channel.soundFontId} " +
+                        "Program=${channel.program} " +
+                        "Volume=${channel.volume}"
+            )
+
+        }
+
         return MixerConfiguration(
 
             channels.map { channel ->
@@ -49,7 +62,7 @@ class MixerState(
 
                     enabled = true,
 
-                    soundFontId = channel.soundFont?.id ?: -1,
+                    soundFontId = channel.soundFontId,
 
                     bank = channel.bankMsb,
 
@@ -88,6 +101,7 @@ class MixerState(
             channel.volume = channelConfig.volume
             channel.muted = channelConfig.mute
 
+            channel.soundFontId = channelConfig.soundFontId
             channel.bankMsb = channelConfig.bank
             channel.program = channelConfig.program
 

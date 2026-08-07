@@ -77,20 +77,25 @@ class MainActivity : ComponentActivity() {
         viewModel.setSoundFontManager(soundFontManager)
 
         sessionCoordinator = SessionCoordinator(
-
             SessionManager(this),
-
             soundFontManager,
-
             viewModel.mixerState
+        ) { canal, soundFont, preset ->
 
-        )
+            viewModel.setChannelInstrument(
+                canal,
+                soundFont,
+                preset
+            )
+
+        }
 
         viewModel.setSessionCoordinator(
             sessionCoordinator
         )
 
         sessionCoordinator.restaurar()
+        sessionCoordinator.restaurarInstrumentos()
 
         soundFontManager.sincronizarBiblioteca()
 

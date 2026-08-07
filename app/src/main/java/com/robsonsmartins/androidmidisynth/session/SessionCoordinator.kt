@@ -2,6 +2,9 @@ package com.robsonsmartins.androidmidisynth.session
 
 import com.robsonsmartins.androidmidisynth.core.MixerState
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
+import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
+import android.util.Log
 
 /**
  * Coordena a persistência da sessão do aplicativo.
@@ -16,12 +19,18 @@ class SessionCoordinator(
 
     private val soundFontManager: SoundFontManager,
 
-    private val mixerState: MixerState
+    private val mixerState: MixerState,
 
-) {
+    private val restaurarCanal:
+        (Int, SoundFontInfo, PresetInfo) -> Unit
+
+){
 
     fun salvar() {
-
+        Log.d(
+            "SessionCoordinator",
+            "MixerState = ${System.identityHashCode(mixerState)}"
+        )
         val session = SessionState()
 
         //------------------------------------------------------
@@ -66,10 +75,48 @@ class SessionCoordinator(
         val session = sessionManager.carregar()
 
         soundFontManager.aplicarSessao(
-
             session.soundFonts
-
         )
+
+        soundFontManager.sincronizarBiblioteca()
+
+        mixerState.aplicarConfiguracao(
+            session.mixer
+        )
+
+    }
+
+    fun restaurarInstrumentos() {
+
+        mixerState.channels.forEachIndexed { index, channel ->
+
+            if (channel.soundFontId < 0)
+                return@forEachIndexed
+
+            val instrumento =
+                soundFontManager.localizarInstrumento(
+                    channel.soundFontId,
+                    channel.bankMsb,
+                    channel.program
+                )
+
+            if (instrumento == null) {
+
+                Log.d(
+                    "SessionCoordinator",
+                    "Canal $index: instrumento não encontrado"
+                )
+
+                return@forEachIndexed
+            }
+
+            restaurarCanal(
+                index,
+                instrumento.first,
+                instrumento.second
+            )
+
+        }
 
     }
 

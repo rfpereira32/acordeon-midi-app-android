@@ -6,6 +6,7 @@ import com.robsonsmartins.androidmidisynth.configuration.MixerConfiguration
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import android.util.Log
 
 data class SessionSoundFont(
 
@@ -45,7 +46,10 @@ class SessionManager(
     )
 
     fun salvar(session: SessionState) {
-
+        Log.d(
+            "SessionManager",
+            "Salvando sessão em ${sessionFile.absolutePath}"
+        )
         val json = JSONObject()
 
         //----------------------------------------------------
@@ -120,11 +124,25 @@ class SessionManager(
             "channels",
             channels
         )
+        session.mixer.channels.forEachIndexed { index, channel ->
+
+            Log.d(
+                "SessionManager",
+                "Gravando canal $index " +
+                        "SF=${channel.soundFontId} " +
+                        "Program=${channel.program}"
+            )
+
+        }
 
         sessionFile.writeText(
             json.toString(4)
         )
 
+        Log.d(
+            "SessionManager",
+            json.toString(4)
+        )
     }
 
     fun carregar(): SessionState {

@@ -78,6 +78,62 @@ class SoundFontManager(
     }
 
     /**
+     * Localiza uma SoundFont e um preset.
+     */
+    fun localizarInstrumento(
+        soundFontId: Int,
+        bank: Int,
+        program: Int
+    ): Pair<SoundFontInfo, PresetInfo>? {
+
+        val soundFont = getSoundFont(soundFontId)
+
+        if (soundFont == null) {
+
+            Log.d(
+                "SoundFontManager",
+                "SoundFont $soundFontId não encontrada"
+            )
+
+            return null
+
+        }
+
+        Log.d(
+            "SoundFontManager",
+            "SoundFont '${soundFont.nome}' carregada " +
+                    "sfid=${soundFont.sfid} " +
+                    "presets=${soundFont.presets.size}"
+        )
+
+        val preset = localizarPreset(
+            soundFont,
+            bank,
+            program
+        )
+
+        if (preset == null) {
+
+            Log.d(
+                "SoundFontManager",
+                "Preset não encontrado. " +
+                        "bank=$bank program=$program"
+            )
+
+            return null
+
+        }
+
+        Log.d(
+            "SoundFontManager",
+            "Preset encontrado: ${preset.nome}"
+        )
+
+        return soundFont to preset
+
+    }
+
+    /**
      * Limpa todas as informações carregadas
      * de uma SoundFont.
      */
