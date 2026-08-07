@@ -43,6 +43,10 @@ import androidx.compose.foundation.clickable
 import com.robsonsmartins.androidmidisynth.ui.components.InstrumentPickerDialog
 import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -205,6 +209,9 @@ fun MixerScreenContent(
                 name = canais[0].preset?.nome ?: "Teclado",
                 accentColor = ColorChannel1,
                 volume = canais[0].volume * 100f / 127f,
+
+                isMuted = canais[0].muted,
+
                 isIndicatorOn = false,
 
                 onInstrumentClick = {
@@ -230,8 +237,11 @@ fun MixerScreenContent(
                     number = "2",
             name = canais[1].preset?.nome ?: "Baixos fundamentais",
                 accentColor = ColorChannel1,
-            volume = canais[1].volume * 100f / 127f,
-            isIndicatorOn = false,
+                volume = canais[1].volume * 100f / 127f,
+
+                isMuted = canais[1].muted,
+
+                isIndicatorOn = false,
                 onInstrumentClick = {
                     canalSelecionado = 1
                     exibirInstrumentPicker = true
@@ -256,8 +266,11 @@ fun MixerScreenContent(
             number = "3",
             name = canais[2].preset?.nome ?: "Acordes",
             accentColor = ColorChannel1,
-            volume = canais[2].volume * 100f / 127f,
-            isIndicatorOn = false,
+                volume = canais[2].volume * 100f / 127f,
+
+                isMuted = canais[2].muted,
+
+                isIndicatorOn = false,
                 onInstrumentClick = {
                     canalSelecionado = 2
                     exibirInstrumentPicker = true
@@ -281,8 +294,11 @@ fun MixerScreenContent(
                 number = "4",
                 name = canais[3].preset?.nome ?: "Instrumentos Extras 1",
             accentColor = ColorChannel4,
-            volume = canais[3].volume * 100f / 127f,
-            isIndicatorOn = false,
+                volume = canais[3].volume * 100f / 127f,
+
+                isMuted = canais[3].muted,
+
+                isIndicatorOn = false,
                 onInstrumentClick = {
                     canalSelecionado = 3
                     exibirInstrumentPicker = true
@@ -306,8 +322,11 @@ fun MixerScreenContent(
             number = "5",
             name = canais[4].preset?.nome ?: "Instrumentos Extras 2",
             accentColor = ColorChannel4,
-            volume = canais[4].volume * 100f / 127f,
-            isIndicatorOn = false,
+                volume = canais[4].volume * 100f / 127f,
+
+                isMuted = canais[4].muted,
+
+                isIndicatorOn = false,
                 onInstrumentClick = {
                     canalSelecionado = 4
                     exibirInstrumentPicker = true
@@ -607,13 +626,12 @@ fun StaticChannelRow(
     name: String,
     accentColor: Color,
     volume: Float,
+    isMuted: Boolean,
     isIndicatorOn: Boolean = false,
     onInstrumentClick: (() -> Unit)? = null,
     onVolumeChanged: (Float) -> Unit,
     onMuteChanged: (Boolean) -> Unit
 ) {
-    var isMuted by remember { mutableStateOf(false) }
-
     val corFundoLinha = if (isMuted) Color(0xFF252528) else ColorCardBg
     val corCaixaCanal = if (isMuted) Color.Gray else accentColor
     val corTextoVolume = if (isMuted) Color.LightGray else accentColor
@@ -639,19 +657,30 @@ fun StaticChannelRow(
                     }
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    IconButton(
-                        onClick = {
-                            isMuted = !isMuted
-                            onMuteChanged(isMuted)
-                        },
-                        modifier = Modifier.size(24.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(
+                                if (isMuted)
+                                    MaterialTheme.colorScheme.error
+                                else
+                                    Color(0xFF505050)
+                            )
+                            .clickable {
+
+                                onMuteChanged(!isMuted)
+
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = if (isMuted) Icons.Default.Clear else Icons.Default.Check,
-                            contentDescription = null,
-                            tint = if (isMuted) Color.Red else Color.Gray,
-                            modifier = Modifier.size(18.dp)
+
+                        Text(
+                            text = "M",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall
                         )
+
                     }
                     Box(modifier = Modifier.size(8.dp).background(if (isIndicatorOn) Color(0xFF4CAF50) else Color.DarkGray, RoundedCornerShape(4.dp)))
                     Text("${volume.toInt()}%", color = corTextoVolume, fontSize = 14.sp, fontWeight = FontWeight.Bold)
