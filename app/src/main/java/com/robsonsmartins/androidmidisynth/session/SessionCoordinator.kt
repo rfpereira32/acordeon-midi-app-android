@@ -22,7 +22,10 @@ class SessionCoordinator(
     private val mixerState: MixerState,
 
     private val restaurarCanal:
-        (Int, SoundFontInfo, PresetInfo) -> Unit
+        (Int, SoundFontInfo, PresetInfo) -> Unit,
+
+    private val restaurarVolume:
+        (Int, Int, Boolean) -> Unit
 
 ){
 
@@ -118,6 +121,22 @@ class SessionCoordinator(
 
         }
 
+        //------------------------------------------------------
+// Reaplica volumes e mute
+//------------------------------------------------------
+
+        mixerState.channels.forEach { channel ->
+
+            restaurarVolume(
+
+                channel.channel,
+
+                channel.volume,
+
+                channel.muted
+
+            )
+        }
     }
 
 }

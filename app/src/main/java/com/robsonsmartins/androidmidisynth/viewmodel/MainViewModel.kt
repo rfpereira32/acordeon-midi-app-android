@@ -66,49 +66,252 @@ class MainViewModel : ViewModel() {
 
     val deviceState = DeviceState()
 
-    fun setChannelVolume(channel: Int, volume: Int) {
+    // =============================================================================
+    // Volume
+    // =============================================================================
 
-        mixerState.getChannel(channel).volume = volume
+    /**
+     * Altera o volume de um canal.
+     *
+     * Quando o canal 1 está funcionando como Master,
+     * somente ele pode alterar o volume.
+     *
+     * Os demais canais acompanham o Master utilizando
+     * os offsets calculados no momento da ativação.
+     */
+    fun setChannelVolume(
+        channel: Int,
+        volume: Int
+    ) {
 
-        if (!mixerState.getChannel(channel).muted) {
-            synthController.setVolume(channel, volume)
+        if (channel !in 0..4)
+            return
+
+        val novoVolume =
+            volume.coerceIn(0, 127)
+
+        // -------------------------------------------------------------------------
+        // Master ativo
+        // -------------------------------------------------------------------------
+
+        if (mixerState.channel1AsMaster) {
+
+            // Somente o canal 1 controla o volume
+            // quando o Master está ativo.
+            if (channel != 0)
+                return
+
+            mixerState.getChannel(0).volume =
+                novoVolume
+
+            aplicarVolumesDoMaster(
+                novoVolume
+            )
+
+            salvarSessao()
+
+            return
         }
+
+        // -------------------------------------------------------------------------
+        // Master desligado
+        // -------------------------------------------------------------------------
+
+        aplicarVolumeIndividual(
+            channel,
+            novoVolume
+        )
+
+        salvarSessao()
+    }
+
+    /**
+     * Aplica o volume individual de um canal.
+     */
+    private fun aplicarVolumeIndividual(
+        channel: Int,
+        volume: Int
+    ) {
+
+        val channelState =
+            mixerState.getChannel(channel)
+
+        channelState.volume =
+            volume.coerceIn(0, 127)
+
+        if (!channelState.muted) {
+
+            synthController.setVolume(
+                channel,
+                channelState.volume
+            )
+
+        }
+
         if (::configurationSynchronizer.isInitialized) {
+
             configurationSynchronizer.setVolume(
                 channel,
-                volume
+                channelState.volume
             )
-        }
-
-        if (::sessionCoordinator.isInitialized) {
-
-            sessionCoordinator.salvar()
 
         }
+
     }
+
+    /**
+     * Aplica o volume do Master a todos os canais
+     * utilizando os offsets calculados anteriormente.
+     */
+    private fun aplicarVolumesDoMaster(
+        masterVolume: Int
+    ) {
+
+        val volumeMaster =
+            masterVolume.coerceIn(0, 127)
+
+        mixerState.channels.forEach { channel ->
+
+            val volumeEfetivo =
+                mixerState.calcularVolumeComMaster(
+                    channel.channel,
+                    volumeMaster
+                )
+
+            channel.volume =
+                volumeEfetivo
+
+            // Mute continua independente do Master.
+            if (!channel.muted) {
+
+                synthController.setVolume(
+                    channel.channel,
+                    volumeEfetivo
+                )
+
+            }
+
+            if (::configurationSynchronizer.isInitialized) {
+
+                configurationSynchronizer.setVolume(
+                    channel.channel,
+                    volumeEfetivo
+                )
+
+            }
+
+            Log.d(
+                "MainViewModel",
+                "Master: canal=${channel.channel} " +
+                        "offset=${mixerState.getMasterOffset(channel.channel)} " +
+                        "volume=$volumeEfetivo"
+            )
+
+        }
+
+    }
+
+    /**
+     * Ativa ou desativa o Canal 1 como Master.
+     *
+     * Ao ativar, os offsets são calculados com base
+     * nos volumes atuais dos cinco canais.
+     */
+    fun setChannel1AsMaster(
+        enabled: Boolean
+    ) {
+
+        if (enabled) {
+
+            mixerState.ativarMaster()
+
+            Log.d(
+                "MainViewModel",
+                "Canal 1 definido como Master"
+            )
+
+            aplicarVolumesDoMaster(
+                mixerState.getChannel(0).volume
+            )
+
+        } else {
+
+            mixerState.desativarMaster()
+
+            Log.d(
+                "MainViewModel",
+                "Canal 1 deixou de ser Master"
+            )
+
+        }
+
+        salvarSessao()
+
+    }
+
+    /**
+     * Retorna se o Canal 1 está funcionando como Master.
+     */
+    fun isChannel1AsMaster(): Boolean {
+
+        return mixerState.channel1AsMaster
+
+    }
+
     fun getChannel(channel: Int) =
         midiMixer.getChannel(channel)
 
-    fun setChannelMute(channel: Int, mute: Boolean) {
+    // =============================================================================
+    // Mute
+    // =============================================================================
 
-        mixerState.getChannel(channel).muted = mute
+    /**
+     * Altera o mute de um canal.
+     *
+     * O mute é sempre independente do Master.
+     */
+    fun setChannelMute(
+        channel: Int,
+        mute: Boolean
+    ) {
+
+        if (channel !in 0..4)
+            return
+
+        Log.d(
+            "MainViewModel",
+            "Alterando mute canal=$channel mute=$mute"
+        )
+
+        val channelState =
+            mixerState.getChannel(channel)
+
+        channelState.muted =
+            mute
 
         if (mute) {
-            synthController.setVolume(channel, 0)
-        } else {
+
             synthController.setVolume(
                 channel,
-                mixerState.getChannel(channel).volume
+                0
             )
+
+        } else {
+
+            synthController.setVolume(
+                channel,
+                channelState.volume
+            )
+
         }
 
-        if (::sessionCoordinator.isInitialized) {
+        salvarSessao()
 
-            sessionCoordinator.salvar()
-
-        }
     }
-    fun isChannelMuted(channel: Int): Boolean {
+
+    fun isChannelMuted(
+        channel: Int
+    ): Boolean {
 
         return mixerState
             .getChannel(channel)
@@ -116,24 +319,50 @@ class MainViewModel : ViewModel() {
 
     }
 
-    fun getEffectiveChannelVolume(channel: Int): Int {
+    fun getEffectiveChannelVolume(
+        channel: Int
+    ): Int {
+
         return if (midiMixer.isMuted(channel))
             0
         else
             midiMixer.getVolume(channel)
+
     }
+
+    // =============================================================================
+    // Program Change
+    // =============================================================================
 
     /**
      * API antiga.
      * Será removida futuramente.
      */
-    fun setChannelProgram(channel: Int, program: Int) {
-        midiMixer.setProgram(channel, program)
+    fun setChannelProgram(
+        channel: Int,
+        program: Int
+    ) {
+
+        midiMixer.setProgram(
+            channel,
+            program
+        )
+
     }
 
-    fun getChannelProgram(channel: Int): Int {
-        return midiMixer.getProgram(channel)
+    fun getChannelProgram(
+        channel: Int
+    ): Int {
+
+        return midiMixer.getProgram(
+            channel
+        )
+
     }
+
+    // =============================================================================
+    // Instrumentos
+    // =============================================================================
 
     /**
      * Nova API.
@@ -146,13 +375,16 @@ class MainViewModel : ViewModel() {
         soundFont: SoundFontInfo,
         preset: PresetInfo
     ) {
+
         Log.d(
             "MainViewModel",
             "MixerState = ${System.identityHashCode(mixerState)}"
         )
 
         // Garante que a SoundFont esteja carregada
-        synthController.carregarSoundFont(soundFont)
+        synthController.carregarSoundFont(
+            soundFont
+        )
 
         midiMixer.setSoundFont(
             channel,
@@ -164,28 +396,48 @@ class MainViewModel : ViewModel() {
             preset
         )
 
-        val channelState = mixerState.getChannel(channel)
+        val channelState =
+            mixerState.getChannel(channel)
 
-        channelState.soundFont = soundFont
-        channelState.soundFontId = soundFont.id
-        channelState.preset = preset
+        channelState.soundFont =
+            soundFont
 
-        channelState.bankMsb = preset.bank
-        channelState.program = preset.program
+        channelState.soundFontId =
+            soundFont.id
+
+        channelState.preset =
+            preset
+
+        channelState.bankMsb =
+            preset.bank
+
+        channelState.program =
+            preset.program
+
         Log.d(
             "MainViewModel",
-            "Canal=$channel SF=${channelState.soundFontId} Program=${channelState.program}"
+            "Canal=$channel " +
+                    "SF=${channelState.soundFontId} " +
+                    "Program=${channelState.program}"
         )
 
         val midiChannel =
             midiMixer.getChannel(channel)
 
-        midiChannel.soundFont = soundFont
-        midiChannel.preset = preset
-        midiChannel.bankMsb = preset.bank
-        midiChannel.program = preset.program
+        midiChannel.soundFont =
+            soundFont
 
-        soundFont.presetSelecionado = preset
+        midiChannel.preset =
+            preset
+
+        midiChannel.bankMsb =
+            preset.bank
+
+        midiChannel.program =
+            preset.program
+
+        soundFont.presetSelecionado =
+            preset
 
         synthController.setInstrument(
             channel,
@@ -194,21 +446,24 @@ class MainViewModel : ViewModel() {
         )
 
         if (::configurationSynchronizer.isInitialized) {
+
             configurationSynchronizer.setInstrumento(
                 channel,
                 preset.program
             )
-        }
-
-        if (::sessionCoordinator.isInitialized) {
-
-            sessionCoordinator.salvar()
 
         }
+
+        salvarSessao()
+
     }
-    fun getChannels() = mixerState.channels
 
-    fun toggleChannelMute(channel: Int) {
+    fun getChannels() =
+        mixerState.channels
+
+    fun toggleChannelMute(
+        channel: Int
+    ) {
 
         val novoEstado =
             !mixerState
@@ -226,6 +481,16 @@ class MainViewModel : ViewModel() {
     // Áudio
     // =============================================================================
 
+    /**
+     * Mantido temporariamente para compatibilidade
+     * com a MainActivity atual.
+     *
+     * A lógica de Master do mixer agora está em
+     * channel1AsMaster / MixerState.
+     *
+     * Será removido quando a MainActivity deixar
+     * de utilizar este valor.
+     */
     var masterVolume by mutableFloatStateOf(0.8f)
 
     // =============================================================================
@@ -240,7 +505,9 @@ class MainViewModel : ViewModel() {
     // BLE / MIDI
     // =============================================================================
 
-    var dispositivosMidi by mutableStateOf<List<MidiDeviceInfo>>(emptyList())
+    var dispositivosMidi by mutableStateOf<List<MidiDeviceInfo>>(
+        emptyList()
+    )
 
     var dispositivoConectado by mutableStateOf<MidiDeviceInfo?>(null)
 
@@ -253,7 +520,9 @@ class MainViewModel : ViewModel() {
     fun listarSoundFonts() =
         soundFontManager.listar()
 
-    fun carregarSoundFont(id: Int) {
+    fun carregarSoundFont(
+        id: Int
+    ) {
 
         soundFontManager.carregar(id)
 
@@ -261,7 +530,9 @@ class MainViewModel : ViewModel() {
 
     }
 
-    fun descarregarSoundFont(id: Int) {
+    fun descarregarSoundFont(
+        id: Int
+    ) {
 
         soundFontManager.descarregar(id)
 
@@ -269,7 +540,9 @@ class MainViewModel : ViewModel() {
 
     }
 
-    fun alternarSoundFont(id: Int) {
+    fun alternarSoundFont(
+        id: Int
+    ) {
 
         soundFontManager.alternar(id)
 
@@ -277,10 +550,11 @@ class MainViewModel : ViewModel() {
 
     }
 
-    fun importarSoundFont(uri: Uri): Boolean {
+    fun importarSoundFont(
+        uri: Uri
+    ): Boolean {
 
         val sucesso =
-
             soundFontManager.importarSoundFont(uri)
 
         if (sucesso) {
@@ -302,7 +576,8 @@ class MainViewModel : ViewModel() {
      */
     fun listarInstrumentos(): List<InstrumentItem> {
 
-        val instrumentos = mutableListOf<InstrumentItem>()
+        val instrumentos =
+            mutableListOf<InstrumentItem>()
 
         soundFontManager
             .carregadas()
@@ -340,25 +615,36 @@ class MainViewModel : ViewModel() {
 
     }
 
-    fun podeExcluirSoundFont(id: Int): Boolean {
+    fun podeExcluirSoundFont(
+        id: Int
+    ): Boolean {
 
         val soundFont =
             soundFontManager
                 .getSoundFont(id)
                 ?: return false
 
-        return soundFontManager.podeExcluir(soundFont) {
+        return soundFontManager.podeExcluir(
+            soundFont
+        ) {
 
-            mixerState.usaSoundFont(it.id)
+            mixerState.usaSoundFont(
+                it.id
+            )
 
         }
 
     }
-    fun excluirSoundFont(id: Int): Boolean {
+
+    fun excluirSoundFont(
+        id: Int
+    ): Boolean {
 
         return soundFontManager.excluir(id) {
 
-            mixerState.usaSoundFont(it.id)
+            mixerState.usaSoundFont(
+                it.id
+            )
 
         }
 
@@ -371,6 +657,7 @@ class MainViewModel : ViewModel() {
             sessionCoordinator.salvar()
 
         }
+
     }
 
     fun excluirSoundFont(
@@ -379,7 +666,6 @@ class MainViewModel : ViewModel() {
     ): Boolean {
 
         val sucesso =
-
             soundFontManager.excluir(
                 id,
                 estaEmUso
@@ -394,4 +680,5 @@ class MainViewModel : ViewModel() {
         return sucesso
 
     }
+
 }

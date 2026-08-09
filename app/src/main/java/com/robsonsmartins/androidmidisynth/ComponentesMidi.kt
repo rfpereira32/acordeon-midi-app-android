@@ -60,6 +60,12 @@ fun MixerScreenContent(
     var exibirGavetaConfig by remember { mutableStateOf(false) }
     var modoSetupOtaAtivado by remember { mutableStateOf(false) }
 
+    var canal1ComoMaster by remember {
+        mutableStateOf(
+            viewModel.isChannel1AsMaster()
+        )
+    }
+
     var exibirDialogoSoundFont by remember { mutableStateOf(false) }
 
     var exibirInstrumentPicker by remember { mutableStateOf(false) }
@@ -209,10 +215,22 @@ fun MixerScreenContent(
                 name = canais[0].preset?.nome ?: "Teclado",
                 accentColor = ColorChannel1,
                 volume = canais[0].volume * 100f / 127f,
-
                 isMuted = canais[0].muted,
-
                 isIndicatorOn = false,
+
+                showMasterButton = true,
+
+                isMaster = canal1ComoMaster,
+
+                onMasterChanged = { ativado ->
+
+                    canal1ComoMaster = ativado
+
+                    viewModel.setChannel1AsMaster(
+                        ativado
+                    )
+
+                },
 
                 onInstrumentClick = {
                     canalSelecionado = 0
@@ -221,14 +239,21 @@ fun MixerScreenContent(
 
                 onVolumeChanged = { novoVol ->
 
-                    val valorMidi = percentToMidi(novoVol)
+                    val valorMidi =
+                        percentToMidi(novoVol)
 
-                    viewModel.setChannelVolume(0, valorMidi)
+                    viewModel.setChannelVolume(
+                        0,
+                        valorMidi
+                    )
                 },
 
                 onMuteChanged = { mute ->
 
-                    viewModel.setChannelMute(0, mute)
+                    viewModel.setChannelMute(
+                        0,
+                        mute
+                    )
 
                 }
             )
@@ -242,6 +267,7 @@ fun MixerScreenContent(
                 isMuted = canais[1].muted,
 
                 isIndicatorOn = false,
+                sliderEnabled = !canal1ComoMaster,
                 onInstrumentClick = {
                     canalSelecionado = 1
                     exibirInstrumentPicker = true
@@ -271,6 +297,7 @@ fun MixerScreenContent(
                 isMuted = canais[2].muted,
 
                 isIndicatorOn = false,
+                sliderEnabled = !canal1ComoMaster,
                 onInstrumentClick = {
                     canalSelecionado = 2
                     exibirInstrumentPicker = true
@@ -299,6 +326,7 @@ fun MixerScreenContent(
                 isMuted = canais[3].muted,
 
                 isIndicatorOn = false,
+                sliderEnabled = !canal1ComoMaster,
                 onInstrumentClick = {
                     canalSelecionado = 3
                     exibirInstrumentPicker = true
@@ -327,6 +355,7 @@ fun MixerScreenContent(
                 isMuted = canais[4].muted,
 
                 isIndicatorOn = false,
+                sliderEnabled = !canal1ComoMaster,
                 onInstrumentClick = {
                     canalSelecionado = 4
                     exibirInstrumentPicker = true
@@ -628,6 +657,14 @@ fun StaticChannelRow(
     volume: Float,
     isMuted: Boolean,
     isIndicatorOn: Boolean = false,
+    sliderEnabled: Boolean = true,
+
+    showMasterButton: Boolean = false,
+
+    isMaster: Boolean = false,
+
+    onMasterChanged: (Boolean) -> Unit = {},
+
     onInstrumentClick: (() -> Unit)? = null,
     onVolumeChanged: (Float) -> Unit,
     onMuteChanged: (Boolean) -> Unit
@@ -656,37 +693,129 @@ fun StaticChannelRow(
 
                     }
                 )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically,
+
+                    horizontalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+
+                    // =========================================================
+                    // MASTER / GERAL
+                    // =========================================================
+
+                    if (showMasterButton) {
+
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(
+                                    RoundedCornerShape(3.dp)
+                                )
+                                .background(
+                                    if (isMaster)
+                                        accentColor
+                                    else
+                                        Color(0xFF505050)
+                                )
+                                .clickable {
+
+                                    onMasterChanged(
+                                        !isMaster
+                                    )
+
+                                },
+                            contentAlignment =
+                                Alignment.Center
+                        ) {
+
+                            Text(
+                                text = "G",
+                                color = Color.White,
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .labelSmall
+                            )
+
+                        }
+
+                    }
+
+                    // =========================================================
+                    // MUTE
+                    // =========================================================
+
                     Box(
                         modifier = Modifier
                             .size(22.dp)
-                            .clip(RoundedCornerShape(3.dp))
+                            .clip(
+                                RoundedCornerShape(3.dp)
+                            )
                             .background(
                                 if (isMuted)
-                                    MaterialTheme.colorScheme.error
+                                    MaterialTheme
+                                        .colorScheme
+                                        .error
                                 else
                                     Color(0xFF505050)
                             )
                             .clickable {
 
-                                onMuteChanged(!isMuted)
+                                onMuteChanged(
+                                    !isMuted
+                                )
 
                             },
-                        contentAlignment = Alignment.Center
+                        contentAlignment =
+                            Alignment.Center
                     ) {
 
                         Text(
                             text = "M",
                             color = Color.White,
-                            style = MaterialTheme.typography.labelSmall
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .labelSmall
                         )
 
                     }
-                    Box(modifier = Modifier.size(8.dp).background(if (isIndicatorOn) Color(0xFF4CAF50) else Color.DarkGray, RoundedCornerShape(4.dp)))
-                    Text("${volume.toInt()}%", color = corTextoVolume, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                if (isIndicatorOn)
+                                    Color(0xFF4CAF50)
+                                else
+                                    Color.DarkGray,
+                                RoundedCornerShape(4.dp)
+                            )
+                    )
+
+                    Text(
+                        "${volume.toInt()}%",
+                        color = corTextoVolume,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-            Slider(value = volume, onValueChange = onVolumeChanged, valueRange = 0f..100f, modifier = Modifier.fillMaxWidth(), colors = SliderDefaults.colors(thumbColor = corCaixaCanal, activeTrackColor = corCaixaCanal, inactiveTrackColor = Color(0xFF2C2C32)))
+            Slider(
+                value = volume,
+                onValueChange = onVolumeChanged,
+                valueRange = 0f..100f,
+                enabled = sliderEnabled,
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = corCaixaCanal,
+                    activeTrackColor = corCaixaCanal,
+                    inactiveTrackColor =
+                        Color(0xFF2C2C32)
+                )
+            )
         }
     }
 }

@@ -11,11 +11,16 @@ package com.robsonsmartins.androidmidisynth.configuration
 data class MixerConfiguration(
 
     val channels: MutableList<ChannelConfiguration> =
-
         MutableList(5) {
 
             ChannelConfiguration()
 
-        }
+        },
+
+    /**
+     * Quando ativado, o volume do canal 1
+     * controla também os demais canais.
+     */
+    val channel1AsMaster: Boolean = false
 
 )

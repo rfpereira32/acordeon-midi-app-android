@@ -1,12 +1,12 @@
 package com.robsonsmartins.androidmidisynth.session
 
 import android.content.Context
+import android.util.Log
 import com.robsonsmartins.androidmidisynth.configuration.ChannelConfiguration
 import com.robsonsmartins.androidmidisynth.configuration.MixerConfiguration
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import android.util.Log
 
 data class SessionSoundFont(
 
@@ -46,10 +46,12 @@ class SessionManager(
     )
 
     fun salvar(session: SessionState) {
+
         Log.d(
             "SessionManager",
             "Salvando sessão em ${sessionFile.absolutePath}"
         )
+
         val json = JSONObject()
 
         //----------------------------------------------------
@@ -62,10 +64,25 @@ class SessionManager(
 
             val sf = JSONObject()
 
-            sf.put("id", it.id)
-            sf.put("nome", it.nome)
-            sf.put("arquivo", it.arquivo)
-            sf.put("carregada", it.carregada)
+            sf.put(
+                "id",
+                it.id
+            )
+
+            sf.put(
+                "nome",
+                it.nome
+            )
+
+            sf.put(
+                "arquivo",
+                it.arquivo
+            )
+
+            sf.put(
+                "carregada",
+                it.carregada
+            )
 
             soundFonts.put(sf)
 
@@ -80,60 +97,81 @@ class SessionManager(
         // Mixer
         //----------------------------------------------------
 
+        val mixer = JSONObject()
+
+        //----------------------------------------------------
+        // Canal 1 como Master
+        //----------------------------------------------------
+
+        mixer.put(
+            "channel1AsMaster",
+            session.mixer.channel1AsMaster
+        )
+
+        //----------------------------------------------------
+        // Canais
+        //----------------------------------------------------
+
         val channels = JSONArray()
 
-        session.mixer.channels.forEach {
+        session.mixer.channels.forEachIndexed { index, channelConfig ->
+
+            Log.d(
+                "SessionManager",
+                "Gravando canal $index " +
+                        "SF=${channelConfig.soundFontId} " +
+                        "Program=${channelConfig.program}"
+            )
 
             val canal = JSONObject()
 
             canal.put(
                 "enabled",
-                it.enabled
+                channelConfig.enabled
             )
 
             canal.put(
                 "soundFontId",
-                it.soundFontId
+                channelConfig.soundFontId
             )
 
             canal.put(
                 "bank",
-                it.bank
+                channelConfig.bank
             )
 
             canal.put(
                 "program",
-                it.program
+                channelConfig.program
             )
 
             canal.put(
                 "volume",
-                it.volume
+                channelConfig.volume
             )
 
             canal.put(
                 "mute",
-                it.mute
+                channelConfig.mute
             )
 
             channels.put(canal)
 
         }
 
-        json.put(
+        mixer.put(
             "channels",
             channels
         )
-        session.mixer.channels.forEachIndexed { index, channel ->
 
-            Log.d(
-                "SessionManager",
-                "Gravando canal $index " +
-                        "SF=${channel.soundFontId} " +
-                        "Program=${channel.program}"
-            )
+        json.put(
+            "mixer",
+            mixer
+        )
 
-        }
+        //----------------------------------------------------
+        // Grava arquivo
+        //----------------------------------------------------
 
         sessionFile.writeText(
             json.toString(4)
@@ -141,22 +179,36 @@ class SessionManager(
 
         Log.d(
             "SessionManager",
+            "Sessão salva com sucesso"
+        )
+
+        Log.d(
+            "SessionManager",
             json.toString(4)
         )
+
     }
 
     fun carregar(): SessionState {
 
         if (!sessionFile.exists()) {
 
+            Log.d(
+                "SessionManager",
+                "Arquivo de sessão não encontrado"
+            )
+
             return SessionState()
 
         }
 
+        Log.d(
+            "SessionManager",
+            "Carregando sessão de ${sessionFile.absolutePath}"
+        )
+
         val json = JSONObject(
-
             sessionFile.readText()
-
         )
 
         val session = SessionState()
@@ -171,19 +223,28 @@ class SessionManager(
 
         for (i in 0 until soundFonts.length()) {
 
-            val sf = soundFonts.getJSONObject(i)
+            val sf =
+                soundFonts.getJSONObject(i)
 
             session.soundFonts.add(
 
                 SessionSoundFont(
 
-                    id = sf.getInt("id"),
+                    id = sf.getInt(
+                        "id"
+                    ),
 
-                    nome = sf.getString("nome"),
+                    nome = sf.getString(
+                        "nome"
+                    ),
 
-                    arquivo = sf.getString("arquivo"),
+                    arquivo = sf.getString(
+                        "arquivo"
+                    ),
 
-                    carregada = sf.getBoolean("carregada")
+                    carregada = sf.getBoolean(
+                        "carregada"
+                    )
 
                 )
 
@@ -195,17 +256,34 @@ class SessionManager(
         // Mixer
         //----------------------------------------------------
 
-        val channels = json.optJSONArray(
-            "channels"
-        ) ?: JSONArray()
+        /*
+         * A versão atual salva o mixer dentro de um objeto
+         * "mixer".
+         *
+         * Mantemos também compatibilidade com o formato
+         * antigo, onde "channels" ficava diretamente na raiz.
+         */
+        val mixerJson =
+            json.optJSONObject("mixer")
 
-        session.mixer.channels.clear()
+        val channels =
+            mixerJson?.optJSONArray("channels")
+                ?: json.optJSONArray("channels")
+                ?: JSONArray()
+
+        //----------------------------------------------------
+        // Canais
+        //----------------------------------------------------
+
+        val channelConfigurations =
+            mutableListOf<ChannelConfiguration>()
 
         for (i in 0 until channels.length()) {
 
-            val canal = channels.getJSONObject(i)
+            val canal =
+                channels.getJSONObject(i)
 
-            session.mixer.channels.add(
+            channelConfigurations.add(
 
                 ChannelConfiguration(
 
@@ -214,25 +292,30 @@ class SessionManager(
                         true
                     ),
 
-                    soundFontId = canal.optInt(
-                        "soundFontId",
-                        -1
+                    soundFontId =
+                        canal.optInt(
+                            "soundFontId",
+                            -1
+                        ),
+
+                    bank = canal.optInt(
+                        "bank",
+                        0
                     ),
 
-                    bank = canal.getInt(
-                        "bank"
+                    program = canal.optInt(
+                        "program",
+                        0
                     ),
 
-                    program = canal.getInt(
-                        "program"
+                    volume = canal.optInt(
+                        "volume",
+                        100
                     ),
 
-                    volume = canal.getInt(
-                        "volume"
-                    ),
-
-                    mute = canal.getBoolean(
-                        "mute"
+                    mute = canal.optBoolean(
+                        "mute",
+                        false
                     )
 
                 )
@@ -240,6 +323,36 @@ class SessionManager(
             )
 
         }
+
+        val channel1AsMaster =
+            mixerJson?.optBoolean(
+                "channel1AsMaster",
+                false
+            )
+                ?: json.optBoolean(
+                    "channel1AsMaster",
+                    false
+                )
+
+        session.mixer =
+            MixerConfiguration(
+
+                channels = channelConfigurations,
+
+                channel1AsMaster =
+                    channel1AsMaster
+
+            )
+
+        Log.d(
+            "SessionManager",
+            "Canal 1 como Master = $channel1AsMaster"
+        )
+
+        Log.d(
+            "SessionManager",
+            "Sessão carregada com sucesso"
+        )
 
         return session
 
@@ -250,6 +363,11 @@ class SessionManager(
         if (sessionFile.exists()) {
 
             sessionFile.delete()
+
+            Log.d(
+                "SessionManager",
+                "Sessão apagada"
+            )
 
         }
 

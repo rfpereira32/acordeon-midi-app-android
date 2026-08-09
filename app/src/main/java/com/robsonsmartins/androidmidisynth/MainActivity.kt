@@ -77,18 +77,38 @@ class MainActivity : ComponentActivity() {
         viewModel.setSoundFontManager(soundFontManager)
 
         sessionCoordinator = SessionCoordinator(
+
             SessionManager(this),
+
             soundFontManager,
-            viewModel.mixerState
-        ) { canal, soundFont, preset ->
 
-            viewModel.setChannelInstrument(
-                canal,
-                soundFont,
-                preset
-            )
+            viewModel.mixerState,
 
-        }
+            restaurarCanal = { canal, soundFont, preset ->
+
+                viewModel.setChannelInstrument(
+                    canal,
+                    soundFont,
+                    preset
+                )
+
+            },
+
+            restaurarVolume = { canal, volume, mute ->
+
+                viewModel.setChannelVolume(
+                    canal,
+                    volume
+                )
+
+                viewModel.setChannelMute(
+                    canal,
+                    mute
+                )
+
+            }
+
+        )
 
         viewModel.setSessionCoordinator(
             sessionCoordinator

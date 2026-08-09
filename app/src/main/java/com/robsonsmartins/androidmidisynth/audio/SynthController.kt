@@ -3,6 +3,7 @@ package com.robsonsmartins.androidmidisynth.audio
 import com.robsonsmartins.androidmidisynth.FluidSynthManager
 import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
+import android.util.Log
 
 /**
  * Centraliza todas as operações relacionadas ao sintetizador.
@@ -31,6 +32,10 @@ class SynthController(
     fun setVolume(channel: Int, volume: Int) {
 
         val valor = volume.coerceIn(0, 127)
+        Log.d(
+            "SynthController",
+            "setVolume canal=$channel volume=$valor"
+        )
 
         synth.setChannelVolume(
             channel,
@@ -102,6 +107,10 @@ class SynthController(
         soundFont: SoundFontInfo,
         preset: PresetInfo
     ) {
+        Log.d(
+            "SynthController",
+            "setInstrument canal=$channel"
+        )
 
         if (soundFont.sfid < 0)
             return
