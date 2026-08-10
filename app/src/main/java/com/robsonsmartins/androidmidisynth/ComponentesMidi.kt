@@ -1,24 +1,21 @@
 package com.robsonsmartins.androidmidisynth
 
-import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -29,24 +26,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
-import com.robsonsmartins.androidmidisynth.soundfont.SoundFontDialog
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
-import androidx.compose.foundation.clickable
 import com.robsonsmartins.androidmidisynth.ui.components.InstrumentPickerDialog
-import androidx.compose.material3.Icon
-import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.clip
+
+private enum class TelaMixer {
+
+    MIXER,
+    SOUNDFONTS,
+    PRESETS,
+    CONFIG
+
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,11 +54,17 @@ fun MixerScreenContent(
     nomeInstrumento: String,
     isConnected: Boolean,
     onOtaClick: () -> Unit,
-    midiManager: MidiManager, // Injetado de forma estável para conectar o layout ao barramento de rádio
+    midiManager: MidiManager,
     viewModel: MainViewModel
 ) {
-    var exibirGavetaConfig by remember { mutableStateOf(false) }
-    var modoSetupOtaAtivado by remember { mutableStateOf(false) }
+
+    var telaAtual by remember {
+        mutableStateOf(TelaMixer.MIXER)
+    }
+
+    var modoSetupOtaAtivado by remember {
+        mutableStateOf(false)
+    }
 
     var canal1ComoMaster by remember {
         mutableStateOf(
@@ -66,13 +72,13 @@ fun MixerScreenContent(
         )
     }
 
-    var exibirDialogoSoundFont by remember { mutableStateOf(false) }
+    var exibirInstrumentPicker by remember {
+        mutableStateOf(false)
+    }
 
-    var exibirInstrumentPicker by remember { mutableStateOf(false) }
-
-    var canalSelecionado by remember { mutableIntStateOf(0) }
-
-    val soundFonts = viewModel.listarSoundFonts()
+    var canalSelecionado by remember {
+        mutableIntStateOf(0)
+    }
 
     val launcherSoundFont =
         rememberLauncherForActivityResult(
@@ -87,15 +93,31 @@ fun MixerScreenContent(
 
         }
 
-    // Estados locais controlando os faders em tempo real
     val canais = viewModel.getChannels()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+    /*
+     * Atualiza o estado visual do Master caso ele tenha
+     * sido restaurado pela sessão.
+     */
+    LaunchedEffect(
+        viewModel.isChannel1AsMaster()
     ) {
-        val conectado = MidiEstadoCompartilhado.isDispositivoConectado
+
+        canal1ComoMaster =
+            viewModel.isChannel1AsMaster()
+
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+        // =====================================================================
+        // CABEÇALHO
+        // =====================================================================
+
+        val conectado =
+            MidiEstadoCompartilhado.isDispositivoConectado
 
         val corBluetooth =
             if (conectado)
@@ -105,21 +127,30 @@ fun MixerScreenContent(
 
         val corBateria =
             if (!conectado) {
+
                 Color.Gray
+
             } else {
+
                 when {
-                    MidiEstadoCompartilhado.percentualBateria > 60 ->
+
+                    MidiEstadoCompartilhado
+                        .percentualBateria > 60 ->
                         Color(0xFF4CAF50)
 
-                    MidiEstadoCompartilhado.percentualBateria > 30 ->
+                    MidiEstadoCompartilhado
+                        .percentualBateria > 30 ->
                         Color(0xFFFFC107)
 
-                    MidiEstadoCompartilhado.percentualBateria > 15 ->
+                    MidiEstadoCompartilhado
+                        .percentualBateria > 15 ->
                         Color(0xFFFF9800)
 
                     else ->
                         Color.Red
+
                 }
+
             }
 
         val textoPercentual =
@@ -146,57 +177,81 @@ fun MixerScreenContent(
                     top = 2.dp,
                     bottom = 4.dp
                 ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment =
+                Alignment.CenterVertically,
+            horizontalArrangement =
+                Arrangement.SpaceBetween
         ) {
 
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Icon(
-                    painter = painterResource(R.drawable.ic_bluetooth),
-                    contentDescription = "Bluetooth",
+                    painter =
+                        painterResource(
+                            R.drawable.ic_bluetooth
+                        ),
+                    contentDescription =
+                        "Bluetooth",
                     tint = corBluetooth
                 )
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(
+                    modifier =
+                        Modifier.width(6.dp)
+                )
 
                 Text(
                     text = "BLE",
                     color = Color.LightGray,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight =
+                        FontWeight.Medium
                 )
 
             }
 
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
                     Icon(
-                        painter = painterResource(R.drawable.ic_battery),
-                        contentDescription = "Bateria",
+                        painter =
+                            painterResource(
+                                R.drawable.ic_battery
+                            ),
+                        contentDescription =
+                            "Bateria",
                         tint = corBateria
                     )
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(
+                        modifier =
+                            Modifier.width(4.dp)
+                    )
 
                     Text(
                         text = textoPercentual,
                         color = Color.LightGray,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight =
+                            FontWeight.Bold
                     )
 
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(
+                    modifier =
+                        Modifier.width(12.dp)
+                )
 
                 Text(
                     text = textoTensao,
@@ -208,446 +263,1822 @@ fun MixerScreenContent(
 
         }
 
-        // OS 5 SLIDERS INTEGRADOS À ESCALA MIDI DE 7 BITS (0 A 127) VIA STRING CHAVEADA
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            StaticChannelRow(
-                number = "1",
-                name = canais[0].preset?.nome ?: "Teclado",
-                accentColor = ColorChannel1,
-                volume = canais[0].volume * 100f / 127f,
-                isMuted = canais[0].muted,
-                isIndicatorOn = false,
+        // =====================================================================
+        // CONTEÚDO PRINCIPAL
+        // =====================================================================
 
-                showMasterButton = true,
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
 
-                isMaster = canal1ComoMaster,
+            when (telaAtual) {
 
-                onMasterChanged = { ativado ->
+                // =================================================================
+                // MIXER
+                // =================================================================
 
-                    canal1ComoMaster = ativado
+                TelaMixer.MIXER -> {
 
-                    viewModel.setChannel1AsMaster(
-                        ativado
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(
+                                rememberScrollState()
+                            )
+                            .padding(
+                                bottom = 8.dp
+                            )
+                    ) {
 
-                },
+                        Column(
+                            verticalArrangement =
+                                Arrangement.spacedBy(8.dp)
+                        ) {
 
-                onInstrumentClick = {
-                    canalSelecionado = 0
-                    exibirInstrumentPicker = true
-                },
+                            // -----------------------------------------------------
+                            // CANAL 1
+                            // -----------------------------------------------------
 
-                onVolumeChanged = { novoVol ->
+                            StaticChannelRow(
+                                number = "1",
+                                name =
+                                    canais[0]
+                                        .preset
+                                        ?.nome
+                                        ?: "Teclado",
 
-                    val valorMidi =
-                        percentToMidi(novoVol)
+                                accentColor =
+                                    ColorChannel1,
 
-                    viewModel.setChannelVolume(
-                        0,
-                        valorMidi
-                    )
-                },
+                                volume =
+                                    canais[0].volume *
+                                            100f / 127f,
 
-                onMuteChanged = { mute ->
+                                isMuted =
+                                    canais[0].muted,
 
-                    viewModel.setChannelMute(
-                        0,
-                        mute
+                                isIndicatorOn =
+                                    false,
+
+                                showMasterButton =
+                                    true,
+
+                                isMaster =
+                                    canal1ComoMaster,
+
+                                onMasterChanged = {
+                                        ativado ->
+
+                                    canal1ComoMaster =
+                                        ativado
+
+                                    viewModel
+                                        .setChannel1AsMaster(
+                                            ativado
+                                        )
+
+                                },
+
+                                onInstrumentClick = {
+
+                                    canalSelecionado =
+                                        0
+
+                                    exibirInstrumentPicker =
+                                        true
+
+                                },
+
+                                onVolumeChanged = {
+                                        novoVol ->
+
+                                    val valorMidi =
+                                        percentToMidi(
+                                            novoVol
+                                        )
+
+                                    viewModel
+                                        .setChannelVolume(
+                                            0,
+                                            valorMidi
+                                        )
+
+                                },
+
+                                onMuteChanged = {
+                                        mute ->
+
+                                    viewModel
+                                        .setChannelMute(
+                                            0,
+                                            mute
+                                        )
+
+                                }
+
+                            )
+
+                            // -----------------------------------------------------
+                            // CANAL 2
+                            // -----------------------------------------------------
+
+                            StaticChannelRow(
+                                number = "2",
+
+                                name =
+                                    canais[1]
+                                        .preset
+                                        ?.nome
+                                        ?: "Baixos fundamentais",
+
+                                accentColor =
+                                    ColorChannel1,
+
+                                volume =
+                                    canais[1].volume *
+                                            100f / 127f,
+
+                                isMuted =
+                                    canais[1].muted,
+
+                                isIndicatorOn =
+                                    false,
+
+                                sliderEnabled =
+                                    !canal1ComoMaster,
+
+                                onInstrumentClick = {
+
+                                    canalSelecionado =
+                                        1
+
+                                    exibirInstrumentPicker =
+                                        true
+
+                                },
+
+                                onVolumeChanged = {
+                                        novoVol ->
+
+                                    val valorMidi =
+                                        percentToMidi(
+                                            novoVol
+                                        )
+
+                                    viewModel
+                                        .setChannelVolume(
+                                            1,
+                                            valorMidi
+                                        )
+
+                                },
+
+                                onMuteChanged = {
+                                        mute ->
+
+                                    viewModel
+                                        .setChannelMute(
+                                            1,
+                                            mute
+                                        )
+
+                                }
+
+                            )
+
+                            // -----------------------------------------------------
+                            // CANAL 3
+                            // -----------------------------------------------------
+
+                            StaticChannelRow(
+                                number = "3",
+
+                                name =
+                                    canais[2]
+                                        .preset
+                                        ?.nome
+                                        ?: "Acordes",
+
+                                accentColor =
+                                    ColorChannel1,
+
+                                volume =
+                                    canais[2].volume *
+                                            100f / 127f,
+
+                                isMuted =
+                                    canais[2].muted,
+
+                                isIndicatorOn =
+                                    false,
+
+                                sliderEnabled =
+                                    !canal1ComoMaster,
+
+                                onInstrumentClick = {
+
+                                    canalSelecionado =
+                                        2
+
+                                    exibirInstrumentPicker =
+                                        true
+
+                                },
+
+                                onVolumeChanged = {
+                                        novoVol ->
+
+                                    val valorMidi =
+                                        percentToMidi(
+                                            novoVol
+                                        )
+
+                                    viewModel
+                                        .setChannelVolume(
+                                            2,
+                                            valorMidi
+                                        )
+
+                                },
+
+                                onMuteChanged = {
+                                        mute ->
+
+                                    viewModel
+                                        .setChannelMute(
+                                            2,
+                                            mute
+                                        )
+
+                                }
+
+                            )
+
+                            // -----------------------------------------------------
+                            // CANAL 4
+                            // -----------------------------------------------------
+
+                            StaticChannelRow(
+                                number = "4",
+
+                                name =
+                                    canais[3]
+                                        .preset
+                                        ?.nome
+                                        ?: "Instrumentos Extras 1",
+
+                                accentColor =
+                                    ColorChannel4,
+
+                                volume =
+                                    canais[3].volume *
+                                            100f / 127f,
+
+                                isMuted =
+                                    canais[3].muted,
+
+                                isIndicatorOn =
+                                    false,
+
+                                sliderEnabled =
+                                    !canal1ComoMaster,
+
+                                onInstrumentClick = {
+
+                                    canalSelecionado =
+                                        3
+
+                                    exibirInstrumentPicker =
+                                        true
+
+                                },
+
+                                onVolumeChanged = {
+                                        novoVol ->
+
+                                    val valorMidi =
+                                        percentToMidi(
+                                            novoVol
+                                        )
+
+                                    viewModel
+                                        .setChannelVolume(
+                                            3,
+                                            valorMidi
+                                        )
+
+                                },
+
+                                onMuteChanged = {
+                                        mute ->
+
+                                    viewModel
+                                        .setChannelMute(
+                                            3,
+                                            mute
+                                        )
+
+                                }
+
+                            )
+
+                            // -----------------------------------------------------
+                            // CANAL 5
+                            // -----------------------------------------------------
+
+                            StaticChannelRow(
+                                number = "5",
+
+                                name =
+                                    canais[4]
+                                        .preset
+                                        ?.nome
+                                        ?: "Instrumentos Extras 2",
+
+                                accentColor =
+                                    ColorChannel4,
+
+                                volume =
+                                    canais[4].volume *
+                                            100f / 127f,
+
+                                isMuted =
+                                    canais[4].muted,
+
+                                isIndicatorOn =
+                                    false,
+
+                                sliderEnabled =
+                                    !canal1ComoMaster,
+
+                                onInstrumentClick = {
+
+                                    canalSelecionado =
+                                        4
+
+                                    exibirInstrumentPicker =
+                                        true
+
+                                },
+
+                                onVolumeChanged = {
+                                        novoVol ->
+
+                                    val valorMidi =
+                                        percentToMidi(
+                                            novoVol
+                                        )
+
+                                    viewModel
+                                        .setChannelVolume(
+                                            4,
+                                            valorMidi
+                                        )
+
+                                },
+
+                                onMuteChanged = {
+                                        mute ->
+
+                                    viewModel
+                                        .setChannelMute(
+                                            4,
+                                            mute
+                                        )
+
+                                }
+
+                            )
+
+                        }
+
+                    }
+
+                }
+
+                // =================================================================
+                // SOUNDFONTS
+                // =================================================================
+
+                TelaMixer.SOUNDFONTS -> {
+
+                    SoundFontsScreenContent(
+                        viewModel = viewModel,
+                        onImport = {
+                            launcherSoundFont.launch(
+                                arrayOf("*/*")
+                            )
+                        }
                     )
 
                 }
-            )
 
-            StaticChannelRow(
-                    number = "2",
-            name = canais[1].preset?.nome ?: "Baixos fundamentais",
-                accentColor = ColorChannel1,
-                volume = canais[1].volume * 100f / 127f,
+                // =================================================================
+                // PRESETS
+                // =================================================================
 
-                isMuted = canais[1].muted,
+                TelaMixer.PRESETS -> {
 
-                isIndicatorOn = false,
-                sliderEnabled = !canal1ComoMaster,
-                onInstrumentClick = {
-                    canalSelecionado = 1
-                    exibirInstrumentPicker = true
-                },
+                    PresetsScreenPlaceholder()
 
-            onVolumeChanged = { novoVol ->
+                }
 
-                val valorMidi = percentToMidi(novoVol)
+                // =================================================================
+                // CONFIGURAÇÕES
+                // =================================================================
 
-                viewModel.setChannelVolume(1, valorMidi)
+                TelaMixer.CONFIG -> {
 
-            },
+                    ConfigScreenContent(
+                        nomeInstrumento =
+                            nomeInstrumento,
 
-            onMuteChanged = { mute ->
+                        isConnected =
+                            isConnected,
 
-                viewModel.setChannelMute(1, mute)
+                        midiManager =
+                            midiManager,
 
-            }
-            )
+                        modoSetupOtaAtivado =
+                            modoSetupOtaAtivado,
 
-            StaticChannelRow(
-            number = "3",
-            name = canais[2].preset?.nome ?: "Acordes",
-            accentColor = ColorChannel1,
-                volume = canais[2].volume * 100f / 127f,
+                        onModoSetupOtaChanged = {
+                            modoSetupOtaAtivado =
+                                it
+                        }
+                    )
 
-                isMuted = canais[2].muted,
-
-                isIndicatorOn = false,
-                sliderEnabled = !canal1ComoMaster,
-                onInstrumentClick = {
-                    canalSelecionado = 2
-                    exibirInstrumentPicker = true
-                },
-
-            onVolumeChanged = { novoVol ->
-
-                val valorMidi = percentToMidi(novoVol)
-
-                viewModel.setChannelVolume(2, valorMidi)
-            },
-
-                onMuteChanged = { mute ->
-
-                viewModel.setChannelMute(2, mute)
+                }
 
             }
-        )
 
-            StaticChannelRow(
-                number = "4",
-                name = canais[3].preset?.nome ?: "Instrumentos Extras 1",
-            accentColor = ColorChannel4,
-                volume = canais[3].volume * 100f / 127f,
-
-                isMuted = canais[3].muted,
-
-                isIndicatorOn = false,
-                sliderEnabled = !canal1ComoMaster,
-                onInstrumentClick = {
-                    canalSelecionado = 3
-                    exibirInstrumentPicker = true
-                },
-
-                onVolumeChanged = { novoVol ->
-
-                val valorMidi = percentToMidi(novoVol)
-
-                viewModel.setChannelVolume(3, valorMidi)
-            },
-
-            onMuteChanged = { mute ->
-
-                viewModel.setChannelMute(3, mute)
-
-            }
-            )
-
-            StaticChannelRow(
-            number = "5",
-            name = canais[4].preset?.nome ?: "Instrumentos Extras 2",
-            accentColor = ColorChannel4,
-                volume = canais[4].volume * 100f / 127f,
-
-                isMuted = canais[4].muted,
-
-                isIndicatorOn = false,
-                sliderEnabled = !canal1ComoMaster,
-                onInstrumentClick = {
-                    canalSelecionado = 4
-                    exibirInstrumentPicker = true
-                },
-
-                onVolumeChanged = { novoVol ->
-
-                val valorMidi = percentToMidi(novoVol)
-
-                viewModel.setChannelVolume(4, valorMidi)
-            },
-
-            onMuteChanged = { mute ->
-
-                viewModel.setChannelMute(4, mute)
-
-            }
-        )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        // OS 4 BOTÕES DE AÇÕES RÁPIDAS NO RODAPÉ DO MIXER (CONFIG AGORA ATIVA A GAVETA)
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Card(
 
+        // =====================================================================
+        // NAVEGAÇÃO INFERIOR
+        // =====================================================================
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(
+                    top = 4.dp,
+                    bottom = 8.dp,
+                    start = 4.dp,
+                    end = 4.dp
+                ),
+            horizontalArrangement =
+                Arrangement.spacedBy(6.dp)
+        ) {
+
+            BotaoNavegacao(
+                texto = "Mixer",
+                icone = Icons.Default.Menu,
+                selecionado =
+                    telaAtual ==
+                            TelaMixer.MIXER,
                 onClick = {
 
-                    exibirDialogoSoundFont = true
+                    telaAtual =
+                        TelaMixer.MIXER
 
                 },
+                modifier =
+                    Modifier.weight(1f)
+            )
 
-                modifier = Modifier
-                    .height(60.dp)
-                    .weight(1f),
+            BotaoNavegacao(
+                texto = "SoundFont",
+                icone = Icons.Default.PlayArrow,
+                selecionado =
+                    telaAtual ==
+                            TelaMixer.SOUNDFONTS,
+                onClick = {
 
-                colors = CardDefaults.cardColors(
-                    containerColor = ColorCardBg
-                )
+                    telaAtual =
+                        TelaMixer.SOUNDFONTS
 
-            ) {
-                Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("SoundFont", color = Color.Gray, fontSize = 10.sp)
-                }
-            }
-            Card(modifier = Modifier.height(60.dp).weight(1f), colors = CardDefaults.cardColors(containerColor = ColorCardBg)) {
-                Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Presets", color = Color.Gray, fontSize = 10.sp)
-                }
-            }
-            Card(
-                onClick = onOtaClick,
-                modifier = Modifier.height(60.dp).weight(1f),
-                colors = CardDefaults.cardColors(containerColor = ColorCardBg)
-            ) {
-                Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("OTA Update", color = Color.Gray, fontSize = 10.sp)
-                }
-            }
-            Card(
-                onClick = { exibirGavetaConfig = !exibirGavetaConfig },
-                modifier = Modifier.height(60.dp).weight(1f),
-                colors = CardDefaults.cardColors(containerColor = ColorCardBg)
-            ) {
-                Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = null,
-                        tint = if (exibirGavetaConfig) ColorChannel2 else Color.LightGray,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Config", color = if (exibirGavetaConfig) ColorChannel2 else Color.Gray, fontSize = 10.sp)
-                }
-            }
+                },
+                modifier =
+                    Modifier.weight(1f)
+            )
+
+            BotaoNavegacao(
+                texto = "Presets",
+                icone = Icons.Default.Star,
+                selecionado =
+                    telaAtual ==
+                            TelaMixer.PRESETS,
+                onClick = {
+
+                    telaAtual =
+                        TelaMixer.PRESETS
+
+                },
+                modifier =
+                    Modifier.weight(1f)
+            )
+
+            BotaoNavegacao(
+                texto = "Config",
+                icone = Icons.Default.Settings,
+                selecionado =
+                    telaAtual ==
+                            TelaMixer.CONFIG,
+                onClick = {
+
+                    telaAtual =
+                        TelaMixer.CONFIG
+
+                },
+                modifier =
+                    Modifier.weight(1f)
+            )
+
         }
 
-        // GAVETA ESTILO ACCORDION EXPANSÍVEL CONTENDO O BOTÃO SOLICITADO
-        AnimatedVisibility(
-            visible = exibirGavetaConfig,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-                colors = CardDefaults.cardColors(containerColor = ColorCardBg),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("Configurações Avançadas do Instrumento", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
-
-                    if (!modoSetupOtaAtivado) {
-                        Button(
-                            onClick = {
-                                modoSetupOtaAtivado = true
-                                // Invocação do disparo SysEx unificado na linha estável de rádio
-                                midiManager.enviarComandoIniciarOtaWifi()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF1744)),
-                            shape = RoundedCornerShape(8.dp),
-                            enabled = isConnected,
-                            modifier = Modifier.fillMaxWidth().height(44.dp)
-                        ) {
-                            Text("OTA via Wifi AP", color = Color.White, fontWeight = FontWeight.Bold)
-                        }
-                        if (!isConnected) {
-                            Text("Conecte o acordeon via BLE para gerenciar infraestrutura física.", color = Color.Gray, fontSize = 11.sp, textAlign = TextAlign.Center)
-                        }
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF2A1A1A), RoundedCornerShape(8.dp))
-                                .border(1.dp, Color(0xFFFF1744).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text("⚠️ SINAL ENVIADO COM SUCESSO!", color = Color(0xFFFF1744), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text("O rádio BLE foi suspenso. Conecte seu celular ou PC no Access Point gerado pelo fole:", color = Color.LightGray, fontSize = 12.sp, textAlign = TextAlign.Center)
-                            Text("SSID: ${nomeInstrumento.ifEmpty { "Acordeon_MIDI_AP" }}", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("Abra o navegador e acesse o IP para carregar o binário (.bin):", color = Color.LightGray, fontSize = 12.sp, textAlign = TextAlign.Center)
-
-                            Surface(color = Color.Black, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-                                Text(text = "http://192.168.4.1", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 15.sp)
-                            }
-                            Button(onClick = { modoSetupOtaAtivado = false }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF424242)), shape = RoundedCornerShape(6.dp), modifier = Modifier.height(32.dp)) {
-                                Text("Voltar", color = Color.White, fontSize = 12.sp)
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
-    if (exibirDialogoSoundFont) {
 
-        SoundFontDialog(
+    // ========================================================================
+    // PICKER DE INSTRUMENTOS
+    // ========================================================================
 
-            soundFonts = soundFonts,
+    if (exibirInstrumentPicker) {
+
+        InstrumentPickerDialog(
+
+            instrumentos =
+                viewModel.listarInstrumentos(),
 
             onDismiss = {
 
-                exibirDialogoSoundFont = false
+                exibirInstrumentPicker =
+                    false
 
             },
 
-            onApply = {
+            onInstrumentSelected = { item ->
 
-                viewModel.sincronizarBiblioteca()
+                viewModel.setChannelInstrument(
 
-                exibirDialogoSoundFont = false
+                    canalSelecionado,
 
-            },
+                    item.soundFont,
 
-            onImport = {
+                    item.preset
 
-                launcherSoundFont.launch(
-                    arrayOf("*/*")
                 )
 
-            },
-
-            podeExcluir = {
-
-                viewModel.podeExcluirSoundFont(it)
-
-            },
-
-            onExcluir = {
-
-                viewModel.excluirSoundFont(it)
+                exibirInstrumentPicker =
+                    false
 
             }
 
         )
-        }
 
-        if (exibirInstrumentPicker) {
+    }
 
-            InstrumentPickerDialog(
+}
 
-                instrumentos = viewModel.listarInstrumentos(),
 
-                onDismiss = {
+// =============================================================================
+// BOTÃO DE NAVEGAÇÃO
+// =============================================================================
 
-                    exibirInstrumentPicker = false
+@Composable
+private fun BotaoNavegacao(
+    texto: String,
+    icone: androidx.compose.ui.graphics.vector.ImageVector,
+    selecionado: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
 
-                },
+    Card(
+        modifier = modifier
+            .height(58.dp)
+            .clickable {
+                onClick()
+            },
 
-                onInstrumentSelected = { item ->
-
-                    viewModel.setChannelInstrument(
-
-                        canalSelecionado,
-
-                        item.soundFont,
-
-                        item.preset
-
+        colors = CardDefaults.cardColors(
+            containerColor =
+                if (selecionado)
+                    ColorChannel2.copy(
+                        alpha = 0.18f
                     )
+                else
+                    ColorCardBg
+        ),
 
-                    exibirInstrumentPicker = false
+        border =
+            if (selecionado)
+                androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    ColorChannel2.copy(
+                        alpha = 0.7f
+                    )
+                )
+            else
+                null,
 
-                }
+        shape =
+            RoundedCornerShape(8.dp)
+    ) {        Column(
+            modifier =
+                Modifier.fillMaxSize(),
+            horizontalAlignment =
+                Alignment.CenterHorizontally,
+            verticalArrangement =
+                Arrangement.Center
+        ) {
 
+            Icon(
+                imageVector = icone,
+                contentDescription = texto,
+                tint =
+                    if (selecionado)
+                        ColorChannel2
+                    else
+                        Color.LightGray,
+                modifier =
+                    Modifier.size(20.dp)
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(3.dp)
+            )
+
+            Text(
+                text = texto,
+                color =
+                    if (selecionado)
+                        ColorChannel2
+                    else
+                        Color.Gray,
+                fontSize = 10.sp,
+                fontWeight =
+                    if (selecionado)
+                        FontWeight.Bold
+                    else
+                        FontWeight.Normal
             )
 
         }
-    //}
+
+    }
+
 }
+
+
+// =============================================================================
+// TELA DE SOUNDFONTS
+// =============================================================================
+
+@Composable
+private fun SoundFontsScreenContent(
+    viewModel: MainViewModel,
+    onImport: () -> Unit
+) {
+
+    val soundFonts =
+        viewModel.listarSoundFonts()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(
+                rememberScrollState()
+            )
+            .padding(
+                start = 8.dp,
+                end = 8.dp,
+                bottom = 12.dp
+            )
+    ) {
+
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+            verticalAlignment =
+                Alignment.CenterVertically,
+            horizontalArrangement =
+                Arrangement.SpaceBetween
+        ) {
+
+            Column {
+
+                Text(
+                    text = "SoundFonts",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight =
+                        FontWeight.Bold
+                )
+
+                Text(
+                    text =
+                        "${soundFonts.size} SoundFont(s)",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+
+            }
+
+            Button(
+                onClick = onImport,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            ColorChannel2
+                    ),
+                shape =
+                    RoundedCornerShape(8.dp),
+                contentPadding =
+                    PaddingValues(
+                        horizontal = 12.dp
+                    )
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.Add,
+                    contentDescription =
+                        "Importar SoundFont",
+                    modifier =
+                        Modifier.size(18.dp)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.width(4.dp)
+                )
+
+                Text(
+                    "Importar",
+                    fontSize = 12.sp
+                )
+
+            }
+
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(12.dp)
+        )
+
+        if (soundFonts.isEmpty()) {
+
+            Card(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            ColorCardBg
+                    )
+            ) {
+
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.PlayArrow,
+                        contentDescription =
+                            null,
+                        tint = Color.Gray,
+                        modifier =
+                            Modifier.size(40.dp)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(12.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Nenhuma SoundFont encontrada",
+                        color =
+                            Color.LightGray,
+                        fontSize = 14.sp
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(4.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Toque em Importar para adicionar uma SoundFont.",
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        textAlign =
+                            TextAlign.Center
+                    )
+
+                }
+
+            }
+
+        } else {
+
+            soundFonts.forEach { soundFont ->
+
+                SoundFontListItem(
+                    soundFont = soundFont,
+                    viewModel = viewModel
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(8.dp)
+                )
+
+            }
+
+        }
+
+    }
+
+}
+
+
+// =============================================================================
+// ITEM DE SOUNDFONT
+// =============================================================================
+
+@Composable
+private fun SoundFontListItem(
+    soundFont: SoundFontInfo,
+    viewModel: MainViewModel
+) {
+
+    val carregada =
+        soundFont.carregada
+
+    Card(
+        modifier =
+            Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    ColorCardBg
+            ),
+        shape =
+            RoundedCornerShape(10.dp)
+    ) {
+
+        Column(
+            modifier =
+                Modifier.padding(12.dp)
+        ) {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Box(
+                    modifier =
+                        Modifier
+                            .size(42.dp)
+                            .clip(
+                                RoundedCornerShape(8.dp)
+                            )
+                            .background(
+                                if (carregada)
+                                    ColorChannel2.copy(
+                                        alpha = 0.18f
+                                    )
+                                else
+                                    Color(0xFF303034)
+                            ),
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Icon(
+                        imageVector =
+                            if (carregada)
+                                Icons.Default.Check
+                            else
+                                Icons.Default.Clear,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            if (carregada)
+                                ColorChannel2
+                            else
+                                Color.Gray,
+
+                        modifier =
+                            Modifier.size(22.dp)
+                    )
+
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.width(10.dp)
+                )
+
+                Column(
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text =
+                            soundFont.nome,
+                        color =
+                            Color.White,
+                        fontSize = 15.sp,
+                        fontWeight =
+                            FontWeight.Medium
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(3.dp)
+                    )
+
+                    Text(
+                        text =
+                            if (soundFont.quantidadePresets > 0)
+                                "${soundFont.quantidadePresets} presets"
+                            else
+                                "Nenhum preset carregado",
+
+                        color =
+                            Color.Gray,
+
+                        fontSize = 11.sp
+                    )
+
+                }
+
+                Text(
+                    text =
+                        if (carregada)
+                            "CARREGADA"
+                        else
+                            "DESCARREGADA",
+
+                    color =
+                        if (carregada)
+                            ColorChannel2
+                        else
+                            Color.Gray,
+
+                    fontSize = 9.sp,
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+
+            }
+
+            Spacer(
+                modifier =
+                    Modifier.height(10.dp)
+            )
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
+
+                Button(
+                    onClick = {
+
+                        if (carregada) {
+
+                            viewModel
+                                .descarregarSoundFont(
+                                    soundFont.id
+                                )
+
+                        } else {
+
+                            viewModel
+                                .carregarSoundFont(
+                                    soundFont.id
+                                )
+
+                        }
+
+                    },
+                    modifier =
+                        Modifier.weight(1f),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor =
+                                if (carregada)
+                                    Color(0xFF424242)
+                                else
+                                    ColorChannel2
+                        ),
+                    shape =
+                        RoundedCornerShape(7.dp),
+                    contentPadding =
+                        PaddingValues(
+                            vertical = 8.dp
+                        )
+                ) {
+
+                    Text(
+                        text =
+                            if (carregada)
+                                "Descarregar"
+                            else
+                                "Carregar",
+                        fontSize = 11.sp
+                    )
+
+                }
+
+                if (
+                    !viewModel.podeExcluirSoundFont(
+                        soundFont.id
+                    )
+                ) {
+
+                    IconButton(
+                        onClick = {},
+                        enabled = false
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Delete,
+                            contentDescription =
+                                "SoundFont em uso",
+                            tint =
+                                Color.DarkGray
+                        )
+
+                    }
+
+                } else {
+
+                    IconButton(
+                        onClick = {
+
+                            viewModel
+                                .excluirSoundFont(
+                                    soundFont.id
+                                )
+
+                        }
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Default.Delete,
+                            contentDescription =
+                                "Excluir SoundFont",
+                            tint =
+                                Color(0xFFFF5252)
+                        )
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+// =============================================================================
+// PLACEHOLDER DE PRESETS
+// =============================================================================
+
+@Composable
+private fun PresetsScreenPlaceholder() {
+
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+        contentAlignment =
+            Alignment.Center
+    ) {
+
+        Column(
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+
+            Icon(
+                imageVector =
+                    Icons.Default.Star,
+                contentDescription =
+                    null,
+                tint = Color.Gray,
+                modifier =
+                    Modifier.size(42.dp)
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(12.dp)
+            )
+
+            Text(
+                text =
+                    "Presets",
+                color =
+                    Color.White,
+                fontSize = 20.sp,
+                fontWeight =
+                    FontWeight.Bold
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(6.dp)
+            )
+
+            Text(
+                text =
+                    "A tela de seleção de instrumentos será transferida para cá.",
+                color =
+                    Color.Gray,
+                fontSize = 13.sp,
+                textAlign =
+                    TextAlign.Center
+            )
+
+        }
+
+    }
+
+}
+
+
+// =============================================================================
+// CONFIGURAÇÕES
+// =============================================================================
+
+@Composable
+private fun ConfigScreenContent(
+    nomeInstrumento: String,
+    isConnected: Boolean,
+    midiManager: MidiManager,
+    modoSetupOtaAtivado: Boolean,
+    onModoSetupOtaChanged: (Boolean) -> Unit
+) {
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(
+                    rememberScrollState()
+                )
+                .padding(
+                    start = 8.dp,
+                    end = 8.dp,
+                    bottom = 12.dp
+                )
+    ) {
+
+        Text(
+            text =
+                "Configurações",
+            color =
+                Color.White,
+            fontSize = 20.sp,
+            fontWeight =
+                FontWeight.Bold
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(4.dp)
+        )
+
+        Text(
+            text =
+                "Configurações e manutenção do acordeão",
+            color =
+                Color.Gray,
+            fontSize = 12.sp
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(16.dp)
+        )
+
+        // =====================================================================
+        // OTA
+        // =====================================================================
+
+        Card(
+            modifier =
+                Modifier.fillMaxWidth(),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        ColorCardBg
+                ),
+            shape =
+                RoundedCornerShape(10.dp)
+        ) {
+
+            Column(
+                modifier =
+                    Modifier.padding(14.dp)
+            ) {
+
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.Refresh,
+                        contentDescription =
+                            null,
+                        tint =
+                            ColorChannel2,
+                        modifier =
+                            Modifier.size(26.dp)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(10.dp)
+                    )
+
+                    Column {
+
+                        Text(
+                            text =
+                                "OTA Update",
+                            color =
+                                Color.White,
+                            fontSize = 16.sp,
+                            fontWeight =
+                                FontWeight.Medium
+                        )
+
+                        Text(
+                            text =
+                                "Atualização do firmware via Wi-Fi AP",
+                            color =
+                                Color.Gray,
+                            fontSize = 11.sp
+                        )
+
+                    }
+
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(12.dp)
+                )
+
+                if (!modoSetupOtaAtivado) {
+
+                    Button(
+                        onClick = {
+
+                            onModoSetupOtaChanged(
+                                true
+                            )
+
+                            midiManager
+                                .enviarComandoIniciarOtaWifi()
+
+                        },
+
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Color(0xFFFF1744)
+                            ),
+
+                        shape =
+                            RoundedCornerShape(8.dp),
+
+                        enabled =
+                            isConnected,
+
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                    ) {
+
+                        Text(
+                            "Iniciar OTA via Wi-Fi AP",
+                            color =
+                                Color.White,
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+
+                    }
+
+                    if (!isConnected) {
+
+                        Text(
+                            text =
+                                "Conecte o acordeão via BLE para iniciar o modo OTA.",
+
+                            color =
+                                Color.Gray,
+
+                            fontSize = 11.sp,
+
+                            textAlign =
+                                TextAlign.Center,
+
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        top = 8.dp
+                                    )
+                        )
+
+                    }
+
+                } else {
+
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Color(0xFF2A1A1A),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .border(
+                                    1.dp,
+                                    Color(0xFFFF1744)
+                                        .copy(
+                                            alpha = 0.5f
+                                        ),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(12.dp),
+
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally,
+
+                        verticalArrangement =
+                            Arrangement.spacedBy(8.dp)
+                    ) {
+
+                        Text(
+                            "⚠️ SINAL ENVIADO COM SUCESSO!",
+                            color =
+                                Color(0xFFFF1744),
+                            fontWeight =
+                                FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+
+                        Text(
+                            "O rádio BLE foi suspenso. Conecte seu celular ou PC no Access Point gerado pelo acordeão:",
+                            color =
+                                Color.LightGray,
+                            fontSize = 12.sp,
+                            textAlign =
+                                TextAlign.Center
+                        )
+
+                        Text(
+                            "SSID: ${
+                                nomeInstrumento.ifEmpty {
+                                    "Acordeon_MIDI_AP"
+                                }
+                            }",
+                            color =
+                                Color(0xFF4CAF50),
+                            fontWeight =
+                                FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+
+                        Text(
+                            "Abra o navegador e acesse o IP para carregar o binário (.bin):",
+                            color =
+                                Color.LightGray,
+                            fontSize = 12.sp,
+                            textAlign =
+                                TextAlign.Center
+                        )
+
+                        Surface(
+                            color =
+                                Color.Black,
+                            shape =
+                                RoundedCornerShape(4.dp),
+                            modifier =
+                                Modifier.padding(
+                                    vertical = 4.dp
+                                )
+                        ) {
+
+                            Text(
+                                text =
+                                    "http://192.168.4.1",
+                                color =
+                                    Color(0xFF00E5FF),
+                                fontWeight =
+                                    FontWeight.Bold,
+                                modifier =
+                                    Modifier.padding(
+                                        horizontal = 12.dp,
+                                        vertical = 6.dp
+                                    ),
+                                fontSize = 15.sp
+                            )
+
+                        }
+
+                        Button(
+                            onClick = {
+
+                                onModoSetupOtaChanged(
+                                    false
+                                )
+
+                            },
+
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor =
+                                        Color(0xFF424242)
+                                ),
+
+                            shape =
+                                RoundedCornerShape(6.dp),
+
+                            modifier =
+                                Modifier.height(32.dp)
+                        ) {
+
+                            Text(
+                                "Voltar",
+                                color =
+                                    Color.White,
+                                fontSize = 12.sp
+                            )
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+// =============================================================================
+// TELA DE MONITOR / OTA ANTIGA
+// =============================================================================
+
 @Composable
 fun MonitorScreenContent(
     fileUri: Uri?,
-    midiReceiver: android.media.midi.MidiReceiver?,
+    midiReceiver:
+    android.media.midi.MidiReceiver?,
     onFileSelected: (Uri) -> Unit
 ) {
-    val context = LocalContext.current
-    val otaManager = remember(MidiEstadoCompartilhado.receiverMidiAtivo) {
-        OtaManager(context, MidiEstadoCompartilhado.receiverMidiAtivo)
-    }
 
-    val statusAtual by otaManager.statusOta.collectAsState()
-    val progressoPercentual by otaManager.progressoOta.collectAsState()
-    val estaAtualizando by otaManager.estaAtualizando.collectAsState()
+    val context =
+        LocalContext.current
 
-    val coroutineScope = rememberCoroutineScope()
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> if (uri != null) onFileSelected(uri) }
+    val otaManager =
+        remember(
+            MidiEstadoCompartilhado
+                .receiverMidiAtivo
+        ) {
 
-    LaunchedEffect(fileUri, estaAtualizando) {
-        if (fileUri != null && !estaAtualizando) {
-            otaManager.statusOta.value = "Pronto para enviar: ${fileUri.lastPathSegment ?: "firmware.bin"}"
+            OtaManager(
+                context,
+                MidiEstadoCompartilhado
+                    .receiverMidiAtivo
+            )
+
         }
+
+    val statusAtual by
+    otaManager.statusOta
+        .collectAsState()
+
+    val progressoPercentual by
+    otaManager.progressoOta
+        .collectAsState()
+
+    val estaAtualizando by
+    otaManager.estaAtualizando
+        .collectAsState()
+
+    val coroutineScope =
+        rememberCoroutineScope()
+
+    val filePickerLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+
+            if (uri != null)
+                onFileSelected(uri)
+
+        }
+
+    LaunchedEffect(
+        fileUri,
+        estaAtualizando
+    ) {
+
+        if (
+            fileUri != null &&
+            !estaAtualizando
+        ) {
+
+            otaManager.statusOta.value =
+                "Pronto para enviar: ${
+                    fileUri.lastPathSegment
+                        ?: "firmware.bin"
+                }"
+
+        }
+
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(top = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(
+                    top = 16.dp
+                ),
+
+        verticalArrangement =
+            Arrangement.spacedBy(16.dp)
     ) {
-        Text("Atualização de Sistema (OTA)", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
-        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = ColorCardBg)) {
-            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = if (estaAtualizando) ColorChannel2 else Color.DarkGray, modifier = Modifier.size(40.dp))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(text = statusAtual, color = Color.LightGray, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            "Atualização de Sistema (OTA)",
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight =
+                FontWeight.Bold
+        )
 
-                // CORRIGIDO: Passando o Float bruto diretamente para calar o erro de sobrecarga
-                LinearProgressIndicator(
-                    progress = progressoPercentual,
-                    modifier = Modifier.fillMaxWidth().height(10.dp),
-                    color = ColorChannel3,
-                    trackColor = Color(0xFF2C2C32)
+        Card(
+            modifier =
+                Modifier.fillMaxWidth(),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        ColorCardBg
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(text = "${(progressoPercentual * 100).toInt()}%", color = ColorChannel3, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-        }
+        ) {
 
-        Button(onClick = { filePickerLauncher.launch("*/*") }, enabled = !estaAtualizando, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = ColorCardBg), shape = RoundedCornerShape(8.dp)) {
-            Icon(Icons.Default.Menu, contentDescription = null, tint = Color.White)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Escolher Arquivo .bin", color = Color.White, fontWeight = FontWeight.Bold)
+            Column(
+                modifier =
+                    Modifier.padding(16.dp),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Default.Refresh,
+                    contentDescription =
+                        null,
+
+                    tint =
+                        if (estaAtualizando)
+                            ColorChannel2
+                        else
+                            Color.DarkGray,
+
+                    modifier =
+                        Modifier.size(40.dp)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(12.dp)
+                )
+
+                Text(
+                    text =
+                        statusAtual,
+                    color =
+                        Color.LightGray,
+                    fontSize = 14.sp
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(16.dp)
+                )
+
+                LinearProgressIndicator(
+                    progress =
+                        progressoPercentual,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(10.dp),
+
+                    color =
+                        ColorChannel3,
+
+                    trackColor =
+                        Color(0xFF2C2C32)
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(6.dp)
+                )
+
+                Text(
+                    text =
+                        "${(
+                                progressoPercentual * 100
+                                ).toInt()}%",
+
+                    color =
+                        ColorChannel3,
+
+                    fontSize = 12.sp,
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+
+            }
+
         }
 
         Button(
-            onClick = { fileUri?.let { uri -> coroutineScope.launch { otaManager.iniciarAtualizacao(uri) } } },
-            enabled = fileUri != null && !estaAtualizando,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = ColorChannel1),
-            shape = RoundedCornerShape(8.dp)
+            onClick = {
+
+                filePickerLauncher.launch(
+                    "*/*"
+                )
+
+            },
+
+            enabled =
+                !estaAtualizando,
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        ColorCardBg
+                ),
+
+            shape =
+                RoundedCornerShape(8.dp)
         ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Enviar Novo Firmware via BLE", color = Color.White, fontWeight = FontWeight.Bold)
+
+            Icon(
+                Icons.Default.Menu,
+                contentDescription =
+                    null,
+                tint =
+                    Color.White
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(8.dp)
+            )
+
+            Text(
+                "Escolher Arquivo .bin",
+                color =
+                    Color.White,
+                fontWeight =
+                    FontWeight.Bold
+            )
+
         }
+
+        Button(
+            onClick = {
+
+                fileUri?.let { uri ->
+
+                    coroutineScope.launch {
+
+                        otaManager
+                            .iniciarAtualizacao(
+                                uri
+                            )
+
+                    }
+
+                }
+
+            },
+
+            enabled =
+                fileUri != null &&
+                        !estaAtualizando,
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        ColorChannel1
+                ),
+
+            shape =
+                RoundedCornerShape(8.dp)
+        ) {
+
+            Icon(
+                Icons.Default.PlayArrow,
+                contentDescription =
+                    null,
+                tint =
+                    Color.White,
+                modifier =
+                    Modifier.size(20.dp)
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.width(8.dp)
+            )
+
+            Text(
+                "Enviar Novo Firmware via BLE",
+                color =
+                    Color.White,
+                fontWeight =
+                    FontWeight.Bold
+            )
+
+        }
+
     }
+
 }
+
+
+// =============================================================================
+// LINHA DE CANAL
+// =============================================================================
 
 @Composable
 fun StaticChannelRow(
@@ -663,36 +2094,131 @@ fun StaticChannelRow(
 
     isMaster: Boolean = false,
 
-    onMasterChanged: (Boolean) -> Unit = {},
+    onMasterChanged:
+        (Boolean) -> Unit = {},
 
-    onInstrumentClick: (() -> Unit)? = null,
-    onVolumeChanged: (Float) -> Unit,
-    onMuteChanged: (Boolean) -> Unit
+    onInstrumentClick:
+    (() -> Unit)? = null,
+
+    onVolumeChanged:
+        (Float) -> Unit,
+
+    onMuteChanged:
+        (Boolean) -> Unit
 ) {
-    val corFundoLinha = if (isMuted) Color(0xFF252528) else ColorCardBg
-    val corCaixaCanal = if (isMuted) Color.Gray else accentColor
-    val corTextoVolume = if (isMuted) Color.LightGray else accentColor
+
+    val corFundoLinha =
+        if (isMuted)
+            Color(0xFF252528)
+        else
+            ColorCardBg
+
+    val corCaixaCanal =
+        if (isMuted)
+            Color.Gray
+        else
+            accentColor
+
+    val corTextoVolume =
+        if (isMuted)
+            Color.LightGray
+        else
+            accentColor
 
     Row(
-        modifier = Modifier.fillMaxWidth().height(110.dp).background(corFundoLinha, RoundedCornerShape(8.dp)),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(110.dp)
+                .background(
+                    corFundoLinha,
+                    RoundedCornerShape(8.dp)
+                ),
+
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.fillMaxHeight().width(34.dp).background(corCaixaCanal, RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)), contentAlignment = Alignment.Center) {
-            Text(number, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .width(34.dp)
+                    .background(
+                        corCaixaCanal,
+                        RoundedCornerShape(
+                            topStart = 8.dp,
+                            bottomStart = 8.dp
+                        )
+                    ),
+
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                number,
+                color =
+                    Color.White,
+                fontSize = 24.sp,
+                fontWeight =
+                    FontWeight.Bold
+            )
+
         }
-        Column(modifier = Modifier.weight(1f).fillMaxHeight().padding(horizontal = 14.dp, vertical = 12.dp).alpha(if (isMuted) 0.4f else 1.0f), verticalArrangement = Arrangement.SpaceBetween) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+
+        Column(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .padding(
+                        horizontal = 14.dp,
+                        vertical = 12.dp
+                    )
+                    .alpha(
+                        if (isMuted)
+                            0.4f
+                        else
+                            1.0f
+                    ),
+
+            verticalArrangement =
+                Arrangement.SpaceBetween
+        ) {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
                 Text(
                     text = name,
                     color = Color.White,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable {
-                        Log.d("InstrumentPicker", "Nome clicado")
-                        onInstrumentClick?.invoke()
+                    fontWeight =
+                        FontWeight.Medium,
 
-                    }
+                    modifier =
+                        Modifier.clickable {
+
+                            Log.d(
+                                "InstrumentPicker",
+                                "Nome clicado"
+                            )
+
+                            onInstrumentClick
+                                ?.invoke()
+
+                        }
                 )
+
                 Row(
                     verticalAlignment =
                         Alignment.CenterVertically,
@@ -708,31 +2234,36 @@ fun StaticChannelRow(
                     if (showMasterButton) {
 
                         Box(
-                            modifier = Modifier
-                                .size(22.dp)
-                                .clip(
-                                    RoundedCornerShape(3.dp)
-                                )
-                                .background(
-                                    if (isMaster)
-                                        accentColor
-                                    else
-                                        Color(0xFF505050)
-                                )
-                                .clickable {
-
-                                    onMasterChanged(
-                                        !isMaster
+                            modifier =
+                                Modifier
+                                    .size(22.dp)
+                                    .clip(
+                                        RoundedCornerShape(
+                                            3.dp
+                                        )
                                     )
+                                    .background(
+                                        if (isMaster)
+                                            accentColor
+                                        else
+                                            Color(0xFF505050)
+                                    )
+                                    .clickable {
 
-                                },
+                                        onMasterChanged(
+                                            !isMaster
+                                        )
+
+                                    },
+
                             contentAlignment =
                                 Alignment.Center
                         ) {
 
                             Text(
                                 text = "G",
-                                color = Color.White,
+                                color =
+                                    Color.White,
                                 style =
                                     MaterialTheme
                                         .typography
@@ -748,33 +2279,38 @@ fun StaticChannelRow(
                     // =========================================================
 
                     Box(
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clip(
-                                RoundedCornerShape(3.dp)
-                            )
-                            .background(
-                                if (isMuted)
-                                    MaterialTheme
-                                        .colorScheme
-                                        .error
-                                else
-                                    Color(0xFF505050)
-                            )
-                            .clickable {
-
-                                onMuteChanged(
-                                    !isMuted
+                        modifier =
+                            Modifier
+                                .size(22.dp)
+                                .clip(
+                                    RoundedCornerShape(
+                                        3.dp
+                                    )
                                 )
+                                .background(
+                                    if (isMuted)
+                                        MaterialTheme
+                                            .colorScheme
+                                            .error
+                                    else
+                                        Color(0xFF505050)
+                                )
+                                .clickable {
 
-                            },
+                                    onMuteChanged(
+                                        !isMuted
+                                    )
+
+                                },
+
                         contentAlignment =
                             Alignment.Center
                     ) {
 
                         Text(
                             text = "M",
-                            color = Color.White,
+                            color =
+                                Color.White,
                             style =
                                 MaterialTheme
                                     .typography
@@ -784,44 +2320,83 @@ fun StaticChannelRow(
                     }
 
                     Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(
-                                if (isIndicatorOn)
-                                    Color(0xFF4CAF50)
-                                else
-                                    Color.DarkGray,
-                                RoundedCornerShape(4.dp)
-                            )
+                        modifier =
+                            Modifier
+                                .size(8.dp)
+                                .background(
+                                    if (isIndicatorOn)
+                                        Color(0xFF4CAF50)
+                                    else
+                                        Color.DarkGray,
+                                    RoundedCornerShape(
+                                        4.dp
+                                    )
+                                )
                     )
 
                     Text(
                         "${volume.toInt()}%",
-                        color = corTextoVolume,
+                        color =
+                            corTextoVolume,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight =
+                            FontWeight.Bold
                     )
+
                 }
+
             }
+
             Slider(
                 value = volume,
-                onValueChange = onVolumeChanged,
-                valueRange = 0f..100f,
-                enabled = sliderEnabled,
-                modifier = Modifier.fillMaxWidth(),
-                colors = SliderDefaults.colors(
-                    thumbColor = corCaixaCanal,
-                    activeTrackColor = corCaixaCanal,
-                    inactiveTrackColor =
-                        Color(0xFF2C2C32)
-                )
+
+                onValueChange =
+                    onVolumeChanged,
+
+                valueRange =
+                    0f..100f,
+
+                enabled =
+                    sliderEnabled,
+
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                colors =
+                    SliderDefaults.colors(
+                        thumbColor =
+                            corCaixaCanal,
+
+                        activeTrackColor =
+                            corCaixaCanal,
+
+                        inactiveTrackColor =
+                            Color(0xFF2C2C32)
+                    )
             )
+
         }
+
     }
+
 }
 
-private fun percentToMidi(volume: Float): Int {
-    return ((volume / 100f) * 127f)
+
+// =============================================================================
+// CONVERSÃO DE VOLUME
+// =============================================================================
+
+private fun percentToMidi(
+    volume: Float
+): Int {
+
+    return (
+            (volume / 100f) * 127f
+            )
         .toInt()
-        .coerceIn(0,127)
+        .coerceIn(
+            0,
+            127
+        )
+
 }
