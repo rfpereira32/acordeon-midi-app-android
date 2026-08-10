@@ -174,8 +174,8 @@ fun MixerScreenContent(
                 .padding(
                     start = 8.dp,
                     end = 8.dp,
-                    top = 2.dp,
-                    bottom = 4.dp
+                    top = 0.dp,
+                    bottom = 2.dp
                 ),
             verticalAlignment =
                 Alignment.CenterVertically,
@@ -262,6 +262,10 @@ fun MixerScreenContent(
             }
 
         }
+
+        Spacer(
+            modifier = Modifier.height(18.dp)
+        )
 
         // =====================================================================
         // CONTEÚDO PRINCIPAL
@@ -867,9 +871,7 @@ private fun BotaoNavegacao(
         colors = CardDefaults.cardColors(
             containerColor =
                 if (selecionado)
-                    ColorChannel2.copy(
-                        alpha = 0.18f
-                    )
+                    Color(0xFF303038)
                 else
                     ColorCardBg
         ),
@@ -878,16 +880,16 @@ private fun BotaoNavegacao(
             if (selecionado)
                 androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    ColorChannel2.copy(
-                        alpha = 0.7f
-                    )
+                    Color(0xFF5A5A64)
                 )
             else
                 null,
 
         shape =
             RoundedCornerShape(8.dp)
-    ) {        Column(
+    ) {
+
+        Column(
             modifier =
                 Modifier.fillMaxSize(),
             horizontalAlignment =
@@ -901,7 +903,7 @@ private fun BotaoNavegacao(
                 contentDescription = texto,
                 tint =
                     if (selecionado)
-                        ColorChannel2
+                        Color.White
                     else
                         Color.LightGray,
                 modifier =
@@ -917,7 +919,7 @@ private fun BotaoNavegacao(
                 text = texto,
                 color =
                     if (selecionado)
-                        ColorChannel2
+                        Color.White
                     else
                         Color.Gray,
                 fontSize = 10.sp,
@@ -961,6 +963,10 @@ private fun SoundFontsScreenContent(
             )
     ) {
 
+        // =====================================================================
+        // CABEÇALHO
+        // =====================================================================
+
         Row(
             modifier =
                 Modifier.fillMaxWidth(),
@@ -994,7 +1000,7 @@ private fun SoundFontsScreenContent(
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor =
-                            ColorChannel2
+                            Color(0xFF3A3A42)
                     ),
                 shape =
                     RoundedCornerShape(8.dp),
@@ -1105,7 +1111,7 @@ private fun SoundFontsScreenContent(
 
                 Spacer(
                     modifier =
-                        Modifier.height(8.dp)
+                        Modifier.height(4.dp)
                 )
 
             }
@@ -1139,229 +1145,129 @@ private fun SoundFontListItem(
                     ColorCardBg
             ),
         shape =
-            RoundedCornerShape(10.dp)
+            RoundedCornerShape(8.dp)
     ) {
 
-        Column(
+        Row(
             modifier =
-                Modifier.padding(12.dp)
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 4.dp,
+                        end = 4.dp
+                    ),
+
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
 
-            Row(
+            // =================================================================
+            // CHECKBOX
+            // =================================================================
+
+            Checkbox(
+                checked = carregada,
+
+                onCheckedChange = {
+
+                    viewModel
+                        .alternarSoundFont(
+                            soundFont.id
+                        )
+
+                }
+            )
+
+            // =================================================================
+            // NOME E QUANTIDADE DE PRESETS
+            // =================================================================
+
+            Column(
                 modifier =
-                    Modifier.fillMaxWidth(),
-                verticalAlignment =
-                    Alignment.CenterVertically
+                    Modifier.weight(1f)
+                        .clickable {
+
+                            viewModel
+                                .alternarSoundFont(
+                                    soundFont.id
+                                )
+
+                        }
+                        .padding(
+                            vertical = 10.dp
+                        )
             ) {
-
-                Box(
-                    modifier =
-                        Modifier
-                            .size(42.dp)
-                            .clip(
-                                RoundedCornerShape(8.dp)
-                            )
-                            .background(
-                                if (carregada)
-                                    ColorChannel2.copy(
-                                        alpha = 0.18f
-                                    )
-                                else
-                                    Color(0xFF303034)
-                            ),
-                    contentAlignment =
-                        Alignment.Center
-                ) {
-
-                    Icon(
-                        imageVector =
-                            if (carregada)
-                                Icons.Default.Check
-                            else
-                                Icons.Default.Clear,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            if (carregada)
-                                ColorChannel2
-                            else
-                                Color.Gray,
-
-                        modifier =
-                            Modifier.size(22.dp)
-                    )
-
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.width(10.dp)
-                )
-
-                Column(
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
-
-                    Text(
-                        text =
-                            soundFont.nome,
-                        color =
-                            Color.White,
-                        fontSize = 15.sp,
-                        fontWeight =
-                            FontWeight.Medium
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
-                    )
-
-                    Text(
-                        text =
-                            if (soundFont.quantidadePresets > 0)
-                                "${soundFont.quantidadePresets} presets"
-                            else
-                                "Nenhum preset carregado",
-
-                        color =
-                            Color.Gray,
-
-                        fontSize = 11.sp
-                    )
-
-                }
 
                 Text(
                     text =
-                        if (carregada)
-                            "CARREGADA"
-                        else
-                            "DESCARREGADA",
+                        soundFont.nome,
+                    color =
+                        Color.White,
+                    fontSize = 15.sp,
+                    fontWeight =
+                        FontWeight.Medium
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(2.dp)
+                )
+
+                Text(
+                    text =
+                        if (
+                            soundFont.quantidadePresets > 0
+                        ) {
+
+                            "${soundFont.quantidadePresets} presets"
+
+                        } else {
+
+                            "Nenhum preset carregado"
+
+                        },
 
                     color =
-                        if (carregada)
-                            ColorChannel2
-                        else
-                            Color.Gray,
+                        Color.Gray,
 
-                    fontSize = 9.sp,
-
-                    fontWeight =
-                        FontWeight.Bold
+                    fontSize = 11.sp
                 )
 
             }
 
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
+            // =================================================================
+            // EXCLUIR
+            // =================================================================
 
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp)
+            if (
+                viewModel.podeExcluirSoundFont(
+                    soundFont.id
+                )
             ) {
 
-                Button(
+                IconButton(
                     onClick = {
 
-                        if (carregada) {
-
-                            viewModel
-                                .descarregarSoundFont(
-                                    soundFont.id
-                                )
-
-                        } else {
-
-                            viewModel
-                                .carregarSoundFont(
-                                    soundFont.id
-                                )
-
-                        }
-
-                    },
-                    modifier =
-                        Modifier.weight(1f),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor =
-                                if (carregada)
-                                    Color(0xFF424242)
-                                else
-                                    ColorChannel2
-                        ),
-                    shape =
-                        RoundedCornerShape(7.dp),
-                    contentPadding =
-                        PaddingValues(
-                            vertical = 8.dp
-                        )
-                ) {
-
-                    Text(
-                        text =
-                            if (carregada)
-                                "Descarregar"
-                            else
-                                "Carregar",
-                        fontSize = 11.sp
-                    )
-
-                }
-
-                if (
-                    !viewModel.podeExcluirSoundFont(
-                        soundFont.id
-                    )
-                ) {
-
-                    IconButton(
-                        onClick = {},
-                        enabled = false
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.Delete,
-                            contentDescription =
-                                "SoundFont em uso",
-                            tint =
-                                Color.DarkGray
+                        viewModel.excluirSoundFont(
+                            soundFont.id
                         )
 
                     }
+                ) {
 
-                } else {
+                    Icon(
+                        imageVector =
+                            Icons.Default.Delete,
 
-                    IconButton(
-                        onClick = {
+                        contentDescription =
+                            "Excluir SoundFont",
 
-                            viewModel
-                                .excluirSoundFont(
-                                    soundFont.id
-                                )
+                        tint =
+                            Color(0xFF77777F),
 
-                        }
-                    ) {
-
-                        Icon(
-                            imageVector =
-                                Icons.Default.Delete,
-                            contentDescription =
-                                "Excluir SoundFont",
-                            tint =
-                                Color(0xFFFF5252)
-                        )
-
-                    }
+                        modifier =
+                            Modifier.size(20.dp)
+                    )
 
                 }
 
@@ -2322,7 +2228,7 @@ fun StaticChannelRow(
                     Box(
                         modifier =
                             Modifier
-                                .size(8.dp)
+                                .size(10.dp)
                                 .background(
                                     if (isIndicatorOn)
                                         Color(0xFF4CAF50)
@@ -2334,14 +2240,21 @@ fun StaticChannelRow(
                                 )
                     )
 
-                    Text(
-                        "${volume.toInt()}%",
-                        color =
-                            corTextoVolume,
-                        fontSize = 14.sp,
-                        fontWeight =
-                            FontWeight.Bold
-                    )
+                    Box(
+                        modifier = Modifier.width(38.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+
+                        Text(
+                            "${volume.toInt()}%",
+                            color =
+                                corTextoVolume,
+                            fontSize = 14.sp,
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+
+                    }
 
                 }
 
