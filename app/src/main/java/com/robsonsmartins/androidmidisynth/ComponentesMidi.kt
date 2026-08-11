@@ -264,7 +264,7 @@ fun MixerScreenContent(
         }
 
         Spacer(
-            modifier = Modifier.height(18.dp)
+            modifier = Modifier.height(16.dp)
         )
 
         // =====================================================================
@@ -301,360 +301,105 @@ fun MixerScreenContent(
                                 Arrangement.spacedBy(8.dp)
                         ) {
 
-                            // -----------------------------------------------------
-                            // CANAL 1
-                            // -----------------------------------------------------
+                            canais.forEachIndexed {
+                                    index,
+                                    canal ->
 
-                            StaticChannelRow(
-                                number = "1",
-                                name =
-                                    canais[0]
-                                        .preset
-                                        ?.nome
-                                        ?: "Teclado",
+                                StaticChannelRow(
+                                    number =
+                                        (index + 1)
+                                            .toString(),
 
-                                accentColor =
-                                    ColorChannel1,
+                                    name =
+                                        nomePadraoCanal(
+                                            index,
+                                            canal.preset?.nome
+                                        ),
 
-                                volume =
-                                    canais[0].volume *
-                                            100f / 127f,
+                                    accentColor =
+                                        if (index < 3)
+                                            ColorChannel1
+                                        else
+                                            ColorChannel4,
 
-                                isMuted =
-                                    canais[0].muted,
+                                    volume =
+                                        canal.volume *
+                                                100f / 127f,
 
-                                isIndicatorOn =
-                                    false,
+                                    isMuted =
+                                        canal.muted,
 
-                                showMasterButton =
-                                    true,
+                                    isIndicatorOn =
+                                        false,
 
-                                isMaster =
-                                    canal1ComoMaster,
+                                    sliderEnabled =
+                                        if (index == 0)
+                                            true
+                                        else
+                                            !canal1ComoMaster,
 
-                                onMasterChanged = {
-                                        ativado ->
+                                    showMasterButton =
+                                        index == 0,
 
-                                    canal1ComoMaster =
-                                        ativado
+                                    isMaster =
+                                        if (index == 0)
+                                            canal1ComoMaster
+                                        else
+                                            false,
 
-                                    viewModel
-                                        .setChannel1AsMaster(
+                                    onMasterChanged = {
+                                            ativado ->
+
+                                        canal1ComoMaster =
                                             ativado
-                                        )
 
-                                },
+                                        viewModel
+                                            .setChannel1AsMaster(
+                                                ativado
+                                            )
 
-                                onInstrumentClick = {
+                                    },
 
-                                    canalSelecionado =
-                                        0
+                                    onInstrumentClick = {
 
-                                    exibirInstrumentPicker =
-                                        true
+                                        canalSelecionado =
+                                            index
 
-                                },
+                                        exibirInstrumentPicker =
+                                            true
 
-                                onVolumeChanged = {
-                                        novoVol ->
+                                    },
 
-                                    val valorMidi =
-                                        percentToMidi(
-                                            novoVol
-                                        )
+                                    onVolumeChanged = {
+                                            novoVol ->
 
-                                    viewModel
-                                        .setChannelVolume(
-                                            0,
-                                            valorMidi
-                                        )
+                                        val valorMidi =
+                                            percentToMidi(
+                                                novoVol
+                                            )
 
-                                },
+                                        viewModel
+                                            .setChannelVolume(
+                                                index,
+                                                valorMidi
+                                            )
 
-                                onMuteChanged = {
-                                        mute ->
+                                    },
 
-                                    viewModel
-                                        .setChannelMute(
-                                            0,
-                                            mute
-                                        )
+                                    onMuteChanged = {
+                                            mute ->
 
-                                }
+                                        viewModel
+                                            .setChannelMute(
+                                                index,
+                                                mute
+                                            )
 
-                            )
+                                    }
 
-                            // -----------------------------------------------------
-                            // CANAL 2
-                            // -----------------------------------------------------
+                                )
 
-                            StaticChannelRow(
-                                number = "2",
-
-                                name =
-                                    canais[1]
-                                        .preset
-                                        ?.nome
-                                        ?: "Baixos fundamentais",
-
-                                accentColor =
-                                    ColorChannel1,
-
-                                volume =
-                                    canais[1].volume *
-                                            100f / 127f,
-
-                                isMuted =
-                                    canais[1].muted,
-
-                                isIndicatorOn =
-                                    false,
-
-                                sliderEnabled =
-                                    !canal1ComoMaster,
-
-                                onInstrumentClick = {
-
-                                    canalSelecionado =
-                                        1
-
-                                    exibirInstrumentPicker =
-                                        true
-
-                                },
-
-                                onVolumeChanged = {
-                                        novoVol ->
-
-                                    val valorMidi =
-                                        percentToMidi(
-                                            novoVol
-                                        )
-
-                                    viewModel
-                                        .setChannelVolume(
-                                            1,
-                                            valorMidi
-                                        )
-
-                                },
-
-                                onMuteChanged = {
-                                        mute ->
-
-                                    viewModel
-                                        .setChannelMute(
-                                            1,
-                                            mute
-                                        )
-
-                                }
-
-                            )
-
-                            // -----------------------------------------------------
-                            // CANAL 3
-                            // -----------------------------------------------------
-
-                            StaticChannelRow(
-                                number = "3",
-
-                                name =
-                                    canais[2]
-                                        .preset
-                                        ?.nome
-                                        ?: "Acordes",
-
-                                accentColor =
-                                    ColorChannel1,
-
-                                volume =
-                                    canais[2].volume *
-                                            100f / 127f,
-
-                                isMuted =
-                                    canais[2].muted,
-
-                                isIndicatorOn =
-                                    false,
-
-                                sliderEnabled =
-                                    !canal1ComoMaster,
-
-                                onInstrumentClick = {
-
-                                    canalSelecionado =
-                                        2
-
-                                    exibirInstrumentPicker =
-                                        true
-
-                                },
-
-                                onVolumeChanged = {
-                                        novoVol ->
-
-                                    val valorMidi =
-                                        percentToMidi(
-                                            novoVol
-                                        )
-
-                                    viewModel
-                                        .setChannelVolume(
-                                            2,
-                                            valorMidi
-                                        )
-
-                                },
-
-                                onMuteChanged = {
-                                        mute ->
-
-                                    viewModel
-                                        .setChannelMute(
-                                            2,
-                                            mute
-                                        )
-
-                                }
-
-                            )
-
-                            // -----------------------------------------------------
-                            // CANAL 4
-                            // -----------------------------------------------------
-
-                            StaticChannelRow(
-                                number = "4",
-
-                                name =
-                                    canais[3]
-                                        .preset
-                                        ?.nome
-                                        ?: "Instrumentos Extras 1",
-
-                                accentColor =
-                                    ColorChannel4,
-
-                                volume =
-                                    canais[3].volume *
-                                            100f / 127f,
-
-                                isMuted =
-                                    canais[3].muted,
-
-                                isIndicatorOn =
-                                    false,
-
-                                sliderEnabled =
-                                    !canal1ComoMaster,
-
-                                onInstrumentClick = {
-
-                                    canalSelecionado =
-                                        3
-
-                                    exibirInstrumentPicker =
-                                        true
-
-                                },
-
-                                onVolumeChanged = {
-                                        novoVol ->
-
-                                    val valorMidi =
-                                        percentToMidi(
-                                            novoVol
-                                        )
-
-                                    viewModel
-                                        .setChannelVolume(
-                                            3,
-                                            valorMidi
-                                        )
-
-                                },
-
-                                onMuteChanged = {
-                                        mute ->
-
-                                    viewModel
-                                        .setChannelMute(
-                                            3,
-                                            mute
-                                        )
-
-                                }
-
-                            )
-
-                            // -----------------------------------------------------
-                            // CANAL 5
-                            // -----------------------------------------------------
-
-                            StaticChannelRow(
-                                number = "5",
-
-                                name =
-                                    canais[4]
-                                        .preset
-                                        ?.nome
-                                        ?: "Instrumentos Extras 2",
-
-                                accentColor =
-                                    ColorChannel4,
-
-                                volume =
-                                    canais[4].volume *
-                                            100f / 127f,
-
-                                isMuted =
-                                    canais[4].muted,
-
-                                isIndicatorOn =
-                                    false,
-
-                                sliderEnabled =
-                                    !canal1ComoMaster,
-
-                                onInstrumentClick = {
-
-                                    canalSelecionado =
-                                        4
-
-                                    exibirInstrumentPicker =
-                                        true
-
-                                },
-
-                                onVolumeChanged = {
-                                        novoVol ->
-
-                                    val valorMidi =
-                                        percentToMidi(
-                                            novoVol
-                                        )
-
-                                    viewModel
-                                        .setChannelVolume(
-                                            4,
-                                            valorMidi
-                                        )
-
-                                },
-
-                                onMuteChanged = {
-                                        mute ->
-
-                                    viewModel
-                                        .setChannelMute(
-                                            4,
-                                            mute
-                                        )
-
-                                }
-
-                            )
+                            }
 
                         }
 
@@ -704,6 +449,9 @@ fun MixerScreenContent(
 
                         midiManager =
                             midiManager,
+
+                        viewModel =
+                            viewModel,
 
                         modoSetupOtaAtivado =
                             modoSetupOtaAtivado,
@@ -842,6 +590,48 @@ fun MixerScreenContent(
             }
 
         )
+
+    }
+
+}
+
+
+// =============================================================================
+// NOME PADRÃO DOS CANAIS
+// =============================================================================
+
+private fun nomePadraoCanal(
+    index: Int,
+    nomePreset: String?
+): String {
+
+    if (
+        !nomePreset.isNullOrBlank()
+    ) {
+
+        return nomePreset
+
+    }
+
+    return when (index) {
+
+        0 ->
+            "Teclado"
+
+        1 ->
+            "Baixos fundamentais"
+
+        2 ->
+            "Acordes"
+
+        3 ->
+            "Instrumentos Extras 1"
+
+        4 ->
+            "Instrumentos Extras 2"
+
+        else ->
+            "Canal MIDI ${index + 1}"
 
     }
 
@@ -1161,10 +951,6 @@ private fun SoundFontListItem(
                 Alignment.CenterVertically
         ) {
 
-            // =================================================================
-            // CHECKBOX
-            // =================================================================
-
             Checkbox(
                 checked = carregada,
 
@@ -1177,10 +963,6 @@ private fun SoundFontListItem(
 
                 }
             )
-
-            // =================================================================
-            // NOME E QUANTIDADE DE PRESETS
-            // =================================================================
 
             Column(
                 modifier =
@@ -1234,10 +1016,6 @@ private fun SoundFontListItem(
                 )
 
             }
-
-            // =================================================================
-            // EXCLUIR
-            // =================================================================
 
             if (
                 viewModel.podeExcluirSoundFont(
@@ -1357,9 +1135,17 @@ private fun ConfigScreenContent(
     nomeInstrumento: String,
     isConnected: Boolean,
     midiManager: MidiManager,
+    viewModel: MainViewModel,
     modoSetupOtaAtivado: Boolean,
     onModoSetupOtaChanged: (Boolean) -> Unit
 ) {
+
+    var menuQuantidadeCanaisAberto by remember {
+        mutableStateOf(false)
+    }
+
+    val quantidadeCanais =
+        viewModel.getNumberOfChannels()
 
     Column(
         modifier =
@@ -1397,6 +1183,170 @@ private fun ConfigScreenContent(
                 Color.Gray,
             fontSize = 12.sp
         )
+
+        Spacer(
+            modifier =
+                Modifier.height(16.dp)
+        )
+
+        // =====================================================================
+        // QUANTIDADE DE CANAIS
+        // =====================================================================
+
+        Card(
+            modifier =
+                Modifier.fillMaxWidth(),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        ColorCardBg
+                ),
+            shape =
+                RoundedCornerShape(10.dp)
+        ) {
+
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+
+                verticalAlignment =
+                    Alignment.CenterVertically,
+
+                horizontalArrangement =
+                    Arrangement.SpaceBetween
+            ) {
+
+                Column(
+                    modifier =
+                        Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text =
+                            "Quantidade de canais",
+                        color =
+                            Color.White,
+                        fontSize = 16.sp,
+                        fontWeight =
+                            FontWeight.Medium
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(2.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Escolha de 5 a 16 canais MIDI",
+                        color =
+                            Color.Gray,
+                        fontSize = 11.sp
+                    )
+
+                }
+
+                Box {
+
+                    Button(
+                        onClick = {
+
+                            menuQuantidadeCanaisAberto =
+                                true
+
+                        },
+
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Color(0xFF3A3A42)
+                            ),
+
+                        shape =
+                            RoundedCornerShape(8.dp),
+
+                        contentPadding =
+                            PaddingValues(
+                                horizontal = 14.dp
+                            )
+                    ) {
+
+                        Text(
+                            text =
+                                "$quantidadeCanais canais",
+                            fontSize = 12.sp
+                        )
+
+                    }
+
+                    DropdownMenu(
+                        expanded =
+                            menuQuantidadeCanaisAberto,
+
+                        onDismissRequest = {
+
+                            menuQuantidadeCanaisAberto =
+                                false
+
+                        }
+                    ) {
+
+                        (5..16).forEach { quantidade ->
+
+                            DropdownMenuItem(
+
+                                text = {
+
+                                    Text(
+                                        text =
+                                            "$quantidade canais"
+                                    )
+
+                                },
+
+                                onClick = {
+
+                                    viewModel
+                                        .setNumberOfChannels(
+                                            quantidade
+                                        )
+
+                                    menuQuantidadeCanaisAberto =
+                                        false
+
+                                },
+
+                                trailingIcon = {
+
+                                    if (
+                                        quantidade ==
+                                        quantidadeCanais
+                                    ) {
+
+                                        Icon(
+                                            imageVector =
+                                                Icons.Default.Check,
+                                            contentDescription =
+                                                null
+                                        )
+
+                                    }
+
+                                }
+
+                            )
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
 
         Spacer(
             modifier =
@@ -1981,7 +1931,6 @@ fun MonitorScreenContent(
 
 }
 
-
 // =============================================================================
 // LINHA DE CANAL
 // =============================================================================
@@ -2241,8 +2190,10 @@ fun StaticChannelRow(
                     )
 
                     Box(
-                        modifier = Modifier.width(38.dp),
-                        contentAlignment = Alignment.CenterEnd
+                        modifier =
+                            Modifier.width(38.dp),
+                        contentAlignment =
+                            Alignment.CenterEnd
                     ) {
 
                         Text(

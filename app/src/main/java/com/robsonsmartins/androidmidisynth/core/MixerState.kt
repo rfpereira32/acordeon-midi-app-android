@@ -9,6 +9,13 @@ class MixerState(
     numberOfChannels: Int = 5
 ) {
 
+    companion object {
+
+        const val MIN_CHANNELS = 5
+        const val MAX_CHANNELS = 16
+
+    }
+
     val channels = mutableStateListOf<ChannelState>()
 
     /**
@@ -23,39 +30,78 @@ class MixerState(
     /**
      * Diferença de volume de cada canal em relação
      * ao canal 1 no momento da ativação do Master.
-     *
-     * Exemplo:
-     *
-     * Canal 1 = 100
-     * Canal 2 = 70
-     * Canal 3 = 50
-     *
-     * offsets:
-     *
-     * Canal 1 =   0
-     * Canal 2 = -30
-     * Canal 3 = -50
      */
     private val masterOffsets =
-        MutableList(numberOfChannels) { 0 }
+        mutableListOf<Int>()
 
     init {
 
-        repeat(numberOfChannels) {
+        ajustarQuantidadeCanais(
+            numberOfChannels
+        )
 
-            channels += ChannelState(channel = it)
+    }
+
+    /**
+     * Ajusta a quantidade de canais do mixer.
+     *
+     * O limite permitido é de 5 a 16 canais.
+     *
+     * Quando canais são adicionados, eles recebem
+     * uma configuração padrão.
+     *
+     * Quando canais são removidos, somente os canais
+     * excedentes são descartados.
+     */
+    fun ajustarQuantidadeCanais(
+        quantidade: Int
+    ) {
+
+        val novaQuantidade =
+            quantidade.coerceIn(
+                MIN_CHANNELS,
+                MAX_CHANNELS
+            )
+
+        while (channels.size < novaQuantidade) {
+
+            channels += ChannelState(
+                channel = channels.size
+            )
+
+            masterOffsets.add(0)
+
+        }
+
+        while (channels.size > novaQuantidade) {
+
+            channels.removeAt(
+                channels.lastIndex
+            )
+
+            if (masterOffsets.isNotEmpty()) {
+
+                masterOffsets.removeAt(
+                    masterOffsets.lastIndex
+                )
+
+            }
 
         }
 
     }
 
-    fun getChannel(index: Int): ChannelState {
+    fun getChannel(
+        index: Int
+    ): ChannelState {
 
         return channels[index]
 
     }
 
-    fun usaSoundFont(id: Int): Boolean {
+    fun usaSoundFont(
+        id: Int
+    ): Boolean {
 
         return channels.any {
 
@@ -115,16 +161,19 @@ class MixerState(
         masterVolume: Int
     ): Int {
 
-        if (!channel1AsMaster)
-            return channels[canal].volume
-
         if (canal !in channels.indices)
             return 0
+
+        if (!channel1AsMaster)
+            return channels[canal].volume
 
         return (
                 masterVolume +
                         masterOffsets[canal]
-                ).coerceIn(0, 127)
+                ).coerceIn(
+                0,
+                127
+            )
 
     }
 
@@ -133,7 +182,9 @@ class MixerState(
      *
      * Útil para depuração e testes.
      */
-    fun getMasterOffset(canal: Int): Int {
+    fun getMasterOffset(
+        canal: Int
+    ): Int {
 
         if (canal !in masterOffsets.indices)
             return 0
@@ -144,6 +195,9 @@ class MixerState(
 
     /**
      * Exporta o estado atual do mixer para uma configuração.
+     *
+     * A quantidade de canais é determinada pelo tamanho
+     * da própria lista.
      */
     fun exportarConfiguracao(): MixerConfiguration {
 
@@ -161,27 +215,34 @@ class MixerState(
 
         return MixerConfiguration(
 
-            channels = channels.map { channel ->
+            channels =
+                channels.map { channel ->
 
-                ChannelConfiguration(
+                    ChannelConfiguration(
 
-                    enabled = true,
+                        enabled = true,
 
-                    soundFontId = channel.soundFontId,
+                        soundFontId =
+                            channel.soundFontId,
 
-                    bank = channel.bankMsb,
+                        bank =
+                            channel.bankMsb,
 
-                    program = channel.program,
+                        program =
+                            channel.program,
 
-                    volume = channel.volume,
+                        volume =
+                            channel.volume,
 
-                    mute = channel.muted
+                        mute =
+                            channel.muted
 
-                )
+                    )
 
-            }.toMutableList(),
+                }.toMutableList(),
 
-            channel1AsMaster = channel1AsMaster
+            channel1AsMaster =
+                channel1AsMaster
 
         )
 
@@ -189,6 +250,9 @@ class MixerState(
 
     /**
      * Aplica uma configuração ao estado do mixer.
+     *
+     * A quantidade de canais da configuração passa a ser
+     * a quantidade de canais do mixer.
      *
      * Nesta etapa apenas atualiza o estado interno.
      * A sincronização com o FluidSynth será feita
@@ -198,18 +262,28 @@ class MixerState(
         configuracao: MixerConfiguration
     ) {
 
+        ajustarQuantidadeCanais(
+            configuracao.channels.size
+        )
+
         channel1AsMaster =
             configuracao.channel1AsMaster
 
-        configuracao.channels.forEachIndexed { index, channelConfig ->
+        configuracao.channels.forEachIndexed {
+                index,
+                channelConfig ->
 
             if (index >= channels.size)
                 return@forEachIndexed
 
-            val channel = channels[index]
+            val channel =
+                channels[index]
 
-            channel.volume = channelConfig.volume
-            channel.muted = channelConfig.mute
+            channel.volume =
+                channelConfig.volume
+
+            channel.muted =
+                channelConfig.mute
 
             channel.soundFontId =
                 channelConfig.soundFontId
@@ -227,10 +301,10 @@ class MixerState(
         }
 
         /*
- * Se a sessão foi salva com o Master ativo,
- * reconstruímos os offsets a partir dos volumes
- * restaurados.
- */
+         * Se a sessão foi salva com o Master ativo,
+         * reconstruímos os offsets a partir dos volumes
+         * restaurados.
+         */
         if (channel1AsMaster) {
 
             ativarMaster()

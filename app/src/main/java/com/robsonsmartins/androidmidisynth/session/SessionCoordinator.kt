@@ -1,10 +1,10 @@
 package com.robsonsmartins.androidmidisynth.session
 
+import android.util.Log
 import com.robsonsmartins.androidmidisynth.core.MixerState
-import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
-import android.util.Log
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 
 /**
  * Coordena a persistência da sessão do aplicativo.
@@ -15,11 +15,14 @@ import android.util.Log
  */
 class SessionCoordinator(
 
-    private val sessionManager: SessionManager,
+    private val sessionManager:
+    SessionManager,
 
-    private val soundFontManager: SoundFontManager,
+    private val soundFontManager:
+    SoundFontManager,
 
-    private val mixerState: MixerState,
+    private val mixerState:
+    MixerState,
 
     private val restaurarCanal:
         (Int, SoundFontInfo, PresetInfo) -> Unit,
@@ -27,14 +30,18 @@ class SessionCoordinator(
     private val restaurarVolume:
         (Int, Int, Boolean) -> Unit
 
-){
+) {
 
     fun salvar() {
+
         Log.d(
             "SessionCoordinator",
-            "MixerState = ${System.identityHashCode(mixerState)}"
+            "MixerState = " +
+                    "${System.identityHashCode(mixerState)}"
         )
-        val session = SessionState()
+
+        val session =
+            SessionState()
 
         //------------------------------------------------------
         // Biblioteca de SoundFonts
@@ -46,13 +53,17 @@ class SessionCoordinator(
 
                 SessionSoundFont(
 
-                    id = soundFont.id,
+                    id =
+                        soundFont.id,
 
-                    nome = soundFont.nome,
+                    nome =
+                        soundFont.nome,
 
-                    arquivo = soundFont.getArquivo().name,
+                    arquivo =
+                        soundFont.getArquivo().name,
 
-                    carregada = soundFont.carregada
+                    carregada =
+                        soundFont.carregada
 
                 )
 
@@ -69,13 +80,16 @@ class SessionCoordinator(
 
         //------------------------------------------------------
 
-        sessionManager.salvar(session)
+        sessionManager.salvar(
+            session
+        )
 
     }
 
     fun restaurar() {
 
-        val session = sessionManager.carregar()
+        val session =
+            sessionManager.carregar()
 
         soundFontManager.aplicarSessao(
             session.soundFonts
@@ -83,6 +97,10 @@ class SessionCoordinator(
 
         soundFontManager.sincronizarBiblioteca()
 
+        /*
+         * MixerState ajusta automaticamente sua quantidade
+         * de canais de acordo com a quantidade salva na sessão.
+         */
         mixerState.aplicarConfiguracao(
             session.mixer
         )
@@ -91,7 +109,9 @@ class SessionCoordinator(
 
     fun restaurarInstrumentos() {
 
-        mixerState.channels.forEachIndexed { index, channel ->
+        mixerState.channels.forEachIndexed {
+                index,
+                channel ->
 
             if (channel.soundFontId < 0)
                 return@forEachIndexed
@@ -111,6 +131,7 @@ class SessionCoordinator(
                 )
 
                 return@forEachIndexed
+
             }
 
             restaurarCanal(
@@ -122,8 +143,8 @@ class SessionCoordinator(
         }
 
         //------------------------------------------------------
-// Reaplica volumes e mute
-//------------------------------------------------------
+        // Reaplica volumes e mute
+        //------------------------------------------------------
 
         mixerState.channels.forEach { channel ->
 
@@ -136,7 +157,9 @@ class SessionCoordinator(
                 channel.muted
 
             )
+
         }
+
     }
 
 }
