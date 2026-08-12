@@ -35,94 +35,179 @@ data class MidiChannel(
 
 )
 
-class MidiMixer(numberOfChannels: Int = 5) {
+class MidiMixer(
+    numberOfChannels: Int = 16
+) {
 
-    private val channels = MutableList(numberOfChannels) { index ->
-        MidiChannel(channel = index)
-    }
+    private val channels =
+        MutableList(numberOfChannels) { index ->
+
+            MidiChannel(
+                channel = index
+            )
+
+        }
 
     // ============================================================================
     // Validação
     // ============================================================================
 
-    private fun requireChannel(channel: Int) {
-        require(channel in channels.indices) {
+    private fun requireChannel(
+        channel: Int
+    ) {
+
+        require(
+            channel in channels.indices
+        ) {
+
             "Canal MIDI inválido: $channel"
+
         }
+
     }
 
     // ============================================================================
     // Consulta
     // ============================================================================
 
-    fun getChannel(channel: Int): MidiChannel {
+    fun getChannel(
+        channel: Int
+    ): MidiChannel {
+
         requireChannel(channel)
+
         return channels[channel]
+
     }
 
-    fun getVolume(channel: Int): Int {
+    fun getVolume(
+        channel: Int
+    ): Int {
+
         requireChannel(channel)
+
         return channels[channel].volume
+
     }
 
-    fun getProgram(channel: Int): Int {
+    fun getProgram(
+        channel: Int
+    ): Int {
+
         requireChannel(channel)
+
         return channels[channel].program
+
     }
 
-    fun getPreset(channel: Int): PresetInfo? {
+    fun getPreset(
+        channel: Int
+    ): PresetInfo? {
+
         requireChannel(channel)
+
         return channels[channel].preset
+
     }
 
-    fun getSoundFont(channel: Int): SoundFontInfo? {
+    fun getSoundFont(
+        channel: Int
+    ): SoundFontInfo? {
+
         requireChannel(channel)
+
         return channels[channel].soundFont
+
     }
 
-    fun isMuted(channel: Int): Boolean {
+    fun isMuted(
+        channel: Int
+    ): Boolean {
+
         requireChannel(channel)
+
         return channels[channel].muted
+
     }
 
     // ============================================================================
     // Alterações
     // ============================================================================
 
-    fun setVolume(channel: Int, volume: Int) {
+    fun setVolume(
+        channel: Int,
+        volume: Int
+    ) {
+
         requireChannel(channel)
-        channels[channel].volume = volume.coerceIn(0, 127)
+
+        channels[channel].volume =
+            volume.coerceIn(
+                0,
+                127
+            )
+
     }
 
-    fun setProgram(channel: Int, program: Int) {
+    fun setProgram(
+        channel: Int,
+        program: Int
+    ) {
+
         requireChannel(channel)
-        channels[channel].program = program.coerceIn(0, 127)
+
+        channels[channel].program =
+            program.coerceIn(
+                0,
+                127
+            )
+
     }
 
     fun setPreset(
         channel: Int,
         preset: PresetInfo?
     ) {
+
         requireChannel(channel)
 
-        channels[channel].preset = preset
+        channels[channel].preset =
+            preset
 
         if (preset != null) {
-            channels[channel].bankMsb = preset.bank
-            channels[channel].program = preset.program
+
+            channels[channel].bankMsb =
+                preset.bank
+
+            channels[channel].program =
+                preset.program
+
         }
+
     }
 
     fun setSoundFont(
         channel: Int,
         soundFont: SoundFontInfo?
     ) {
+
         requireChannel(channel)
-        channels[channel].soundFont = soundFont
+
+        channels[channel].soundFont =
+            soundFont
+
     }
 
-    fun setMute(channel: Int, mute: Boolean) {
+    fun setMute(
+        channel: Int,
+        mute: Boolean
+    ) {
+
         requireChannel(channel)
-        channels[channel].muted = mute
+
+        channels[channel].muted =
+            mute
+
     }
+
 }

@@ -16,7 +16,8 @@ class MixerState(
 
     }
 
-    val channels = mutableStateListOf<ChannelState>()
+    val channels =
+        mutableStateListOf<ChannelState>()
 
     /**
      * Quando ativado, o canal 1 funciona como Master.
@@ -125,7 +126,9 @@ class MixerState(
         val volumeMaster =
             channels[0].volume
 
-        channels.forEachIndexed { index, channel ->
+        channels.forEachIndexed {
+                index,
+                channel ->
 
             masterOffsets[index] =
                 channel.volume - volumeMaster
@@ -201,14 +204,17 @@ class MixerState(
      */
     fun exportarConfiguracao(): MixerConfiguration {
 
-        channels.forEachIndexed { index, channel ->
+        channels.forEachIndexed {
+                index,
+                channel ->
 
             Log.d(
                 "MixerState",
                 "Exportando canal $index " +
                         "SF=${channel.soundFontId} " +
                         "Program=${channel.program} " +
-                        "Volume=${channel.volume}"
+                        "Volume=${channel.volume} " +
+                        "Controle=${channel.controlSource}"
             )
 
         }
@@ -235,7 +241,10 @@ class MixerState(
                             channel.volume,
 
                         mute =
-                            channel.muted
+                            channel.muted,
+
+                        controlSource =
+                            channel.controlSource
 
                     )
 
@@ -293,6 +302,9 @@ class MixerState(
 
             channel.program =
                 channelConfig.program
+
+            channel.controlSource =
+                channelConfig.controlSource
 
             // A SoundFont e o Preset serão restaurados
             // posteriormente, após todas as SoundFonts

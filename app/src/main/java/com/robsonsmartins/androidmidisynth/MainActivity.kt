@@ -132,6 +132,10 @@ class MainActivity : ComponentActivity() {
             Log.d(TAG, "Callback MIDI: $mensagem")
         }
 
+        viewModel.setMidiManager(
+            midiManager
+        )
+
         configurationSynchronizer =
             ConfigurationSynchronizer(midiManager)
 

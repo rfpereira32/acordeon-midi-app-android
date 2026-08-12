@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
@@ -73,6 +72,10 @@ fun MixerScreenContent(
     }
 
     var exibirInstrumentPicker by remember {
+        mutableStateOf(false)
+    }
+
+    var exibirControlSourcePicker by remember {
         mutableStateOf(false)
     }
 
@@ -360,6 +363,16 @@ fun MixerScreenContent(
 
                                     },
 
+                                    onControlSourceClick = {
+
+                                        canalSelecionado =
+                                            index
+
+                                        exibirControlSourcePicker =
+                                            true
+
+                                    },
+
                                     onInstrumentClick = {
 
                                         canalSelecionado =
@@ -593,6 +606,45 @@ fun MixerScreenContent(
 
     }
 
+    // ========================================================================
+    // PICKER DO CONTROLE DO ACORDEÃO
+    // ========================================================================
+
+    if (exibirControlSourcePicker) {
+
+        ControlSourceDialog(
+
+            canal =
+                canalSelecionado,
+
+            controlSource =
+                viewModel.getChannelControlSource(
+                    canalSelecionado
+                ),
+
+            onDismiss = {
+
+                exibirControlSourcePicker =
+                    false
+
+            },
+
+            onControlSelected = { controlSource ->
+
+                viewModel.setChannelControlSource(
+                    canalSelecionado,
+                    controlSource
+                )
+
+                exibirControlSourcePicker =
+                    false
+
+            }
+
+        )
+
+    }
+
 }
 
 
@@ -723,6 +775,130 @@ private fun BotaoNavegacao(
         }
 
     }
+
+}
+
+
+// =============================================================================
+// DIÁLOGO DE SELEÇÃO DO CONTROLE DO ACORDEÃO
+// =============================================================================
+
+@Composable
+private fun ControlSourceDialog(
+    canal: Int,
+    controlSource: Int,
+    onDismiss: () -> Unit,
+    onControlSelected: (Int) -> Unit
+) {
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+
+        containerColor = ColorCardBg,
+
+        title = {
+
+            Text(
+                text =
+                    "Controle do canal ${canal + 1}",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+        },
+
+        text = {
+
+            Column(
+                verticalArrangement =
+                    Arrangement.spacedBy(4.dp)
+            ) {
+
+                (1..3).forEach { controle ->
+
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+
+                                    onControlSelected(
+                                        controle
+                                    )
+
+                                }
+                                .padding(
+                                    vertical = 8.dp,
+                                    horizontal = 4.dp
+                                ),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        RadioButton(
+                            selected =
+                                controlSource ==
+                                        controle,
+
+                            onClick = {
+
+                                onControlSelected(
+                                    controle
+                                )
+
+                            },
+
+                            colors =
+                                RadioButtonDefaults.colors(
+                                    selectedColor =
+                                        ColorChannel2,
+                                    unselectedColor =
+                                        Color.Gray
+                                )
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(8.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Controle $controle",
+                            color =
+                                Color.White,
+                            fontSize = 15.sp
+                        )
+
+                    }
+
+                }
+
+            }
+
+        },
+
+        confirmButton = {
+
+            TextButton(
+                onClick = onDismiss
+            ) {
+
+                Text(
+                    text = "Cancelar",
+                    color = Color.LightGray
+                )
+
+            }
+
+        }
+
+    )
 
 }
 
@@ -966,7 +1142,8 @@ private fun SoundFontListItem(
 
             Column(
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier
+                        .weight(1f)
                         .clickable {
 
                             viewModel
@@ -1931,6 +2108,7 @@ fun MonitorScreenContent(
 
 }
 
+
 // =============================================================================
 // LINHA DE CANAL
 // =============================================================================
@@ -1951,6 +2129,9 @@ fun StaticChannelRow(
 
     onMasterChanged:
         (Boolean) -> Unit = {},
+
+    onControlSourceClick:
+        () -> Unit = {},
 
     onInstrumentClick:
     (() -> Unit)? = null,
@@ -2005,7 +2186,12 @@ fun StaticChannelRow(
                             topStart = 8.dp,
                             bottomStart = 8.dp
                         )
-                    ),
+                    )
+                    .clickable {
+
+                        onControlSourceClick()
+
+                    },
 
             contentAlignment =
                 Alignment.Center

@@ -21,6 +21,16 @@ data class ChannelConfiguration(
 
     val volume: Int = 100,
 
-    val mute: Boolean = false
+    val mute: Boolean = false,
+
+    /**
+     * Define qual controle de notas enviado pelo ESP32
+     * controla este canal.
+     *
+     * 1 = Controle 1
+     * 2 = Controle 2
+     * 3 = Controle 3
+     */
+    val controlSource: Int = 1
 
 )

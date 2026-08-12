@@ -561,6 +561,40 @@ class MidiManager(
         onMidiMessageReceived(String(message).trim())
     }
 
-    private external fun startReadingMidi(receiveDevice: MidiDevice, portNumber: Int)
+    private external fun startReadingMidi(
+        receiveDevice: MidiDevice,
+        portNumber: Int
+    )
+
     private external fun stopReadingMidi()
+
+    /**
+     * Define qual controle do acordeão controla
+     * determinado canal MIDI do sintetizador.
+     *
+     * canal: índice MIDI 0..15
+     * controle: 1..3
+     */
+    fun setControlSource(
+        canal: Int,
+        controle: Int
+    ) {
+
+        if (canal !in 0..15)
+            return
+
+        if (controle !in 1..3)
+            return
+
+        setNativeControlSource(
+            canal,
+            controle
+        )
+
+    }
+
+    private external fun setNativeControlSource(
+        canal: Int,
+        controle: Int
+    )
 }

@@ -30,6 +30,26 @@ class ChannelState(
     var soundFontId by mutableIntStateOf(-1)
 
     /**
+     * Controle de notas do acordeão que controla este canal.
+     *
+     * 1 = Controle 1
+     * 2 = Controle 2
+     * 3 = Controle 3
+     *
+     * Padrão:
+     * - canais 1, 4, 5 e superiores → Controle 1
+     * - canal 2 → Controle 2
+     * - canal 3 → Controle 3
+     */
+    var controlSource by mutableIntStateOf(
+        when (channel) {
+            1 -> 2
+            2 -> 3
+            else -> 1
+        }
+    )
+
+    /**
      * Instrumento atualmente selecionado.
      */
     var preset by mutableStateOf<PresetInfo?>(null)

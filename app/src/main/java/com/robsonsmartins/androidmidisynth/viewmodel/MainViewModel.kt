@@ -19,6 +19,7 @@ import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
 import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
+import com.robsonsmartins.androidmidisynth.MidiManager
 
 class MainViewModel : ViewModel() {
 
@@ -31,6 +32,9 @@ class MainViewModel : ViewModel() {
 
     private lateinit var sessionCoordinator:
             SessionCoordinator
+
+    private lateinit var midiManager:
+            MidiManager
 
     fun setSoundFontManager(
         manager: SoundFontManager
@@ -63,6 +67,44 @@ class MainViewModel : ViewModel() {
 
         sessionCoordinator =
             coordinator
+
+    }
+
+    fun setMidiManager(
+        manager: MidiManager
+    ) {
+
+        midiManager = manager
+
+        sincronizarControlSources()
+
+    }
+
+    /**
+     * Envia para o código nativo a configuração atual
+     * de controle de todos os canais.
+     *
+     * Cada canal MIDI Android pode responder a um
+     * dos três controles enviados pelo ESP32.
+     */
+    private fun sincronizarControlSources() {
+
+        if (
+            !::midiManager.isInitialized
+        ) {
+
+            return
+
+        }
+
+        mixerState.channels.forEach { channel ->
+
+            midiManager.setControlSource(
+                channel.channel,
+                channel.controlSource
+            )
+
+        }
 
     }
 
@@ -123,6 +165,103 @@ class MainViewModel : ViewModel() {
         mixerState.ajustarQuantidadeCanais(
             novaQuantidade
         )
+
+        salvarSessao()
+
+    }
+
+    // =============================================================================
+    // Controle do acordeão
+    // =============================================================================
+
+    /**
+     * Retorna qual controle do acordeão controla
+     * determinado canal.
+     *
+     * O valor retornado é:
+     *
+     * 1 = Controle 1
+     * 2 = Controle 2
+     * 3 = Controle 3
+     */
+    fun getChannelControlSource(
+        channel: Int
+    ): Int {
+
+        if (
+            channel !in
+            mixerState.channels.indices
+        ) {
+
+            return 1
+
+        }
+
+        return mixerState
+            .getChannel(channel)
+            .controlSource
+
+    }
+
+    /**
+     * Define qual controle do acordeão controla
+     * determinado canal.
+     *
+     * O valor deve estar entre 1 e 3.
+     */
+    fun setChannelControlSource(
+        channel: Int,
+        controlSource: Int
+    ) {
+
+        if (
+            channel !in
+            mixerState.channels.indices
+        ) {
+
+            return
+
+        }
+
+        val novoControle =
+            controlSource.coerceIn(
+                1,
+                3
+            )
+
+        val channelState =
+            mixerState.getChannel(
+                channel
+            )
+
+        if (
+            channelState.controlSource ==
+            novoControle
+        ) {
+
+            return
+
+        }
+
+        channelState.controlSource =
+            novoControle
+
+        Log.d(
+            "MainViewModel",
+            "Canal $channel " +
+                    "controlSource=$novoControle"
+        )
+
+        if (
+            ::midiManager.isInitialized
+        ) {
+
+            midiManager.setControlSource(
+                channel,
+                novoControle
+            )
+
+        }
 
         salvarSessao()
 
