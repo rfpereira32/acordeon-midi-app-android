@@ -30,6 +30,7 @@ data class ChannelConfiguration(
      * 1 = Controle 1
      * 2 = Controle 2
      * 3 = Controle 3
+     * 4 = Controles 2 + 3
      */
     val controlSource: Int = 1
 

@@ -814,7 +814,7 @@ private fun ControlSourceDialog(
                     Arrangement.spacedBy(4.dp)
             ) {
 
-                (1..3).forEach { controle ->
+                (1..4).forEach { controle ->
 
                     Row(
                         modifier =
@@ -868,12 +868,17 @@ private fun ControlSourceDialog(
 
                         Text(
                             text =
-                                "Controle $controle",
+                                when (controle) {
+                                    1 -> "Controle 1"
+                                    2 -> "Controle 2"
+                                    3 -> "Controle 3"
+                                    4 -> "Controles 2 + 3"
+                                    else -> "Controle $controle"
+                                },
                             color =
                                 Color.White,
                             fontSize = 15.sp
                         )
-
                     }
 
                 }

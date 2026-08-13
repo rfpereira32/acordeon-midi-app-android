@@ -40,6 +40,7 @@
 #include "MidiSpec.h"
 #include "MidiManager.h"
 #include "SynthManager.h"
+#include <android/log.h>
 
 /* @brief Buffer size to receive data from MIDI, in bytes. */
 static const size_t kMidiMaxBytesToReceive = 128;
@@ -67,11 +68,12 @@ jmethodID MidiManager::callback = nullptr;
  * 1 = Controle 1
  * 2 = Controle 2
  * 3 = Controle 3
+ * 4 = Controle 2 + Controle 3
  *
  * Todos começam associados ao Controle 1.
  */
 std::array<uint8_t, 16> MidiManager::controlSources = {
-        1, 1, 1, 1,
+        1, 2, 3, 1,
         1, 1, 1, 1,
         1, 1, 1, 1,
         1, 1, 1, 1
@@ -220,7 +222,7 @@ void MidiManager::setControlSource(
 
     if (
             controlSource < 1 ||
-            controlSource > 3
+            controlSource > 4
             ) {
         return;
     }
@@ -229,7 +231,13 @@ void MidiManager::setControlSource(
             static_cast<uint8_t>(
                     controlSource
             );
-
+    __android_log_print(
+            ANDROID_LOG_DEBUG,
+            "MidiManager",
+            "setControlSource: canal=%d controle=%d",
+            channel + 1,
+            controlSource
+    );
 }
 
 // -----------------------------------------------------------------------------------------------
@@ -302,8 +310,7 @@ void MidiManager::parseMidiData(
              * em todos os canais que estavam respondendo
              * ao controle no momento do Note On.
              *
-             * Isso é importante porque uma única nota pode ter
-             * sido enviada para vários canais.
+             * Controle 4 responde aos controles 2 e 3.
              */
             if (!sustain) {
 
@@ -316,6 +323,16 @@ void MidiManager::parseMidiData(
                     if (
                             controlSources[channel]
                             == controlSource
+                            ||
+                            (
+                                    controlSources[channel] == 4
+                                    &&
+                                    (
+                                            controlSource == 2
+                                            ||
+                                            controlSource == 3
+                                    )
+                            )
                             ) {
 
                         synthManager->noteOff(
@@ -369,6 +386,16 @@ void MidiManager::parseMidiData(
                         if (
                                 controlSources[channel]
                                 == controlSource
+                                ||
+                                (
+                                        controlSources[channel] == 4
+                                        &&
+                                        (
+                                                controlSource == 2
+                                                ||
+                                                controlSource == 3
+                                        )
+                                )
                                 ) {
 
                             synthManager->noteOff(
@@ -412,10 +439,13 @@ void MidiManager::parseMidiData(
                     note
             );
 
-/*
- * A nota recebida do ESP é enviada para todos
- * os canais Android associados ao controle.
- */
+            /*
+             * A nota recebida do ESP é enviada para todos
+             * os canais Android associados ao controle.
+             *
+             * Controle 4 responde tanto ao Controle 2
+             * quanto ao Controle 3.
+             */
             for (
                     int channel = 0;
                     channel < 16;
@@ -425,6 +455,16 @@ void MidiManager::parseMidiData(
                 if (
                         controlSources[channel]
                         == controlSource
+                        ||
+                        (
+                                controlSources[channel] == 4
+                                &&
+                                (
+                                        controlSource == 2
+                                        ||
+                                        controlSource == 3
+                                )
+                        )
                         ) {
 
                     synthManager->noteOn(
@@ -907,7 +947,7 @@ extern "C" {
  * @brief Native implementation of MidiManager.startReadingMidi() method.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_MidiManager_startReadingMidi(
+Java_com_robsonsmartins_androidmidisynth_MidiManager_startReadingMidi(
         JNIEnv* env,
         jobject midiManagerObj,
         jobject midiDeviceObj,
@@ -929,7 +969,7 @@ Java_com_robsonmartins_androidmidisynth_MidiManager_startReadingMidi(
  * @brief Native implementation of MidiManager.stopReadingMidi() method.
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_MidiManager_stopReadingMidi(
+Java_com_robsonsmartins_androidmidisynth_MidiManager_stopReadingMidi(
         JNIEnv*,
         jobject
 ) {
@@ -942,7 +982,7 @@ Java_com_robsonmartins_androidmidisynth_MidiManager_stopReadingMidi(
  * @brief Native implementation of MidiManager.setNativeControlSource().
  */
 JNIEXPORT void JNICALL
-Java_com_robsonmartins_androidmidisynth_MidiManager_setNativeControlSource(
+Java_com_robsonsmartins_androidmidisynth_MidiManager_setNativeControlSource(
         JNIEnv*,
         jobject,
         jint channel,
@@ -1004,7 +1044,7 @@ JNI_OnLoad(
                     "startReadingMidi",
                     "(Landroid/media/midi/MidiDevice;I)V",
                     reinterpret_cast<void*>(
-                            Java_com_robsonmartins_androidmidisynth_MidiManager_startReadingMidi
+                            Java_com_robsonsmartins_androidmidisynth_MidiManager_startReadingMidi
                     )
             },
 
@@ -1012,7 +1052,7 @@ JNI_OnLoad(
                     "stopReadingMidi",
                     "()V",
                     reinterpret_cast<void*>(
-                            Java_com_robsonmartins_androidmidisynth_MidiManager_stopReadingMidi
+                            Java_com_robsonsmartins_androidmidisynth_MidiManager_stopReadingMidi
                     )
             },
 
@@ -1020,7 +1060,7 @@ JNI_OnLoad(
                     "setNativeControlSource",
                     "(II)V",
                     reinterpret_cast<void*>(
-                            Java_com_robsonmartins_androidmidisynth_MidiManager_setNativeControlSource
+                            Java_com_robsonsmartins_androidmidisynth_MidiManager_setNativeControlSource
                     )
             }
 

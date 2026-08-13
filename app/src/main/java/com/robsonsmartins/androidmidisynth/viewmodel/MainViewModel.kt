@@ -84,8 +84,12 @@ class MainViewModel : ViewModel() {
      * Envia para o código nativo a configuração atual
      * de controle de todos os canais.
      *
-     * Cada canal MIDI Android pode responder a um
-     * dos três controles enviados pelo ESP32.
+     * Cada canal MIDI Android pode responder a:
+     *
+     * 1 = Controle 1
+     * 2 = Controle 2
+     * 3 = Controle 3
+     * 4 = Controles 2 + 3
      */
     private fun sincronizarControlSources() {
 
@@ -205,6 +209,7 @@ class MainViewModel : ViewModel() {
      * 1 = Controle 1
      * 2 = Controle 2
      * 3 = Controle 3
+     * 4 = Controles 2 + 3
      */
     fun getChannelControlSource(
         channel: Int
@@ -229,7 +234,12 @@ class MainViewModel : ViewModel() {
      * Define qual controle do acordeão controla
      * determinado canal.
      *
-     * O valor deve estar entre 1 e 3.
+     * O valor deve estar entre 1 e 4.
+     *
+     * 1 = Controle 1
+     * 2 = Controle 2
+     * 3 = Controle 3
+     * 4 = Controles 2 + 3
      */
     fun setChannelControlSource(
         channel: Int,
@@ -248,7 +258,7 @@ class MainViewModel : ViewModel() {
         val novoControle =
             controlSource.coerceIn(
                 1,
-                3
+                4
             )
 
         val channelState =
