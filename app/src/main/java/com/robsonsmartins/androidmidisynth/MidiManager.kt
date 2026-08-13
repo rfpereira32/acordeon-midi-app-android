@@ -558,7 +558,35 @@ class MidiManager(
 
     @androidx.annotation.Keep
     private fun onNativeMessageReceive(message: ByteArray) {
-        onMidiMessageReceived(String(message).trim())
+
+        /*
+         * Mensagem de 1 byte enviada pelo código nativo:
+         * representa o canal MIDI que recebeu atividade.
+         */
+        if (message.size == 1) {
+
+            val canal = message[0].toInt() and 0xFF
+
+            if (canal in 0..15) {
+
+                onMidiMessageReceived(
+                    "CHANNEL_ACTIVITY:$canal"
+                )
+
+                return
+
+            }
+
+        }
+
+        /*
+         * Mantém o tratamento das mensagens de texto
+         * já existente.
+         */
+        onMidiMessageReceived(
+            String(message).trim()
+        )
+
     }
 
     private external fun startReadingMidi(

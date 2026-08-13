@@ -332,8 +332,7 @@ fun MixerScreenContent(
                                     isMuted =
                                         canal.muted,
 
-                                    isIndicatorOn =
-                                        false,
+                                    isIndicatorOn = canal.led,
 
                                     sliderEnabled =
                                         if (index == 0)

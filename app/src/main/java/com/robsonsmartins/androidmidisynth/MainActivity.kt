@@ -129,7 +129,26 @@ class MainActivity : ComponentActivity() {
         // ==============================================================================
         // Inicialização limpa e original do seu driver MIDI
         midiManager = MidiManager(this) { mensagem: String ->
+
             Log.d(TAG, "Callback MIDI: $mensagem")
+
+            if (mensagem.startsWith("CHANNEL_ACTIVITY:")) {
+
+                val canal =
+                    mensagem
+                        .removePrefix("CHANNEL_ACTIVITY:")
+                        .toIntOrNull()
+
+                if (canal != null) {
+
+                    viewModel.ativarLedCanal(
+                        canal
+                    )
+
+                }
+
+            }
+
         }
 
         viewModel.setMidiManager(

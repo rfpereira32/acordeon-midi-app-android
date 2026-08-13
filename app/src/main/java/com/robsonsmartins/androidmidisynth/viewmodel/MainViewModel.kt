@@ -111,6 +111,28 @@ class MainViewModel : ViewModel() {
     // =============================================================================
     // Mixer
     // =============================================================================
+    fun ativarLedCanal(
+        canal: Int
+    ) {
+
+        if (canal !in mixerState.channels.indices)
+            return
+
+        val channel =
+            mixerState.getChannel(canal)
+
+        channel.led = true
+
+        // Desliga o LED após um pequeno intervalo.
+        android.os.Handler(
+            android.os.Looper.getMainLooper()
+        ).postDelayed({
+
+            channel.led = false
+
+        }, 100)
+
+    }
 
     private val midiMixer =
         MidiMixer()
@@ -818,7 +840,45 @@ class MainViewModel : ViewModel() {
         id: Int
     ) {
 
-        soundFontManager.descarregar(id)
+        val soundFont =
+            soundFontManager.getSoundFont(id)
+                ?: return
+
+        /*
+         * Antes de descarregar a SoundFont, limpa
+         * o instrumento de todos os canais que a utilizam.
+         */
+        mixerState.channels.forEach { channel ->
+
+            if (channel.soundFontId == id) {
+
+                channel.soundFont = null
+                channel.preset = null
+                channel.soundFontId = -1
+                channel.bankMsb = 0
+                channel.bankLsb = 0
+                channel.program = 0
+
+                /*
+                 * Mantém o estado paralelo do MidiMixer
+                 * sincronizado com o ChannelState.
+                 */
+                val midiChannel =
+                    midiMixer.getChannel(
+                        channel.channel
+                    )
+
+                midiChannel.soundFont = null
+                midiChannel.preset = null
+                midiChannel.bankMsb = 0
+                midiChannel.bankLsb = 0
+                midiChannel.program = 0
+            }
+        }
+
+        soundFontManager.descarregar(
+            id
+        )
 
         salvarSessao()
 
@@ -828,9 +888,21 @@ class MainViewModel : ViewModel() {
         id: Int
     ) {
 
-        soundFontManager.alternar(id)
+        val soundFont =
+            soundFontManager.getSoundFont(id)
+                ?: return
 
-        salvarSessao()
+        if (soundFont.carregada) {
+
+            // Usa o método que também limpa os canais
+            // que utilizavam esta SoundFont.
+            descarregarSoundFont(id)
+
+        } else {
+
+            carregarSoundFont(id)
+
+        }
 
     }
 

@@ -412,10 +412,10 @@ void MidiManager::parseMidiData(
                     note
             );
 
-            /*
-             * A nota recebida do ESP é enviada para todos
-             * os canais Android associados ao controle.
-             */
+/*
+ * A nota recebida do ESP é enviada para todos
+ * os canais Android associados ao controle.
+ */
             for (
                     int channel = 0;
                     channel < 16;
@@ -431,6 +431,21 @@ void MidiManager::parseMidiData(
                             channel,
                             note,
                             velocity
+                    );
+
+                    /*
+                     * Informa ao Android que este canal
+                     * recebeu atividade MIDI.
+                     *
+                     * O canal é enviado como um único byte,
+                     * evitando criar mensagens de texto.
+                     */
+                    uint8_t activityMessage =
+                            static_cast<uint8_t>(channel);
+
+                    sendToCallback(
+                            &activityMessage,
+                            1
                     );
 
                 }
