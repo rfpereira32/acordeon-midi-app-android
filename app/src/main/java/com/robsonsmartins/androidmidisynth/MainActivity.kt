@@ -21,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
 import com.robsonsmartins.androidmidisynth.session.SessionManager
+import android.bluetooth.BluetoothManager
+import android.content.Intent
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
     start()
@@ -163,8 +165,10 @@ class MainActivity : ComponentActivity() {
         )
 
 
-        midiManager.iniciarEscaneamentoAutomatico()
-        viewModel.dispositivosMidi = midiManager.listarDispositivosDisponiveis(this)
+        verificarBluetoothEIniciarMidi()
+
+        viewModel.dispositivosMidi =
+            midiManager.listarDispositivosDisponiveis(this)
 
         val sistemaMidi = getSystemService(Context.MIDI_SERVICE) as android.media.midi.MidiManager
         sistemaMidi.registerDeviceCallback(object : android.media.midi.MidiManager.DeviceCallback() {
@@ -219,6 +223,55 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun verificarBluetoothEIniciarMidi() {
+
+        val bluetoothManager =
+            getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+
+        val bluetoothAdapter =
+            bluetoothManager.adapter
+
+        if (bluetoothAdapter == null) {
+
+            Log.d(
+                TAG,
+                "Bluetooth não disponível neste dispositivo"
+            )
+
+            return
+
+        }
+
+        if (!bluetoothAdapter.isEnabled) {
+
+            Log.d(
+                TAG,
+                "Bluetooth desligado. Solicitando ativação."
+            )
+
+            val intent =
+                Intent(
+                    android.bluetooth.BluetoothAdapter.ACTION_REQUEST_ENABLE
+                )
+
+            startActivityForResult(
+                intent,
+                102
+            )
+
+            return
+
+        }
+
+        Log.d(
+            TAG,
+            "Bluetooth ligado. Iniciando escaneamento MIDI."
+        )
+
+        midiManager.iniciarEscaneamentoAutomatico()
+
     }
 
     private fun atualizarVolumeInternoFluidSynth(canal: Int, volume: Int) {
@@ -289,9 +342,37 @@ class MainActivity : ComponentActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 101 && ::midiManager.isInitialized) {
-            midiManager.iniciarEscaneamentoAutomatico()
+        if (
+            requestCode == 101 &&
+            ::midiManager.isInitialized
+        ) {
+
+            verificarBluetoothEIniciarMidi()
+
         }
+    }
+
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?
+    ) {
+
+        super.onActivityResult(
+            requestCode,
+            resultCode,
+            data
+        )
+
+        if (
+            requestCode == 102 &&
+            ::midiManager.isInitialized
+        ) {
+
+            verificarBluetoothEIniciarMidi()
+
+        }
+
     }
 
     override fun onDestroy() {
