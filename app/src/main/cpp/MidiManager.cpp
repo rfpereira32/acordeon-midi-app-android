@@ -288,7 +288,16 @@ void MidiManager::parseMidiData(
                 midiChannel + 1;
 
     }
-
+    __android_log_print(
+            ANDROID_LOG_DEBUG,
+            "MidiManager",
+            "NOTA RX: status=0x%02X canalMIDI=%d nota=%d velocity=%d controle=%d",
+            status,
+            midiChannel + 1,
+            note,
+            velocity,
+            controlSource
+    );
     switch (
             (status & kMIDISysCmdChan) >> 4
             ) {

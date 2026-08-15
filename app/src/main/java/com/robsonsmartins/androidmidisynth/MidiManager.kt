@@ -601,7 +601,11 @@ class MidiManager(
      * determinado canal MIDI do sintetizador.
      *
      * canal: índice MIDI 0..15
-     * controle: 1..3
+     * controle:
+     * 1 = Controle 1
+     * 2 = Controle 2
+     * 3 = Controle 3
+     * 4 = Controles 2 + 3
      */
     fun setControlSource(
         canal: Int,
@@ -611,7 +615,7 @@ class MidiManager(
         if (canal !in 0..15)
             return
 
-        if (controle !in 1..3)
+        if (controle !in 1..4)
             return
 
         setNativeControlSource(
