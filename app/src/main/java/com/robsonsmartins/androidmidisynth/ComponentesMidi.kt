@@ -443,7 +443,10 @@ fun MixerScreenContent(
                 TelaMixer.PRESETS -> {
 
                     PresetsScreenContent(
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        onPresetCarregado = {
+                            telaAtual = TelaMixer.MIXER
+                        }
                     )
 
                 }
@@ -1221,7 +1224,8 @@ private fun SoundFontListItem(
 
 @Composable
 private fun PresetsScreenContent(
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    onPresetCarregado: () -> Unit
 ) {
 
     var mostrarDialogoSalvar by remember {
@@ -1232,22 +1236,48 @@ private fun PresetsScreenContent(
         mutableStateOf("")
     }
 
+    val snackbarHostState =
+        remember {
+            SnackbarHostState()
+        }
+
+    val coroutineScope =
+        rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+
+        viewModel.erroPreset?.let { mensagem ->
+
+            viewModel.limparErroPreset()
+
+            snackbarHostState.showSnackbar(
+                mensagem
+            )
+
+        }
+
+    }
+
     val presets =
         viewModel.listarPresets()
-
-    Column(
+    Box(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(
-                    rememberScrollState()
-                )
-                .padding(
-                    start = 8.dp,
-                    end = 8.dp,
-                    bottom = 12.dp
-                )
+            Modifier.fillMaxSize()
     ) {
+
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(
+                        rememberScrollState()
+                    )
+                    .padding(
+                        start = 8.dp,
+                        end = 8.dp,
+                        bottom = 12.dp
+                    )
+        ) {
 
         // =====================================================================
         // TÍTULO
@@ -1403,9 +1433,16 @@ private fun PresetsScreenContent(
                             .fillMaxWidth()
                             .clickable {
 
-                                viewModel.carregarPreset(
-                                    preset.nome
-                                )
+                                val carregado =
+                                    viewModel.carregarPreset(
+                                        preset.nome
+                                    )
+
+                                if (carregado) {
+
+                                    onPresetCarregado()
+
+                                }
 
                             },
 
@@ -1508,7 +1545,18 @@ private fun PresetsScreenContent(
             }
 
         }
+    }
+    SnackbarHost(
+        hostState =
+            snackbarHostState,
 
+        modifier =
+            Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    bottom = 16.dp
+                )
+    )
     }
 
     // =========================================================================

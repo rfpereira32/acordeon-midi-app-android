@@ -137,16 +137,56 @@ class SynthController(
      */
     fun carregarSoundFont(soundFont: SoundFontInfo) {
 
-        if (soundFont.sfid >= 0)
+        Log.d(
+            "SoundFontDebug",
+            "INICIO SynthController.carregarSoundFont"
+        )
+
+        Log.d(
+            "SoundFontDebug",
+            "SoundFont: id=${soundFont.id} " +
+                    "nome=${soundFont.nome} " +
+                    "sfid=${soundFont.sfid} " +
+                    "caminho=${soundFont.caminho}"
+        )
+
+        if (soundFont.sfid >= 0) {
+
+            Log.d(
+                "SoundFontDebug",
+                "SoundFont já possui sfid=${soundFont.sfid}"
+            )
+
             return
+        }
+
+        Log.d(
+            "SoundFontDebug",
+            "ANTES synth.loadSF"
+        )
 
         val sfid = synth.loadSF(
             soundFont.caminho
         )
 
+        Log.d(
+            "SoundFontDebug",
+            "DEPOIS synth.loadSF: sfid=$sfid"
+        )
+
         soundFont.sfid = sfid
 
+        Log.d(
+            "SoundFontDebug",
+            "ANTES synth.listPresets"
+        )
+
         val presets = synth.listPresets(sfid)
+
+        Log.d(
+            "SoundFontDebug",
+            "DEPOIS synth.listPresets: quantidade=${presets.size}"
+        )
 
         soundFont.presets.clear()
 
@@ -154,6 +194,10 @@ class SynthController(
 
         soundFont.quantidadePresets = presets.size
 
+        Log.d(
+            "SoundFontDebug",
+            "FIM SynthController.carregarSoundFont"
+        )
     }
 
     /**

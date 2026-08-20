@@ -161,15 +161,50 @@ class SoundFontManager(
 
     fun carregar(id: Int) {
 
+        Log.d(
+            "SoundFontDebug",
+            "INICIO carregar id=$id"
+        )
+
         val soundFont =
             soundFonts.find { it.id == id }
-                ?: return
+                ?: run {
 
-        if (!soundFont.carregada) {
-            soundFont.carregada = true
-        }
+                    Log.e(
+                        "SoundFontDebug",
+                        "SoundFont id=$id não encontrada"
+                    )
+
+                    return
+                }
+
+        Log.d(
+            "SoundFontDebug",
+            "SoundFont encontrada: " +
+                    "id=${soundFont.id} " +
+                    "nome=${soundFont.nome} " +
+                    "caminho=${soundFont.caminho} " +
+                    "carregada=${soundFont.carregada}"
+        )
+
+        Log.d(
+            "SoundFontDebug",
+            "ANTES synthController.carregarSoundFont"
+        )
 
         synthController.carregarSoundFont(soundFont)
+
+        Log.d(
+            "SoundFontDebug",
+            "DEPOIS synthController.carregarSoundFont"
+        )
+
+        soundFont.carregada = true
+
+        Log.d(
+            "SoundFontDebug",
+            "SoundFont marcada como carregada"
+        )
 
     }
 

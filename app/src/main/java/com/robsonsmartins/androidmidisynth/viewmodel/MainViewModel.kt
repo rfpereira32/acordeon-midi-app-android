@@ -907,7 +907,11 @@ class MainViewModel : ViewModel() {
     fun carregarPreset(
         nome: String
     ): Boolean {
-
+        erroPreset = null
+        Log.d(
+            "PresetDebug",
+            "INICIO carregarPreset nome=$nome"
+        )
         if (
             !::presetManager.isInitialized
         ) {
@@ -921,11 +925,42 @@ class MainViewModel : ViewModel() {
 
         }
 
+        Log.d(
+            "PresetDebug",
+            "ANTES presetManager.carregar"
+        )
+
         val preset =
-            presetManager.carregar(
-                nome
+            presetManager.carregar(nome)
+
+        Log.d(
+            "PresetDebug",
+            "DEPOIS presetManager.carregar"
+        )
+
+        if (preset == null) {
+
+            Log.e(
+                "PresetDebug",
+                "Preset não encontrado: $nome"
             )
-                ?: return false
+
+            return false
+        }
+        Log.d(
+            "PresetDebug",
+            "Preset carregado: nome=${preset.nome}"
+        )
+
+        Log.d(
+            "PresetDebug",
+            "SoundFonts do preset: ${preset.soundFonts.size}"
+        )
+
+        Log.d(
+            "PresetDebug",
+            "ANTES processar SoundFonts"
+        )
 
         Log.d(
             "MainViewModel",
@@ -933,7 +968,81 @@ class MainViewModel : ViewModel() {
         )
 
         // -------------------------------------------------------------------------
-        // SoundFonts
+        // Verifica todas as SoundFonts necessárias
+        // -------------------------------------------------------------------------
+
+        Log.d(
+            "PresetDebug",
+            "ENTRANDO no forEach das SoundFonts"
+        )
+
+        preset.soundFonts.forEach { presetSoundFont ->
+
+            Log.d(
+                "PresetDebug",
+                "Processando SoundFont: " +
+                        "id=${presetSoundFont.id} " +
+                        "nome=${presetSoundFont.nome}"
+            )
+
+            Log.d(
+                "PresetDebug",
+                "ANTES soundFontManager.getSoundFont"
+            )
+
+            val soundFont =
+                soundFontManager.getSoundFont(
+                    presetSoundFont.id
+                )
+
+            Log.d(
+                "PresetDebug",
+                "DEPOIS soundFontManager.getSoundFont"
+            )
+
+            Log.d(
+                "PresetDebug",
+                "soundFont é null? ${soundFont == null}"
+            )
+
+            if (soundFont != null) {
+
+                Log.d(
+                    "PresetDebug",
+                    "SoundFont encontrada: " +
+                            "id=${soundFont.id} " +
+                            "nome=${soundFont.nome} " +
+                            "carregada=${soundFont.carregada}"
+                )
+
+            }
+            // resto do código permanece igual
+
+            if (soundFont == null) {
+
+                val mensagem =
+                    "SoundFont '${presetSoundFont.nome}' não está importada."
+
+                Log.e(
+                    "PresetDebug",
+                    "SoundFont ausente: ${presetSoundFont.nome}"
+                )
+
+                erroPreset = mensagem
+
+                Log.e(
+                    "PresetDebug",
+                    "erroPreset definido; retornando false"
+                )
+
+                return false
+
+            }
+
+        }
+
+        // -------------------------------------------------------------------------
+        // Carrega as SoundFonts que ainda não estiverem carregadas
         // -------------------------------------------------------------------------
 
         preset.soundFonts.forEach { presetSoundFont ->
@@ -942,24 +1051,61 @@ class MainViewModel : ViewModel() {
                 soundFontManager.getSoundFont(
                     presetSoundFont.id
                 )
-
-            if (soundFont == null) {
-
-                Log.e(
-                    "MainViewModel",
-                    "SoundFont não encontrada na biblioteca: " +
-                            "${presetSoundFont.nome}"
-                )
-
-                return@forEach
-
-            }
+                    ?: return false
 
             if (!soundFont.carregada) {
+
+                Log.d(
+                    "PresetDebug",
+                    "ANTES soundFontManager.carregar"
+                )
 
                 soundFontManager.carregar(
                     soundFont.id
                 )
+
+                Log.d(
+                    "PresetDebug",
+                    "DEPOIS soundFontManager.carregar"
+                )
+
+            }
+
+        }
+
+        // -------------------------------------------------------------------------
+        // Verifica todos os instrumentos antes de alterar o MixerState
+        // -------------------------------------------------------------------------
+
+        preset.mixer.channels.forEachIndexed { index, channelConfig ->
+
+            if (channelConfig.soundFontId < 0) {
+                return@forEachIndexed
+            }
+
+            val instrumento =
+                soundFontManager.localizarInstrumento(
+                    channelConfig.soundFontId,
+                    channelConfig.bank,
+                    channelConfig.program
+                )
+
+            if (instrumento == null) {
+
+                val mensagem =
+                    "Instrumento não encontrado no canal " +
+                            "${index + 1}. " +
+                            "Bank=${channelConfig.bank} " +
+                            "Program=${channelConfig.program}"
+
+                Log.e(
+                    "MainViewModel",
+                    mensagem
+                )
+
+                erroPreset = mensagem
+
+                return false
 
             }
 
@@ -1000,20 +1146,7 @@ class MainViewModel : ViewModel() {
                     channel.program
                 )
 
-            if (instrumento == null) {
-
-                Log.e(
-                    "MainViewModel",
-                    "Instrumento não encontrado para " +
-                            "canal=${channel.channel + 1} " +
-                            "SF=${channel.soundFontId} " +
-                            "bank=${channel.bankMsb} " +
-                            "program=${channel.program}"
-                )
-
-                return@forEach
-
-            }
+                    ?: return@forEach
 
             val soundFont =
                 instrumento.first
@@ -1165,6 +1298,10 @@ class MainViewModel : ViewModel() {
 
     }
 
+    fun limparErroPreset() {
+        erroPreset = null
+    }
+
     // =============================================================================
     // Áudio
     // =============================================================================
@@ -1183,6 +1320,10 @@ class MainViewModel : ViewModel() {
 
     var bateria by
     mutableIntStateOf(100)
+
+    var erroPreset by
+    mutableStateOf<String?>(null)
+        private set
 
     // =============================================================================
     // BLE / MIDI
