@@ -32,20 +32,23 @@ class ChannelState(
     /**
      * Controle de notas do acordeão que controla este canal.
      *
-     * 1 = Controle 1
-     * 2 = Controle 2
-     * 3 = Controle 3
+     * 1 = Teclado
+     * 2 = Baixos fundamentais
+     * 3 = Acordes
+     * 4 = Baixos + acordes
      *
      * Padrão:
-     * - canais 1, 4, 5 e superiores → Controle 1
-     * - canal 2 → Controle 2
-     * - canal 3 → Controle 3
+     * - canal 1 → Teclado
+     * - canal 2 → Baixos fundamentais
+     * - canal 3 → Acordes
+     * - canais 4 e superiores → Baixos + acordes
      */
     var controlSource by mutableIntStateOf(
         when (channel) {
+            0 -> 1
             1 -> 2
             2 -> 3
-            else -> 1
+            else -> 4
         }
     )
 

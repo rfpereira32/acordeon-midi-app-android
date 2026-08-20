@@ -656,36 +656,11 @@ private fun nomePadraoCanal(
     nomePreset: String?
 ): String {
 
-    if (
-        !nomePreset.isNullOrBlank()
-    ) {
-
+    if (!nomePreset.isNullOrBlank()) {
         return nomePreset
-
     }
 
-    return when (index) {
-
-        0 ->
-            "Teclado"
-
-        1 ->
-            "Baixos fundamentais"
-
-        2 ->
-            "Acordes"
-
-        3 ->
-            "Instrumentos Extras 1"
-
-        4 ->
-            "Instrumentos Extras 2"
-
-        else ->
-            "Canal MIDI ${index + 1}"
-
-    }
-
+    return "Canal MIDI ${index + 1}"
 }
 
 
@@ -869,10 +844,10 @@ private fun ControlSourceDialog(
                         Text(
                             text =
                                 when (controle) {
-                                    1 -> "Controle 1"
-                                    2 -> "Controle 2"
-                                    3 -> "Controle 3"
-                                    4 -> "Controles 2 + 3"
+                                    1 -> "Teclado"
+                                    2 -> "Baixos fundamentais"
+                                    3 -> "Acordes"
+                                    4 -> "Baixos + acordes"
                                     else -> "Controle $controle"
                                 },
                             color =

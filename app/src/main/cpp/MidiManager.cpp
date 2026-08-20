@@ -65,18 +65,26 @@ jmethodID MidiManager::callback = nullptr;
  *
  * Valor:
  *
- * 1 = Controle 1
- * 2 = Controle 2
- * 3 = Controle 3
- * 4 = Controle 2 + Controle 3
+ * 1 = Teclado
+ * 2 = Baixos fundamentais
+ * 3 = Acordes
+ * 4 = Baixos + acordes
  *
- * Todos começam associados ao Controle 1.
+ * Configuração padrão:
+ *
+ * Canal MIDI 1  -> Teclado
+ * Canal MIDI 2  -> Baixos fundamentais
+ * Canal MIDI 3  -> Acordes
+ * Canal MIDI 4  -> Baixos + acordes
+ * Canal MIDI 5  -> Baixos + acordes
+ * ...
+ * Canal MIDI 16 -> Baixos + acordes
  */
 std::array<uint8_t, 16> MidiManager::controlSources = {
-        1, 2, 3, 1,
-        1, 1, 1, 1,
-        1, 1, 1, 1,
-        1, 1, 1, 1
+        1, 2, 3, 4,
+        4, 4, 4, 4,
+        4, 4, 4, 4,
+        4, 4, 4, 4
 };
 
 // -----------------------------------------------------------------------------------------------
