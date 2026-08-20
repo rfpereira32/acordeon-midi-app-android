@@ -442,7 +442,9 @@ fun MixerScreenContent(
 
                 TelaMixer.PRESETS -> {
 
-                    PresetsScreenPlaceholder()
+                    PresetsScreenContent(
+                        viewModel = viewModel
+                    )
 
                 }
 
@@ -1213,69 +1215,402 @@ private fun SoundFontListItem(
 
 }
 
-
 // =============================================================================
-// PLACEHOLDER DE PRESETS
+// PRESETS
 // =============================================================================
 
 @Composable
-private fun PresetsScreenPlaceholder() {
+private fun PresetsScreenContent(
+    viewModel: MainViewModel
+) {
 
-    Box(
+    var mostrarDialogoSalvar by remember {
+        mutableStateOf(false)
+    }
+
+    var nomePreset by remember {
+        mutableStateOf("")
+    }
+
+    val presets =
+        viewModel.listarPresets()
+
+    Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-        contentAlignment =
-            Alignment.Center
+                .verticalScroll(
+                    rememberScrollState()
+                )
+                .padding(
+                    start = 8.dp,
+                    end = 8.dp,
+                    bottom = 12.dp
+                )
     ) {
 
-        Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+        // =====================================================================
+        // TÍTULO
+        // =====================================================================
+
+        Text(
+            text = "Presets",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(4.dp)
+        )
+
+        Text(
+            text =
+                "Salve e carregue configurações completas do acordeão.",
+            color = Color.Gray,
+            fontSize = 12.sp
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(16.dp)
+        )
+
+        // =====================================================================
+        // SALVAR PRESET
+        // =====================================================================
+
+        Button(
+            onClick = {
+
+                nomePreset = ""
+
+                mostrarDialogoSalvar = true
+
+            },
+
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        Color(0xFF3A3A42)
+                ),
+
+            shape =
+                RoundedCornerShape(8.dp)
         ) {
 
             Icon(
                 imageVector =
-                    Icons.Default.Star,
+                    Icons.Default.Add,
+
                 contentDescription =
                     null,
-                tint = Color.Gray,
+
                 modifier =
-                    Modifier.size(42.dp)
+                    Modifier.size(20.dp)
             )
 
             Spacer(
                 modifier =
-                    Modifier.height(12.dp)
+                    Modifier.width(8.dp)
             )
 
             Text(
-                text =
-                    "Presets",
-                color =
-                    Color.White,
-                fontSize = 20.sp,
-                fontWeight =
-                    FontWeight.Bold
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(6.dp)
-            )
-
-            Text(
-                text =
-                    "A tela de seleção de instrumentos será transferida para cá.",
-                color =
-                    Color.Gray,
-                fontSize = 13.sp,
-                textAlign =
-                    TextAlign.Center
+                text = "Salvar preset"
             )
 
         }
+
+        Spacer(
+            modifier =
+                Modifier.height(16.dp)
+        )
+
+        // =====================================================================
+        // LISTA
+        // =====================================================================
+
+        if (presets.isEmpty()) {
+
+            Card(
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            ColorCardBg
+                    ),
+
+                shape =
+                    RoundedCornerShape(10.dp)
+            ) {
+
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Default.Star,
+
+                        contentDescription =
+                            null,
+
+                        tint =
+                            Color.Gray,
+
+                        modifier =
+                            Modifier.size(36.dp)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Nenhum preset salvo",
+
+                        color =
+                            Color.LightGray,
+
+                        fontSize = 14.sp
+                    )
+
+                }
+
+            }
+
+        } else {
+
+            presets.forEach { preset ->
+
+                Card(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+
+                                viewModel.carregarPreset(
+                                    preset.nome
+                                )
+
+                            },
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                ColorCardBg
+                        ),
+
+                    shape =
+                        RoundedCornerShape(8.dp)
+                ) {
+
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = 14.dp,
+                                    end = 4.dp
+                                ),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Column(
+                            modifier =
+                                Modifier.weight(1f)
+                                    .padding(
+                                        vertical = 12.dp
+                                    )
+                        ) {
+
+                            Text(
+                                text =
+                                    preset.nome,
+
+                                color =
+                                    Color.White,
+
+                                fontSize = 15.sp,
+
+                                fontWeight =
+                                    FontWeight.Medium
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(3.dp)
+                            )
+
+                            Text(
+                                text =
+                                    "${preset.mixer.channels.size} canais",
+
+                                color =
+                                    Color.Gray,
+
+                                fontSize = 11.sp
+                            )
+
+                        }
+
+                        IconButton(
+                            onClick = {
+
+                                viewModel.excluirPreset(
+                                    preset.nome
+                                )
+
+                            }
+                        ) {
+
+                            Icon(
+                                imageVector =
+                                    Icons.Default.Delete,
+
+                                contentDescription =
+                                    "Excluir preset",
+
+                                tint =
+                                    Color(0xFF77777F),
+
+                                modifier =
+                                    Modifier.size(20.dp)
+                            )
+
+                        }
+
+                    }
+
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(4.dp)
+                )
+
+            }
+
+        }
+
+    }
+
+    // =========================================================================
+    // DIÁLOGO PARA SALVAR
+    // =========================================================================
+
+    if (mostrarDialogoSalvar) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                mostrarDialogoSalvar = false
+
+            },
+
+            title = {
+
+                Text(
+                    text = "Salvar preset"
+                )
+
+            },
+
+            text = {
+
+                OutlinedTextField(
+
+                    value = nomePreset,
+
+                    onValueChange = {
+
+                        nomePreset = it
+
+                    },
+
+                    label = {
+
+                        Text(
+                            text = "Nome do preset"
+                        )
+
+                    },
+
+                    singleLine = true
+
+                )
+
+            },
+
+            confirmButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        val nome =
+                            nomePreset.trim()
+
+                        if (nome.isNotEmpty()) {
+
+                            viewModel.salvarPreset(
+                                nome
+                            )
+
+                            mostrarDialogoSalvar = false
+
+                        }
+
+                    }
+
+                ) {
+
+                    Text(
+                        text = "Salvar"
+                    )
+
+                }
+
+            },
+
+            dismissButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        mostrarDialogoSalvar = false
+
+                    }
+
+                ) {
+
+                    Text(
+                        text = "Cancelar"
+                    )
+
+                }
+
+            }
+
+        )
 
     }
 

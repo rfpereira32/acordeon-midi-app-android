@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
 import com.robsonsmartins.androidmidisynth.session.SessionManager
+import com.robsonsmartins.androidmidisynth.session.PresetManager
 import android.bluetooth.BluetoothManager
 import android.content.Intent
 
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
+
         init {
             System.loadLibrary("c++_shared")
             System.loadLibrary("oboe")
@@ -41,82 +43,125 @@ class MainActivity : ComponentActivity() {
     }
 
     private val viewModel: MainViewModel by viewModels()
+
     private lateinit var synthManager: FluidSynthManager
     private lateinit var midiManager: MidiManager
     private lateinit var configurationSynchronizer: ConfigurationSynchronizer
     private lateinit var soundFontManager: SoundFontManager
     private lateinit var synthController: SynthController
     private lateinit var sessionCoordinator: SessionCoordinator
+    private lateinit var presetManager: PresetManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        )
+
         enableEdgeToEdge()
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        if (
+            android.os.Build.VERSION.SDK_INT >=
+            android.os.Build.VERSION_CODES.S
+        ) {
+
             requestPermissions(
                 arrayOf(
                     android.Manifest.permission.BLUETOOTH_SCAN,
                     android.Manifest.permission.BLUETOOTH_CONNECT,
                     android.Manifest.permission.ACCESS_FINE_LOCATION
-                ), 101
+                ),
+                101
             )
+
         }
 
         // Inicializa o motor de áudio FluidSynth interno do projeto
-        // Inicializa o motor de áudio FluidSynth interno do projeto
-        synthManager = FluidSynthManager(this)
+        synthManager =
+            FluidSynthManager(this)
 
-        synthController = SynthController(synthManager)
+        synthController =
+            SynthController(
+                synthManager
+            )
 
-        soundFontManager = SoundFontManager(
-            this,
+        soundFontManager =
+            SoundFontManager(
+                this,
+                synthController
+            )
+
+        viewModel.setSynthController(
             synthController
         )
 
-        viewModel.setSynthController(synthController)
-        viewModel.setSoundFontManager(soundFontManager)
-
-        sessionCoordinator = SessionCoordinator(
-
-            SessionManager(this),
-
-            soundFontManager,
-
-            viewModel.mixerState,
-
-            restaurarCanal = { canal, soundFont, preset ->
-
-                viewModel.setChannelInstrument(
-                    canal,
-                    soundFont,
-                    preset
-                )
-
-            },
-
-            restaurarVolume = { canal, volume, mute ->
-
-                viewModel.setChannelVolume(
-                    canal,
-                    volume
-                )
-
-                viewModel.setChannelMute(
-                    canal,
-                    mute
-                )
-
-            }
-
+        viewModel.setSoundFontManager(
+            soundFontManager
         )
+
+        // =============================================================================
+        // PRESETS
+        // =============================================================================
+
+        presetManager =
+            PresetManager(this)
+
+        viewModel.setPresetManager(
+            presetManager
+        )
+
+        // =============================================================================
+        // SESSÃO
+        // =============================================================================
+
+        sessionCoordinator =
+            SessionCoordinator(
+
+                SessionManager(this),
+
+                soundFontManager,
+
+                viewModel.mixerState,
+
+                restaurarCanal = {
+                        canal,
+                        soundFont,
+                        preset ->
+
+                    viewModel.setChannelInstrument(
+                        canal,
+                        soundFont,
+                        preset
+                    )
+
+                },
+
+                restaurarVolume = {
+                        canal,
+                        volume,
+                        mute ->
+
+                    viewModel.setChannelVolume(
+                        canal,
+                        volume
+                    )
+
+                    viewModel.setChannelMute(
+                        canal,
+                        mute
+                    )
+
+                }
+
+            )
 
         viewModel.setSessionCoordinator(
             sessionCoordinator
         )
 
         sessionCoordinator.restaurar()
+
         sessionCoordinator.restaurarInstrumentos()
 
         soundFontManager.sincronizarBiblioteca()
@@ -127,108 +172,234 @@ class MainActivity : ComponentActivity() {
         )
 
         // ==============================================================================
-        // INICIALIZAÇÃO DO DRIVER DE RÁDIO MIDI COM FILTRO DE BYTES CONTROLO CHANGE
+        // INICIALIZAÇÃO DO DRIVER DE RÁDIO MIDI
         // ==============================================================================
-        // Inicialização limpa e original do seu driver MIDI
-        midiManager = MidiManager(this) { mensagem: String ->
 
-            Log.d(TAG, "Callback MIDI: $mensagem")
+        midiManager =
+            MidiManager(this) {
+                    mensagem: String ->
 
-            if (mensagem.startsWith("CHANNEL_ACTIVITY:")) {
+                Log.d(
+                    TAG,
+                    "Callback MIDI: $mensagem"
+                )
 
-                val canal =
-                    mensagem
-                        .removePrefix("CHANNEL_ACTIVITY:")
-                        .toIntOrNull()
-
-                if (canal != null) {
-
-                    viewModel.ativarLedCanal(
-                        canal
+                if (
+                    mensagem.startsWith(
+                        "CHANNEL_ACTIVITY:"
                     )
+                ) {
+
+                    val canal =
+                        mensagem
+                            .removePrefix(
+                                "CHANNEL_ACTIVITY:"
+                            )
+                            .toIntOrNull()
+
+                    if (canal != null) {
+
+                        viewModel.ativarLedCanal(
+                            canal
+                        )
+
+                    }
 
                 }
 
             }
-
-        }
 
         viewModel.setMidiManager(
             midiManager
         )
 
         configurationSynchronizer =
-            ConfigurationSynchronizer(midiManager)
+            ConfigurationSynchronizer(
+                midiManager
+            )
 
         viewModel.setConfigurationSynchronizer(
             configurationSynchronizer
         )
 
-
         verificarBluetoothEIniciarMidi()
 
         viewModel.dispositivosMidi =
-            midiManager.listarDispositivosDisponiveis(this)
+            midiManager.listarDispositivosDisponiveis(
+                this
+            )
 
-        val sistemaMidi = getSystemService(Context.MIDI_SERVICE) as android.media.midi.MidiManager
-        sistemaMidi.registerDeviceCallback(object : android.media.midi.MidiManager.DeviceCallback() {
-            override fun onDeviceAdded(deviceInfo: MidiDeviceInfo) {
-                if (deviceInfo.properties.getString("product")?.contains("Cordovox", ignoreCase = true) == true ||
-                    deviceInfo.type == MidiDeviceInfo.TYPE_BLUETOOTH) {
+        val sistemaMidi =
+            getSystemService(
+                Context.MIDI_SERVICE
+            ) as android.media.midi.MidiManager
 
-                    sistemaMidi.openDevice(deviceInfo, { dispositivo ->
-                        if (dispositivo != null) {
-                            val outputPort = dispositivo.openOutputPort(0)
-                            outputPort?.connect(object : android.media.midi.MidiReceiver() {
-                                override fun onSend(msg: ByteArray, offset: Int, count: Int, timestamp: Long) {
-                                    if (count >= 3) {
-                                        val status = msg[offset].toInt() and 0xFF
-                                        val nota = msg[offset + 1].toInt() and 0xFF
-                                        val vel = msg[offset + 2].toInt() and 0xFF
+        sistemaMidi.registerDeviceCallback(
+            object :
+                android.media.midi.MidiManager.DeviceCallback() {
 
-                                        if (status in 0x90..0x9F && vel > 0) {
-//                                            synthController.setVolume(0,(viewModel.masterVolume * 127).toInt())
-                                        }
-                                    }
-                                }
-                            })
-                        }
-                    }, null)
-                }
-            }
-        }, null)
-        setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                override fun onDeviceAdded(
+                    deviceInfo: MidiDeviceInfo
                 ) {
+
+                    if (
+                        deviceInfo.properties
+                            .getString("product")
+                            ?.contains(
+                                "Cordovox",
+                                ignoreCase = true
+                            ) == true ||
+                        deviceInfo.type ==
+                        MidiDeviceInfo.TYPE_BLUETOOTH
+                    ) {
+
+                        sistemaMidi.openDevice(
+                            deviceInfo,
+                            { dispositivo ->
+
+                                if (
+                                    dispositivo != null
+                                ) {
+
+                                    val outputPort =
+                                        dispositivo
+                                            .openOutputPort(0)
+
+                                    outputPort?.connect(
+                                        object :
+                                            android.media.midi.MidiReceiver() {
+
+                                            override fun onSend(
+                                                msg: ByteArray,
+                                                offset: Int,
+                                                count: Int,
+                                                timestamp: Long
+                                            ) {
+
+                                                if (
+                                                    count >= 3
+                                                ) {
+
+                                                    val status =
+                                                        msg[
+                                                            offset
+                                                        ].toInt() and 0xFF
+
+                                                    val nota =
+                                                        msg[
+                                                            offset + 1
+                                                        ].toInt() and 0xFF
+
+                                                    val vel =
+                                                        msg[
+                                                            offset + 2
+                                                        ].toInt() and 0xFF
+
+                                                    if (
+                                                        status in
+                                                        0x90..0x9F &&
+                                                        vel > 0
+                                                    ) {
+
+//                                                        synthController.setVolume(
+//                                                            0,
+//                                                            (viewModel.masterVolume * 127).toInt()
+//                                                        )
+
+                                                    }
+
+                                                }
+
+                                            }
+
+                                        }
+                                    )
+
+                                }
+
+                            },
+                            null
+                        )
+
+                    }
+
+                }
+
+            },
+            null
+        )
+
+        setContent {
+
+            MaterialTheme {
+
+                Surface(
+                    modifier =
+                        Modifier.fillMaxSize(),
+
+                    color =
+                        MaterialTheme.colorScheme.background
+
+                ) {
+
                     com.robsonsmartins.androidmidisynth.TelaMidiSintetizador(
-                        listaDispositivos = viewModel.dispositivosMidi,
-                        onVolumeChanged = { novoVolume: Float ->
-                            viewModel.masterVolume = novoVolume
+
+                        listaDispositivos =
+                            viewModel.dispositivosMidi,
+
+                        onVolumeChanged = {
+                                novoVolume: Float ->
+
+                            viewModel.masterVolume =
+                                novoVolume
 
                             synthController.setVolume(
                                 0,
-                                (viewModel.masterVolume * 127).toInt()
+                                (
+                                        viewModel.masterVolume *
+                                                127
+                                        ).toInt()
                             )
+
                         },
-                        onDispositivoSelecionado = { dispositivoEscolhido: MidiDeviceInfo ->
-                            midiManager.conectarAoDispositivo(dispositivoEscolhido)
+
+                        onDispositivoSelecionado = {
+                                dispositivoEscolhido:
+                                MidiDeviceInfo ->
+
+                            midiManager
+                                .conectarAoDispositivo(
+                                    dispositivoEscolhido
+                                )
+
                         },
-                        midiReceiver = midiManager.obterReceiverMidi(),
-                        instanciaMidiManager = midiManager,
-                        viewModel = viewModel
+
+                        midiReceiver =
+                            midiManager
+                                .obterReceiverMidi(),
+
+                        instanciaMidiManager =
+                            midiManager,
+
+                        viewModel =
+                            viewModel
+
                     )
+
                 }
+
             }
+
         }
+
     }
 
     private fun verificarBluetoothEIniciarMidi() {
 
         val bluetoothManager =
-            getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+            getSystemService(
+                Context.BLUETOOTH_SERVICE
+            ) as BluetoothManager
 
         val bluetoothAdapter =
             bluetoothManager.adapter
@@ -274,36 +445,64 @@ class MainActivity : ComponentActivity() {
 
     }
 
-    private fun atualizarVolumeInternoFluidSynth(canal: Int, volume: Int) {
-        Log.d(TAG, "Sincronizando ganho interno FluidSynth - Canal: $canal, Vol: $volume")
+    private fun atualizarVolumeInternoFluidSynth(
+        canal: Int,
+        volume: Int
+    ) {
+
+        Log.d(
+            TAG,
+            "Sincronizando ganho interno FluidSynth - Canal: $canal, Vol: $volume"
+        )
+
     }
 
-    private fun despacharSysExMixerBluetooth(canal: Int, volume: Int) {
-        val envelopeSysEx = byteArrayOf(
-            0xF0.toByte(),
-            0x7D.toByte(),
-            0x05.toByte(),
-            (canal and 0x7F).toByte(),
-            (volume and 0x7F).toByte(),
-            0xF7.toByte()
+    private fun despacharSysExMixerBluetooth(
+        canal: Int,
+        volume: Int
+    ) {
+
+        val envelopeSysEx =
+            byteArrayOf(
+                0xF0.toByte(),
+                0x7D.toByte(),
+                0x05.toByte(),
+                (canal and 0x7F).toByte(),
+                (volume and 0x7F).toByte(),
+                0xF7.toByte()
+            )
+
+        Log.d(
+            TAG,
+            "SysEx Mixer despachado para radio BLE: Canal $canal, Volume $volume"
         )
-        Log.d(TAG, "SysEx Mixer despachado para radio BLE: Canal $canal, Volume $volume")
+
     }
 
     private fun despacharSysExOtaBluetooth() {
-        val envelopeOtaSysEx = byteArrayOf(
-            0xF0.toByte(),
-            0x7D.toByte(),
-            0x0A.toByte(),
-            0xF7.toByte()
+
+        val envelopeOtaSysEx =
+            byteArrayOf(
+                0xF0.toByte(),
+                0x7D.toByte(),
+                0x0A.toByte(),
+                0xF7.toByte()
+            )
+
+        Log.d(
+            TAG,
+            "SysEx OTA enviado com sucesso para chaveamento de infraestrutura."
         )
-        Log.d(TAG, "SysEx OTA enviado com sucesso para chaveamento de infraestrutura.")
+
     }
 
     // ==============================================================================
-    // INTERCEPTADOR TEXTUAL DIRETO: PESCA A BATERIA ANTES DO FILTRO DE MENSAGENS MIDI
+    // INTERCEPTADOR TEXTUAL DIRETO
     // ==============================================================================
-    private fun onMidiMessageReceived(message: String) {
+
+    private fun onMidiMessageReceived(
+        message: String
+    ) {
 
         Log.d(
             TAG,
@@ -312,28 +511,68 @@ class MainActivity : ComponentActivity() {
 
         runOnUiThread {
 
-            if (message.startsWith("F0") ||
-                message.contains("F0"))
-            {
-                processarSysExCpu(message)
+            if (
+                message.startsWith("F0") ||
+                message.contains("F0")
+            ) {
+
+                processarSysExCpu(
+                    message
+                )
+
             }
 
         }
 
     }
 
+    private fun processarSysExCpu(
+        message: String
+    ) {
 
-    private fun processarSysExCpu(message: String) {
         try {
-            val bytesText = message.trim().replace("\\s+".toRegex(), " ").split(" ")
-            if (bytesText.size >= 5 && bytesText[1].trim().equals("7D", ignoreCase = true)) {
-                val subIdComando = bytesText[2].trim()
-                if (subIdComando == "01" || subIdComando == "1") {
-                    val valorCPU = bytesText[4].trim().toInt(16)
-                    viewModel.usoCpu = valorCPU
+
+            val bytesText =
+                message
+                    .trim()
+                    .replace(
+                        "\\s+".toRegex(),
+                        " "
+                    )
+                    .split(" ")
+
+            if (
+                bytesText.size >= 5 &&
+                bytesText[1]
+                    .trim()
+                    .equals(
+                        "7D",
+                        ignoreCase = true
+                    )
+            ) {
+
+                val subIdComando =
+                    bytesText[2].trim()
+
+                if (
+                    subIdComando == "01" ||
+                    subIdComando == "1"
+                ) {
+
+                    val valorCPU =
+                        bytesText[4]
+                            .trim()
+                            .toInt(16)
+
+                    viewModel.usoCpu =
+                        valorCPU
+
                 }
+
             }
+
         } catch (_: Exception) {}
+
     }
 
     override fun onRequestPermissionsResult(
@@ -341,7 +580,13 @@ class MainActivity : ComponentActivity() {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        super.onRequestPermissionsResult(
+            requestCode,
+            permissions,
+            grantResults
+        )
+
         if (
             requestCode == 101 &&
             ::midiManager.isInitialized
@@ -350,6 +595,7 @@ class MainActivity : ComponentActivity() {
             verificarBluetoothEIniciarMidi()
 
         }
+
     }
 
     override fun onActivityResult(
@@ -388,6 +634,7 @@ class MainActivity : ComponentActivity() {
         } catch (_: Exception) {}
 
         super.onDestroy()
+
     }
 
 }

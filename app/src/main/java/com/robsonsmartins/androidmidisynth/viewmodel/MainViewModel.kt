@@ -9,17 +9,20 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.robsonsmartins.androidmidisynth.MidiManager
 import com.robsonsmartins.androidmidisynth.audio.SynthController
+import com.robsonsmartins.androidmidisynth.configuration.PresetConfiguration
+import com.robsonsmartins.androidmidisynth.configuration.PresetSoundFont
 import com.robsonsmartins.androidmidisynth.core.DeviceState
 import com.robsonsmartins.androidmidisynth.core.MidiMixer
 import com.robsonsmartins.androidmidisynth.core.MixerState
+import com.robsonsmartins.androidmidisynth.session.PresetManager
+import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
 import com.robsonsmartins.androidmidisynth.soundfont.InstrumentItem
 import com.robsonsmartins.androidmidisynth.soundfont.PresetInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontInfo
 import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
 import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
-import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
-import com.robsonsmartins.androidmidisynth.MidiManager
 
 class MainViewModel : ViewModel() {
 
@@ -35,6 +38,9 @@ class MainViewModel : ViewModel() {
 
     private lateinit var midiManager:
             MidiManager
+
+    private lateinit var presetManager:
+            PresetManager
 
     fun setSoundFontManager(
         manager: SoundFontManager
@@ -67,6 +73,15 @@ class MainViewModel : ViewModel() {
 
         sessionCoordinator =
             coordinator
+
+    }
+
+    fun setPresetManager(
+        manager: PresetManager
+    ) {
+
+        presetManager =
+            manager
 
     }
 
@@ -115,6 +130,7 @@ class MainViewModel : ViewModel() {
     // =============================================================================
     // Mixer
     // =============================================================================
+
     fun ativarLedCanal(
         canal: Int
     ) {
@@ -127,7 +143,6 @@ class MainViewModel : ViewModel() {
 
         channel.led = true
 
-        // Desliga o LED após um pequeno intervalo.
         android.os.Handler(
             android.os.Looper.getMainLooper()
         ).postDelayed({
@@ -204,8 +219,6 @@ class MainViewModel : ViewModel() {
      * Retorna qual controle do acordeão controla
      * determinado canal.
      *
-     * O valor retornado é:
-     *
      * 1 = Teclado
      * 2 = Baixos fundamentais
      * 3 = Acordes
@@ -233,13 +246,6 @@ class MainViewModel : ViewModel() {
     /**
      * Define qual controle do acordeão controla
      * determinado canal.
-     *
-     * O valor deve estar entre 1 e 4.
-     *
-     * 1 = Teclado
-     * 2 = Baixos fundamentais
-     * 3 = Acordes
-     * 4 = Baixos + acordes
      */
     fun setChannelControlSource(
         channel: Int,
@@ -308,9 +314,6 @@ class MainViewModel : ViewModel() {
      *
      * Quando o canal 1 está funcionando como Master,
      * somente ele pode alterar o volume.
-     *
-     * Os demais canais acompanham o Master utilizando
-     * os offsets calculados no momento da ativação.
      */
     fun setChannelVolume(
         channel: Int,
@@ -332,10 +335,6 @@ class MainViewModel : ViewModel() {
                 127
             )
 
-        // -------------------------------------------------------------------------
-        // Master ativo
-        // -------------------------------------------------------------------------
-
         if (mixerState.channel1AsMaster) {
 
             if (channel != 0)
@@ -356,10 +355,6 @@ class MainViewModel : ViewModel() {
 
         }
 
-        // -------------------------------------------------------------------------
-        // Master desligado
-        // -------------------------------------------------------------------------
-
         aplicarVolumeIndividual(
             channel,
             novoVolume
@@ -369,9 +364,6 @@ class MainViewModel : ViewModel() {
 
     }
 
-    /**
-     * Aplica o volume individual de um canal.
-     */
     private fun aplicarVolumeIndividual(
         channel: Int,
         volume: Int
@@ -411,10 +403,6 @@ class MainViewModel : ViewModel() {
 
     }
 
-    /**
-     * Aplica o volume do Master a todos os canais
-     * utilizando os offsets calculados anteriormente.
-     */
     private fun aplicarVolumesDoMaster(
         masterVolume: Int
     ) {
@@ -468,9 +456,6 @@ class MainViewModel : ViewModel() {
 
     }
 
-    /**
-     * Ativa ou desativa o Canal 1 como Master.
-     */
     fun setChannel1AsMaster(
         enabled: Boolean
     ) {
@@ -505,9 +490,6 @@ class MainViewModel : ViewModel() {
 
     }
 
-    /**
-     * Retorna se o Canal 1 está funcionando como Master.
-     */
     fun isChannel1AsMaster(): Boolean {
 
         return mixerState.channel1AsMaster
@@ -525,11 +507,6 @@ class MainViewModel : ViewModel() {
     // Mute
     // =============================================================================
 
-    /**
-     * Altera o mute de um canal.
-     *
-     * O mute é sempre independente do Master.
-     */
     fun setChannelMute(
         channel: Int,
         mute: Boolean
@@ -794,6 +771,401 @@ class MainViewModel : ViewModel() {
     }
 
     // =============================================================================
+    // PRESETS
+    // =============================================================================
+
+    /**
+     * Salva o estado atual do mixer como preset.
+     *
+     * O preset guarda somente as SoundFonts utilizadas
+     * pelos canais. O arquivo .sf2 continua pertencendo
+     * à biblioteca de SoundFonts.
+     */
+    fun salvarPreset(
+        nome: String
+    ): Boolean {
+
+        if (
+            !::presetManager.isInitialized
+        ) {
+
+            Log.e(
+                "MainViewModel",
+                "PresetManager não inicializado"
+            )
+
+            return false
+
+        }
+
+        val nomePreset =
+            nome.trim()
+
+        if (nomePreset.isEmpty()) {
+
+            return false
+
+        }
+
+        val configuracaoMixer =
+            mixerState.exportarConfiguracao()
+
+        val soundFonts =
+            configuracaoMixer.channels
+                .mapNotNull { channelConfig ->
+
+                    if (
+                        channelConfig.soundFontId < 0
+                    ) {
+
+                        return@mapNotNull null
+
+                    }
+
+                    val soundFont =
+                        soundFontManager.getSoundFont(
+                            channelConfig.soundFontId
+                        )
+                            ?: return@mapNotNull null
+
+                    PresetSoundFont(
+
+                        id =
+                            soundFont.id,
+
+                        nome =
+                            soundFont.nome,
+
+                        arquivo =
+                            soundFont.getArquivo().name
+
+                    )
+
+                }
+                .distinctBy {
+                    it.id
+                }
+
+        val preset =
+            PresetConfiguration(
+
+                nome =
+                    nomePreset,
+
+                soundFonts =
+                    soundFonts,
+
+                mixer =
+                    configuracaoMixer
+
+            )
+
+        presetManager.salvar(
+            preset
+        )
+
+        Log.d(
+            "MainViewModel",
+            "Preset '$nomePreset' salvo com " +
+                    "${soundFonts.size} SoundFonts"
+        )
+
+        return true
+
+    }
+
+    /**
+     * Retorna todos os presets salvos.
+     */
+    fun listarPresets():
+            List<PresetConfiguration> {
+
+        if (
+            !::presetManager.isInitialized
+        ) {
+
+            return emptyList()
+
+        }
+
+        return presetManager.listar()
+
+    }
+
+    /**
+     * Carrega um preset pelo nome.
+     *
+     * Restaura:
+     *
+     * - SoundFonts;
+     * - instrumentos;
+     * - volumes;
+     * - mute;
+     * - controles do acordeão;
+     * - Master.
+     */
+    fun carregarPreset(
+        nome: String
+    ): Boolean {
+
+        if (
+            !::presetManager.isInitialized
+        ) {
+
+            Log.e(
+                "MainViewModel",
+                "PresetManager não inicializado"
+            )
+
+            return false
+
+        }
+
+        val preset =
+            presetManager.carregar(
+                nome
+            )
+                ?: return false
+
+        Log.d(
+            "MainViewModel",
+            "Carregando preset '${preset.nome}'"
+        )
+
+        // -------------------------------------------------------------------------
+        // SoundFonts
+        // -------------------------------------------------------------------------
+
+        preset.soundFonts.forEach { presetSoundFont ->
+
+            val soundFont =
+                soundFontManager.getSoundFont(
+                    presetSoundFont.id
+                )
+
+            if (soundFont == null) {
+
+                Log.e(
+                    "MainViewModel",
+                    "SoundFont não encontrada na biblioteca: " +
+                            "${presetSoundFont.nome}"
+                )
+
+                return@forEach
+
+            }
+
+            if (!soundFont.carregada) {
+
+                soundFontManager.carregar(
+                    soundFont.id
+                )
+
+            }
+
+        }
+
+        // -------------------------------------------------------------------------
+        // Estado do mixer
+        // -------------------------------------------------------------------------
+
+        mixerState.aplicarConfiguracao(
+            preset.mixer
+        )
+
+        // -------------------------------------------------------------------------
+        // ControlSource
+        // -------------------------------------------------------------------------
+
+        sincronizarControlSources()
+
+        // -------------------------------------------------------------------------
+        // Instrumentos
+        // -------------------------------------------------------------------------
+
+        mixerState.channels.forEach { channel ->
+
+            if (
+                channel.soundFontId < 0
+            ) {
+
+                return@forEach
+
+            }
+
+            val instrumento =
+                soundFontManager.localizarInstrumento(
+                    channel.soundFontId,
+                    channel.bankMsb,
+                    channel.program
+                )
+
+            if (instrumento == null) {
+
+                Log.e(
+                    "MainViewModel",
+                    "Instrumento não encontrado para " +
+                            "canal=${channel.channel + 1} " +
+                            "SF=${channel.soundFontId} " +
+                            "bank=${channel.bankMsb} " +
+                            "program=${channel.program}"
+                )
+
+                return@forEach
+
+            }
+
+            val soundFont =
+                instrumento.first
+
+            val presetInfo =
+                instrumento.second
+
+            midiMixer.setSoundFont(
+                channel.channel,
+                soundFont
+            )
+
+            midiMixer.setPreset(
+                channel.channel,
+                presetInfo
+            )
+
+            val midiChannel =
+                midiMixer.getChannel(
+                    channel.channel
+                )
+
+            midiChannel.soundFont =
+                soundFont
+
+            midiChannel.preset =
+                presetInfo
+
+            midiChannel.bankMsb =
+                presetInfo.bank
+
+            midiChannel.program =
+                presetInfo.program
+
+            channel.soundFont =
+                soundFont
+
+            channel.preset =
+                presetInfo
+
+            soundFont.presetSelecionado =
+                presetInfo
+
+            synthController.setInstrument(
+                channel.channel,
+                soundFont,
+                presetInfo
+            )
+
+            if (
+                ::configurationSynchronizer
+                    .isInitialized
+            ) {
+
+                configurationSynchronizer.setInstrumento(
+                    channel.channel,
+                    presetInfo.program
+                )
+
+            }
+
+        }
+
+        // -------------------------------------------------------------------------
+        // Volumes e mute
+        // -------------------------------------------------------------------------
+
+        mixerState.channels.forEach { channel ->
+
+            val volumeEfetivo =
+                if (channel.muted) {
+
+                    0
+
+                } else if (
+                    mixerState.channel1AsMaster
+                ) {
+
+                    mixerState.calcularVolumeComMaster(
+                        channel.channel,
+                        mixerState
+                            .getChannel(0)
+                            .volume
+                    )
+
+                } else {
+
+                    channel.volume
+
+                }
+
+            synthController.setVolume(
+                channel.channel,
+                volumeEfetivo
+            )
+
+            if (
+                ::configurationSynchronizer
+                    .isInitialized
+            ) {
+
+                configurationSynchronizer.setVolume(
+                    channel.channel,
+                    volumeEfetivo
+                )
+
+            }
+
+        }
+
+        // -------------------------------------------------------------------------
+        // Sessão atual
+        // -------------------------------------------------------------------------
+
+        salvarSessao()
+
+        Log.d(
+            "MainViewModel",
+            "Preset '${preset.nome}' carregado"
+        )
+
+        return true
+
+    }
+
+    /**
+     * Exclui um preset pelo nome.
+     */
+    fun excluirPreset(
+        nome: String
+    ): Boolean {
+
+        if (
+            !::presetManager.isInitialized
+        ) {
+
+            Log.e(
+                "MainViewModel",
+                "PresetManager não inicializado"
+            )
+
+            return false
+
+        }
+
+        return presetManager.excluir(
+            nome
+        )
+
+    }
+
+    // =============================================================================
     // Áudio
     // =============================================================================
 
@@ -840,7 +1212,9 @@ class MainViewModel : ViewModel() {
         id: Int
     ) {
 
-        soundFontManager.carregar(id)
+        soundFontManager.carregar(
+            id
+        )
 
         salvarSessao()
 
@@ -869,10 +1243,6 @@ class MainViewModel : ViewModel() {
                 channel.bankLsb = 0
                 channel.program = 0
 
-                /*
-                 * Mantém o estado paralelo do MidiMixer
-                 * sincronizado com o ChannelState.
-                 */
                 val midiChannel =
                     midiMixer.getChannel(
                         channel.channel
@@ -883,7 +1253,9 @@ class MainViewModel : ViewModel() {
                 midiChannel.bankMsb = 0
                 midiChannel.bankLsb = 0
                 midiChannel.program = 0
+
             }
+
         }
 
         soundFontManager.descarregar(
@@ -904,13 +1276,15 @@ class MainViewModel : ViewModel() {
 
         if (soundFont.carregada) {
 
-            // Usa o método que também limpa os canais
-            // que utilizavam esta SoundFont.
-            descarregarSoundFont(id)
+            descarregarSoundFont(
+                id
+            )
 
         } else {
 
-            carregarSoundFont(id)
+            carregarSoundFont(
+                id
+            )
 
         }
 
@@ -1001,7 +1375,9 @@ class MainViewModel : ViewModel() {
         id: Int
     ): Boolean {
 
-        return soundFontManager.excluir(id) {
+        return soundFontManager.excluir(
+            id
+        ) {
 
             mixerState.usaSoundFont(
                 it.id
