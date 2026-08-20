@@ -11,9 +11,19 @@ package com.robsonsmartins.androidmidisynth.configuration
 data class MixerConfiguration(
 
     val channels: MutableList<ChannelConfiguration> =
-        MutableList(5) {
+        MutableList(5) { index ->
 
-            ChannelConfiguration()
+            ChannelConfiguration(
+
+                controlSource =
+                    when (index) {
+                        0 -> 1
+                        1 -> 2
+                        2 -> 3
+                        else -> 4
+                    }
+
+            )
 
         },
 

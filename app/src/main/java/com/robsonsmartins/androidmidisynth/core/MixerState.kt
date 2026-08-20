@@ -3,7 +3,6 @@ package com.robsonsmartins.androidmidisynth.core
 import androidx.compose.runtime.mutableStateListOf
 import com.robsonsmartins.androidmidisynth.configuration.ChannelConfiguration
 import com.robsonsmartins.androidmidisynth.configuration.MixerConfiguration
-import android.util.Log
 
 class MixerState(
     numberOfChannels: Int = 5
@@ -182,8 +181,6 @@ class MixerState(
 
     /**
      * Retorna o deslocamento armazenado para um canal.
-     *
-     * Útil para depuração e testes.
      */
     fun getMasterOffset(
         canal: Int
@@ -203,21 +200,6 @@ class MixerState(
      * da própria lista.
      */
     fun exportarConfiguracao(): MixerConfiguration {
-
-        channels.forEachIndexed {
-                index,
-                channel ->
-
-            Log.d(
-                "MixerState",
-                "Exportando canal $index " +
-                        "SF=${channel.soundFontId} " +
-                        "Program=${channel.program} " +
-                        "Volume=${channel.volume} " +
-                        "Controle=${channel.controlSource}"
-            )
-
-        }
 
         return MixerConfiguration(
 

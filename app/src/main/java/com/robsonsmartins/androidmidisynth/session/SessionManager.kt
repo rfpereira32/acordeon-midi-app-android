@@ -149,10 +149,10 @@ class SessionManager(
             // ------------------------------------------------------------
             // Controle do acordeão
             //
-            // 1 = Controle 1
-            // 2 = Controle 2
-            // 3 = Controle 3
-            // 4 = Controles 2 + 3
+            // 1 = Teclado
+            // 2 = Baixos fundamentais
+            // 3 = Acordes
+            // 4 = Baixos + acordes
             // ------------------------------------------------------------
 
             canal.put(
@@ -308,14 +308,47 @@ class SessionManager(
             val canal =
                 channels.getJSONObject(i)
 
+            /*
+             * Se a sessão já possui controlSource,
+             * preservamos a configuração salva.
+             *
+             * Se não possui, significa que é uma sessão
+             * criada antes da existência dessa configuração.
+             *
+             * Nesse caso usamos o novo padrão:
+             *
+             * canal 1 -> Teclado
+             * canal 2 -> Baixos fundamentais
+             * canal 3 -> Acordes
+             * canal 4+ -> Baixos + acordes
+             */
             val controlSource =
-                canal.optInt(
-                    "controlSource",
-                    1
-                ).coerceIn(
-                    1,
-                    4
-                )
+                if (
+                    canal.has(
+                        "controlSource"
+                    )
+                ) {
+
+                    canal.optInt(
+                        "controlSource",
+                        1
+                    ).coerceIn(
+                        1,
+                        4
+                    )
+
+                } else {
+
+                    when (i) {
+
+                        0 -> 1
+                        1 -> 2
+                        2 -> 3
+                        else -> 4
+
+                    }
+
+                }
 
             Log.d(
                 "SessionManager",

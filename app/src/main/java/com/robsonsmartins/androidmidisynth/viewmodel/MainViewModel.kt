@@ -86,10 +86,10 @@ class MainViewModel : ViewModel() {
      *
      * Cada canal MIDI Android pode responder a:
      *
-     * 1 = Controle 1
-     * 2 = Controle 2
-     * 3 = Controle 3
-     * 4 = Controles 2 + 3
+     * 1 = Teclado
+     * 2 = Baixos fundamentais
+     * 3 = Acordes
+     * 4 = Baixos + acordes
      */
     private fun sincronizarControlSources() {
 
@@ -206,10 +206,10 @@ class MainViewModel : ViewModel() {
      *
      * O valor retornado é:
      *
-     * 1 = Controle 1
-     * 2 = Controle 2
-     * 3 = Controle 3
-     * 4 = Controles 2 + 3
+     * 1 = Teclado
+     * 2 = Baixos fundamentais
+     * 3 = Acordes
+     * 4 = Baixos + acordes
      */
     fun getChannelControlSource(
         channel: Int
@@ -236,10 +236,10 @@ class MainViewModel : ViewModel() {
      *
      * O valor deve estar entre 1 e 4.
      *
-     * 1 = Controle 1
-     * 2 = Controle 2
-     * 3 = Controle 3
-     * 4 = Controles 2 + 3
+     * 1 = Teclado
+     * 2 = Baixos fundamentais
+     * 3 = Acordes
+     * 4 = Baixos + acordes
      */
     fun setChannelControlSource(
         channel: Int,
