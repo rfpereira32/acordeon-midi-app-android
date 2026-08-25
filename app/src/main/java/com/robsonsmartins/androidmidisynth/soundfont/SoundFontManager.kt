@@ -270,7 +270,7 @@ class SoundFontManager(
 
         val resolver = context.contentResolver
 
-        var nomeArquivo = "SoundFont_${System.currentTimeMillis()}.sf2"
+        var nomeArquivo: String? = null
 
         resolver.query(
             uri,
@@ -295,11 +295,19 @@ class SoundFontManager(
 
         }
 
+        val nomeSoundFont =
+            nomeArquivo?.takeIf {
+                it.endsWith(
+                    ".sf2",
+                    ignoreCase = true
+                )
+            } ?: return false
+
         // Evita importar duas vezes a mesma SoundFont
         if (
             soundFonts.any {
                 it.nome.equals(
-                    nomeArquivo,
+                    nomeSoundFont,
                     ignoreCase = true
                 )
             }
@@ -309,7 +317,7 @@ class SoundFontManager(
 
         val arquivoDestino = File(
             context.filesDir,
-            nomeArquivo
+            nomeSoundFont
         )
 
         resolver.openInputStream(uri)?.use { input ->
@@ -331,7 +339,7 @@ class SoundFontManager(
 
                 id = novoId,
 
-                nome = nomeArquivo,
+                nome = nomeSoundFont,
 
                 caminho = arquivoDestino.absolutePath,
 

@@ -2,6 +2,7 @@ package com.robsonsmartins.androidmidisynth
 
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -83,6 +84,9 @@ fun MixerScreenContent(
         mutableIntStateOf(0)
     }
 
+    val context =
+        LocalContext.current
+
     val launcherSoundFont =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument()
@@ -90,7 +94,15 @@ fun MixerScreenContent(
 
             uri?.let {
 
-                viewModel.importarSoundFont(it)
+                if (!viewModel.importarSoundFont(it)) {
+
+                    Toast.makeText(
+                        context,
+                        "Não foi possível importar. Selecione uma SoundFont .sf2 válida que ainda não esteja na lista.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                }
 
             }
 
