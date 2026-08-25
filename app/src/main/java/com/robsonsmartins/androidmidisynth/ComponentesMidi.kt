@@ -1248,6 +1248,73 @@ private fun PresetsScreenContent(
         mutableStateOf("")
     }
 
+    val context =
+        LocalContext.current
+
+    var atualizarListaPresets by remember {
+        mutableIntStateOf(0)
+    }
+
+    val launcherExportarBackup =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.CreateDocument(
+                    "application/json"
+                )
+        ) { uri: Uri? ->
+
+            uri?.let {
+
+                val sucesso =
+                    viewModel.exportarBackup(
+                        it
+                    )
+
+                Toast.makeText(
+                    context,
+                    if (sucesso)
+                        "Backup de presets exportado."
+                    else
+                        "Não foi possível exportar o backup.",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            }
+
+        }
+
+    val launcherImportarBackup =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
+
+            uri?.let {
+
+                val sucesso =
+                    viewModel.importarBackup(
+                        it
+                    )
+
+                if (sucesso) {
+
+                    atualizarListaPresets++
+
+                }
+
+                Toast.makeText(
+                    context,
+                    if (sucesso)
+                        "Backup de presets importado."
+                    else
+                        "Não foi possível importar o backup.",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            }
+
+        }
+
     val snackbarHostState =
         remember {
             SnackbarHostState()
@@ -1258,20 +1325,28 @@ private fun PresetsScreenContent(
 
     LaunchedEffect(Unit) {
 
-        viewModel.erroPreset?.let { mensagem ->
+        snapshotFlow {
+            viewModel.erroPreset
+        }.collect { mensagem ->
 
-            viewModel.limparErroPreset()
+            if (mensagem != null) {
 
-            snackbarHostState.showSnackbar(
-                mensagem
-            )
+                viewModel.limparErroPreset()
 
+                snackbarHostState.showSnackbar(
+                    mensagem
+                )
+            }
         }
-
     }
 
     val presets =
-        viewModel.listarPresets()
+        remember(
+            atualizarListaPresets
+        ) {
+            viewModel.listarPresets()
+        }
+
     Box(
         modifier =
             Modifier.fillMaxSize()
@@ -1364,6 +1439,72 @@ private fun PresetsScreenContent(
             Text(
                 text = "Salvar preset"
             )
+
+        }
+
+        Spacer(
+            modifier =
+                Modifier.height(8.dp)
+        )
+
+        // =====================================================================
+        // BACKUP
+        // =====================================================================
+
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+
+            OutlinedButton(
+                onClick = {
+
+                    launcherExportarBackup.launch(
+                        "AcordeonMidi_Presets_Backup.json"
+                    )
+
+                },
+
+                modifier =
+                    Modifier.weight(1f),
+
+                shape =
+                    RoundedCornerShape(8.dp)
+            ) {
+
+                Text(
+                    text = "Exportar backup"
+                )
+
+            }
+
+            OutlinedButton(
+                onClick = {
+
+                    launcherImportarBackup.launch(
+                        arrayOf(
+                            "application/json",
+                            "text/json",
+                            "*/*"
+                        )
+                    )
+
+                },
+
+                modifier =
+                    Modifier.weight(1f),
+
+                shape =
+                    RoundedCornerShape(8.dp)
+            ) {
+
+                Text(
+                    text = "Importar backup"
+                )
+
+            }
 
         }
 
@@ -1522,9 +1663,14 @@ private fun PresetsScreenContent(
                         IconButton(
                             onClick = {
 
-                                viewModel.excluirPreset(
-                                    preset.nome
-                                )
+                                val excluido =
+                                    viewModel.excluirPreset(
+                                        preset.nome
+                                    )
+
+                                if (excluido) {
+                                    atualizarListaPresets++
+                                }
 
                             }
                         ) {

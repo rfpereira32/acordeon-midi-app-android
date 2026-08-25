@@ -893,6 +893,58 @@ class MainViewModel : ViewModel() {
     }
 
     /**
+     * Exporta todos os presets para um arquivo escolhido pelo usuário.
+     */
+    fun exportarBackup(
+        uri: Uri
+    ): Boolean {
+
+        if (
+            !::presetManager.isInitialized
+        ) {
+
+            Log.e(
+                "MainViewModel",
+                "PresetManager não inicializado"
+            )
+
+            return false
+
+        }
+
+        return presetManager.exportarBackup(
+            uri
+        )
+
+    }
+
+    /**
+     * Importa presets de um arquivo de backup.
+     */
+    fun importarBackup(
+        uri: Uri
+    ): Boolean {
+
+        if (
+            !::presetManager.isInitialized
+        ) {
+
+            Log.e(
+                "MainViewModel",
+                "PresetManager não inicializado"
+            )
+
+            return false
+
+        }
+
+        return presetManager.importarBackup(
+            uri
+        )
+
+    }
+
+    /**
      * Carrega um preset pelo nome.
      *
      * Restaura:
@@ -976,47 +1028,54 @@ class MainViewModel : ViewModel() {
             "ENTRANDO no forEach das SoundFonts"
         )
 
+        val idsSoundFonts =
+            mutableMapOf<Int, Int>()
+
         preset.soundFonts.forEach { presetSoundFont ->
 
             Log.d(
                 "PresetDebug",
                 "Processando SoundFont: " +
                         "id=${presetSoundFont.id} " +
-                        "nome=${presetSoundFont.nome}"
+                        "nome=${presetSoundFont.nome} " +
+                        "arquivo=${presetSoundFont.arquivo}"
             )
 
-            Log.d(
-                "PresetDebug",
-                "ANTES soundFontManager.getSoundFont"
-            )
-
-            val soundFont =
+            var soundFont =
                 soundFontManager.getSoundFont(
                     presetSoundFont.id
                 )
 
-            Log.d(
-                "PresetDebug",
-                "DEPOIS soundFontManager.getSoundFont"
-            )
-
-            Log.d(
-                "PresetDebug",
-                "soundFont é null? ${soundFont == null}"
-            )
-
-            if (soundFont != null) {
+            if (soundFont == null) {
 
                 Log.d(
                     "PresetDebug",
-                    "SoundFont encontrada: " +
-                            "id=${soundFont.id} " +
-                            "nome=${soundFont.nome} " +
-                            "carregada=${soundFont.carregada}"
+                    "ID ${presetSoundFont.id} não encontrado. " +
+                            "Procurando pelo arquivo '${presetSoundFont.arquivo}'"
                 )
 
+                soundFont =
+                    soundFontManager
+                        .listar()
+                        .firstOrNull {
+                            it.getArquivo().name.equals(
+                                presetSoundFont.arquivo,
+                                ignoreCase = true
+                            )
+                        }
+
+                if (soundFont != null) {
+
+                    Log.d(
+                        "PresetDebug",
+                        "SoundFont reencontrada pelo arquivo: " +
+                                "ID antigo=${presetSoundFont.id} " +
+                                "ID novo=${soundFont.id}"
+                    )
+
+                }
+
             }
-            // resto do código permanece igual
 
             if (soundFont == null) {
 
@@ -1039,7 +1098,42 @@ class MainViewModel : ViewModel() {
 
             }
 
+            idsSoundFonts[
+                presetSoundFont.id
+            ] = soundFont.id
+
         }
+
+        // -------------------------------------------------------------------------
+        // Atualiza os IDs das SoundFonts no mixer.
+        //
+        // Se uma SoundFont foi excluída e importada novamente, ela pode ter
+        // recebido um novo ID. O preset continua guardando o ID antigo,
+        // então substituímos pelo ID atual antes de aplicar a configuração.
+        // -------------------------------------------------------------------------
+
+        val mixerConfiguracao =
+            preset.mixer.copy(
+
+                channels =
+                    preset.mixer.channels
+                        .map { channelConfig ->
+
+                            val novoSoundFontId =
+                                idsSoundFonts[
+                                    channelConfig.soundFontId
+                                ]
+                                    ?: channelConfig.soundFontId
+
+                            channelConfig.copy(
+                                soundFontId =
+                                    novoSoundFontId
+                            )
+
+                        }
+                        .toMutableList()
+
+            )
 
         // -------------------------------------------------------------------------
         // Carrega as SoundFonts que ainda não estiverem carregadas
@@ -1047,9 +1141,15 @@ class MainViewModel : ViewModel() {
 
         preset.soundFonts.forEach { presetSoundFont ->
 
+            val soundFontId =
+                idsSoundFonts[
+                    presetSoundFont.id
+                ]
+                    ?: return false
+
             val soundFont =
                 soundFontManager.getSoundFont(
-                    presetSoundFont.id
+                    soundFontId
                 )
                     ?: return false
 
@@ -1077,7 +1177,7 @@ class MainViewModel : ViewModel() {
         // Verifica todos os instrumentos antes de alterar o MixerState
         // -------------------------------------------------------------------------
 
-        preset.mixer.channels.forEachIndexed { index, channelConfig ->
+        mixerConfiguracao.channels.forEachIndexed { index, channelConfig ->
 
             if (channelConfig.soundFontId < 0) {
                 return@forEachIndexed
@@ -1116,7 +1216,7 @@ class MainViewModel : ViewModel() {
         // -------------------------------------------------------------------------
 
         mixerState.aplicarConfiguracao(
-            preset.mixer
+            mixerConfiguracao
         )
 
         // -------------------------------------------------------------------------

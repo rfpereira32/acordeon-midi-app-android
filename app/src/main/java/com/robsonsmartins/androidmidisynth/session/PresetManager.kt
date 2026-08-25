@@ -1,6 +1,7 @@
 package com.robsonsmartins.androidmidisynth.session
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import com.robsonsmartins.androidmidisynth.configuration.ChannelConfiguration
 import com.robsonsmartins.androidmidisynth.configuration.MixerConfiguration
@@ -28,6 +29,9 @@ class PresetManager(
             context.filesDir,
             PRESETS_FILE
         )
+
+    private val contentResolver =
+        context.contentResolver
 
     /**
      * Salva um preset.
@@ -138,6 +142,193 @@ class PresetManager(
         )
 
         return true
+
+    }
+
+    /**
+     * Exporta todos os presets para um arquivo JSON escolhido pelo usuário.
+     *
+     * As SoundFonts (.sf2) não fazem parte do backup.
+     */
+    fun exportarBackup(
+        uri: Uri
+    ): Boolean {
+
+        return try {
+
+            val json =
+                JSONObject()
+
+            json.put(
+                "versao",
+                1
+            )
+
+            val presetsJson =
+                JSONArray()
+
+            carregarTodos().forEach { preset ->
+
+                presetsJson.put(
+                    criarJson(
+                        preset
+                    )
+                )
+
+            }
+
+            json.put(
+                "presets",
+                presetsJson
+            )
+
+            val outputStream =
+                contentResolver.openOutputStream(
+                    uri
+                )
+                    ?: return false
+
+            outputStream.use { output ->
+
+                output.write(
+                    json.toString(4)
+                        .toByteArray(
+                            Charsets.UTF_8
+                        )
+                )
+
+            }
+
+            Log.d(
+                "PresetManager",
+                "Backup de presets exportado"
+            )
+
+            true
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "PresetManager",
+                "Erro ao exportar backup de presets",
+                e
+            )
+
+            false
+
+        }
+
+    }
+
+    /**
+     * Importa presets de um arquivo JSON.
+     *
+     * Presets com o mesmo nome substituem os existentes.
+     * Os demais presets atuais são mantidos.
+     */
+    fun importarBackup(
+        uri: Uri
+    ): Boolean {
+
+        return try {
+
+            val inputStream =
+                contentResolver.openInputStream(
+                    uri
+                )
+                    ?: return false
+
+            val texto =
+                inputStream.use { input ->
+
+                    input.bufferedReader(
+                        Charsets.UTF_8
+                    ).use { reader ->
+
+                        reader.readText()
+
+                    }
+
+                }
+
+            val json =
+                JSONObject(
+                    texto
+                )
+
+            val presetsJson =
+                json.optJSONArray(
+                    "presets"
+                )
+                    ?: return false
+
+            val presetsImportados =
+                mutableListOf<PresetConfiguration>()
+
+            for (
+            i in 0 until presetsJson.length()
+            ) {
+
+                presetsImportados.add(
+                    lerPreset(
+                        presetsJson.getJSONObject(i)
+                    )
+                )
+
+            }
+
+            val presets =
+                carregarTodos().toMutableList()
+
+            presetsImportados.forEach { preset ->
+
+                val indiceExistente =
+                    presets.indexOfFirst {
+
+                        it.nome.equals(
+                            preset.nome,
+                            ignoreCase = true
+                        )
+
+                    }
+
+                if (indiceExistente >= 0) {
+
+                    presets[indiceExistente] =
+                        preset
+
+                } else {
+
+                    presets.add(
+                        preset
+                    )
+
+                }
+
+            }
+
+            gravarTodos(
+                presets
+            )
+
+            Log.d(
+                "PresetManager",
+                "${presetsImportados.size} presets importados"
+            )
+
+            true
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "PresetManager",
+                "Erro ao importar backup de presets",
+                e
+            )
+
+            false
+
+        }
 
     }
 

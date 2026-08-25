@@ -133,7 +133,7 @@ void SynthManager::unloadSF(int sfid)
     fluid_synth_sfunload(
             synth,
             sfid,
-            1
+            0
     );
 
     if (soundfontId == sfid)
