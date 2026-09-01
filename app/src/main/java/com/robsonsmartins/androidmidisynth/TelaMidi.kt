@@ -1,11 +1,7 @@
 package com.robsonsmartins.androidmidisynth
 
-import android.media.midi.MidiReceiver
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,18 +26,9 @@ val cpuTelemetryFlow =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaMidiSintetizador(
-    midiReceiver: MidiReceiver? = null,
     instanciaMidiManager: MidiManager,
     viewModel: MainViewModel
 ) {
-
-    var mostrarMonitor by remember {
-        mutableStateOf(false)
-    }
-
-    var selectedFileUri by remember {
-        mutableStateOf<Uri?>(null)
-    }
 
     val tituloDispositivo =
         MidiEstadoCompartilhado.nomeDispositivoPareado
@@ -77,70 +64,27 @@ fun TelaMidiSintetizador(
                         Alignment.CenterVertically
                 ) {
 
-                    Row(
-                        modifier =
-                            Modifier.weight(1f),
+                    Text(
+                        text =
+                            tituloDispositivo,
 
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
+                        style =
+                            MaterialTheme
+                                .typography
+                                .headlineMedium,
 
-                        if (mostrarMonitor) {
+                        fontSize =
+                            18.sp,
 
-                            IconButton(
-                                onClick = {
-                                    mostrarMonitor = false
-                                }
-                            ) {
+                        fontWeight =
+                            FontWeight.Bold,
 
-                                Icon(
-                                    imageVector =
-                                        Icons.Default.ArrowBack,
+                        color =
+                            Color.White,
 
-                                    contentDescription =
-                                        "Voltar",
-
-                                    tint =
-                                        Color.White
-                                )
-
-                            }
-
-                        }
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(
-                                    if (mostrarMonitor)
-                                        8.dp
-                                    else
-                                        0.dp
-                                )
-                        )
-
-                        Text(
-                            text =
-                                tituloDispositivo,
-
-                            style =
-                                MaterialTheme
-                                    .typography
-                                    .headlineMedium,
-
-                            fontSize =
-                                18.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            color =
-                                Color.White,
-
-                            maxLines =
-                                1
-                        )
-
-                    }
+                        maxLines =
+                            1
+                    )
 
                 }
 
@@ -155,7 +99,7 @@ fun TelaMidiSintetizador(
         )
 
         // =====================================================================
-        // CONTEÚDO
+        // MIXER
         // =====================================================================
 
         Box(
@@ -167,47 +111,21 @@ fun TelaMidiSintetizador(
                     )
         ) {
 
-            if (mostrarMonitor) {
+            MixerScreenContent(
 
-                MonitorScreenContent(
+                nomeInstrumento =
+                    tituloDispositivo,
 
-                    fileUri =
-                        selectedFileUri,
+                isConnected =
+                    ledVerdeAtivo,
 
-                    midiReceiver =
-                        midiReceiver,
+                midiManager =
+                    instanciaMidiManager,
 
-                    onFileSelected = {
-                            uri ->
-                        selectedFileUri =
-                            uri
-                    }
+                viewModel =
+                    viewModel
 
-                )
-
-            } else {
-
-                MixerScreenContent(
-
-                    nomeInstrumento =
-                        tituloDispositivo,
-
-                    isConnected =
-                        ledVerdeAtivo,
-
-                    onOtaClick = {
-                        mostrarMonitor = true
-                    },
-
-                    midiManager =
-                        instanciaMidiManager,
-
-                    viewModel =
-                        viewModel
-
-                )
-
-            }
+            )
 
         }
 

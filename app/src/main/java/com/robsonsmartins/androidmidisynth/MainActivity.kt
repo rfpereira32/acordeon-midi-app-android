@@ -236,11 +236,7 @@ class MainActivity : ComponentActivity() {
 
                     com.robsonsmartins.androidmidisynth.TelaMidiSintetizador(
 
-                        midiReceiver =
-                            midiManager
-                                .obterReceiverMidi(),
-
-                        instanciaMidiManager =
+                       instanciaMidiManager =
                             midiManager,
 
                         viewModel =
