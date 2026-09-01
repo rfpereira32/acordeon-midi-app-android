@@ -1776,11 +1776,18 @@ private fun PresetsScreenContent(
 
                         if (nome.isNotEmpty()) {
 
-                            viewModel.salvarPreset(
-                                nome
-                            )
+                            val salvo =
+                                viewModel.salvarPreset(
+                                    nome
+                                )
 
-                            mostrarDialogoSalvar = false
+                            if (salvo) {
+
+                                atualizarListaPresets++
+
+                                mostrarDialogoSalvar = false
+
+                            }
 
                         }
 
