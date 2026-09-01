@@ -1,7 +1,10 @@
 package com.robsonsmartins.androidmidisynth
 
+import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,19 +14,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import android.util.Log
-import android.media.midi.MidiDeviceInfo
-import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 import com.robsonsmartins.androidmidisynth.audio.SynthController
-import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
-import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Icon
+import com.robsonsmartins.androidmidisynth.session.PresetManager
 import com.robsonsmartins.androidmidisynth.session.SessionCoordinator
 import com.robsonsmartins.androidmidisynth.session.SessionManager
-import com.robsonsmartins.androidmidisynth.session.PresetManager
-import android.bluetooth.BluetoothManager
-import android.content.Intent
+import com.robsonsmartins.androidmidisynth.soundfont.SoundFontManager
+import com.robsonsmartins.androidmidisynth.sync.ConfigurationSynchronizer
+import com.robsonsmartins.androidmidisynth.viewmodel.MainViewModel
 
 private fun MidiManager.iniciarEscaneamentoAutomatico() {
     start()
@@ -224,111 +221,6 @@ class MainActivity : ComponentActivity() {
 
         verificarBluetoothEIniciarMidi()
 
-        viewModel.dispositivosMidi =
-            midiManager.listarDispositivosDisponiveis(
-                this
-            )
-
-        val sistemaMidi =
-            getSystemService(
-                Context.MIDI_SERVICE
-            ) as android.media.midi.MidiManager
-
-        sistemaMidi.registerDeviceCallback(
-            object :
-                android.media.midi.MidiManager.DeviceCallback() {
-
-                override fun onDeviceAdded(
-                    deviceInfo: MidiDeviceInfo
-                ) {
-
-                    if (
-                        deviceInfo.properties
-                            .getString("product")
-                            ?.contains(
-                                "Cordovox",
-                                ignoreCase = true
-                            ) == true ||
-                        deviceInfo.type ==
-                        MidiDeviceInfo.TYPE_BLUETOOTH
-                    ) {
-
-                        sistemaMidi.openDevice(
-                            deviceInfo,
-                            { dispositivo ->
-
-                                if (
-                                    dispositivo != null
-                                ) {
-
-                                    val outputPort =
-                                        dispositivo
-                                            .openOutputPort(0)
-
-                                    outputPort?.connect(
-                                        object :
-                                            android.media.midi.MidiReceiver() {
-
-                                            override fun onSend(
-                                                msg: ByteArray,
-                                                offset: Int,
-                                                count: Int,
-                                                timestamp: Long
-                                            ) {
-
-                                                if (
-                                                    count >= 3
-                                                ) {
-
-                                                    val status =
-                                                        msg[
-                                                            offset
-                                                        ].toInt() and 0xFF
-
-                                                    val nota =
-                                                        msg[
-                                                            offset + 1
-                                                        ].toInt() and 0xFF
-
-                                                    val vel =
-                                                        msg[
-                                                            offset + 2
-                                                        ].toInt() and 0xFF
-
-                                                    if (
-                                                        status in
-                                                        0x90..0x9F &&
-                                                        vel > 0
-                                                    ) {
-
-//                                                        synthController.setVolume(
-//                                                            0,
-//                                                            (viewModel.masterVolume * 127).toInt()
-//                                                        )
-
-                                                    }
-
-                                                }
-
-                                            }
-
-                                        }
-                                    )
-
-                                }
-
-                            },
-                            null
-                        )
-
-                    }
-
-                }
-
-            },
-            null
-        )
-
         setContent {
 
             MaterialTheme {
@@ -343,36 +235,6 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     com.robsonsmartins.androidmidisynth.TelaMidiSintetizador(
-
-                        listaDispositivos =
-                            viewModel.dispositivosMidi,
-
-                        onVolumeChanged = {
-                                novoVolume: Float ->
-
-                            viewModel.masterVolume =
-                                novoVolume
-
-                            synthController.setVolume(
-                                0,
-                                (
-                                        viewModel.masterVolume *
-                                                127
-                                        ).toInt()
-                            )
-
-                        },
-
-                        onDispositivoSelecionado = {
-                                dispositivoEscolhido:
-                                MidiDeviceInfo ->
-
-                            midiManager
-                                .conectarAoDispositivo(
-                                    dispositivoEscolhido
-                                )
-
-                        },
 
                         midiReceiver =
                             midiManager
@@ -442,136 +304,6 @@ class MainActivity : ComponentActivity() {
         )
 
         midiManager.iniciarEscaneamentoAutomatico()
-
-    }
-
-    private fun atualizarVolumeInternoFluidSynth(
-        canal: Int,
-        volume: Int
-    ) {
-
-        Log.d(
-            TAG,
-            "Sincronizando ganho interno FluidSynth - Canal: $canal, Vol: $volume"
-        )
-
-    }
-
-    private fun despacharSysExMixerBluetooth(
-        canal: Int,
-        volume: Int
-    ) {
-
-        val envelopeSysEx =
-            byteArrayOf(
-                0xF0.toByte(),
-                0x7D.toByte(),
-                0x05.toByte(),
-                (canal and 0x7F).toByte(),
-                (volume and 0x7F).toByte(),
-                0xF7.toByte()
-            )
-
-        Log.d(
-            TAG,
-            "SysEx Mixer despachado para radio BLE: Canal $canal, Volume $volume"
-        )
-
-    }
-
-    private fun despacharSysExOtaBluetooth() {
-
-        val envelopeOtaSysEx =
-            byteArrayOf(
-                0xF0.toByte(),
-                0x7D.toByte(),
-                0x0A.toByte(),
-                0xF7.toByte()
-            )
-
-        Log.d(
-            TAG,
-            "SysEx OTA enviado com sucesso para chaveamento de infraestrutura."
-        )
-
-    }
-
-    // ==============================================================================
-    // INTERCEPTADOR TEXTUAL DIRETO
-    // ==============================================================================
-
-    private fun onMidiMessageReceived(
-        message: String
-    ) {
-
-        Log.d(
-            TAG,
-            "📥 [RADIO_RAW] Texto puro vindo do fole: $message"
-        )
-
-        runOnUiThread {
-
-            if (
-                message.startsWith("F0") ||
-                message.contains("F0")
-            ) {
-
-                processarSysExCpu(
-                    message
-                )
-
-            }
-
-        }
-
-    }
-
-    private fun processarSysExCpu(
-        message: String
-    ) {
-
-        try {
-
-            val bytesText =
-                message
-                    .trim()
-                    .replace(
-                        "\\s+".toRegex(),
-                        " "
-                    )
-                    .split(" ")
-
-            if (
-                bytesText.size >= 5 &&
-                bytesText[1]
-                    .trim()
-                    .equals(
-                        "7D",
-                        ignoreCase = true
-                    )
-            ) {
-
-                val subIdComando =
-                    bytesText[2].trim()
-
-                if (
-                    subIdComando == "01" ||
-                    subIdComando == "1"
-                ) {
-
-                    val valorCPU =
-                        bytesText[4]
-                            .trim()
-                            .toInt(16)
-
-                    viewModel.usoCpu =
-                        valorCPU
-
-                }
-
-            }
-
-        } catch (_: Exception) {}
 
     }
 
