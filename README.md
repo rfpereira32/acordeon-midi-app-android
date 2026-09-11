@@ -1,46 +1,23 @@
 # Acordeon MIDI
 
-Aplicativo Android nativo desenvolvido em Kotlin para acordeões MIDI.
+Projeto pessoal de aplicativo Android nativo desenvolvido em Kotlin para uso com acordeões MIDI.
 
-## Recursos
+O aplicativo recebe mensagens MIDI do instrumento através de uma conexão Bluetooth Low Energy (BLE), processa os eventos de nota em nível nativo (C++) e utiliza o motor **FluidSynth** para síntese sonora em tempo real.
 
-- BLE automático
-- FluidSynth integrado
-- SoundFonts
-- Mixer MIDI
-- OTA
-- Presets
-- Configuração do acordeão
+## Funcionalidades Atuais
 
+- **Conexão BLE MIDI:** Escaneamento automático e conexão com dispositivos MIDI Bluetooth.
+- **Síntese Sonora:** Utiliza a biblioteca FluidSynth com driver Oboe para áudio de baixa latência.
+- **Gerenciamento de SoundFonts:** Importação e utilização de arquivos de instrumentos no formato `.sf2`.
+- **Mixer MIDI de 16 canais:** Controle individual de volume, mute e seleção de instrumentos para os canais MIDI.
+- **Gestão de Presets:** Salvamento e recuperação de configurações de timbres e volumes da sessão.
+- **Telemetria:** Exibição do nível de bateria do instrumento conectado (via protocolo SysEx).
+- **Atualização OTA:** Comando para iniciar a atualização de firmware do hardware via Wi-Fi Access Point.
 
+## Créditos e Origem
 
-# Android MIDI Synth
+Este projeto é uma versão especializada e estendida do código original [Android MIDI Synth](https://github.com/robsonsmartins/android-midi-synth) de Robson Martins, adaptado para as necessidades específicas de um músico acordeonista.
 
-The Android MIDI Synth project is an example Android application written in Kotlin, which processes
-MIDI events in C/C++ and plays SF2/SF3 sounds using
-[FluidSynth](https://github.com/FluidSynth/fluidsynth) via JNI (C language).
+## Licença
 
-- Article (in Portuguese): [Criando um App Sintetizador MIDI para Android com Kotlin e C++](https://embarcados.com.br/criando-um-app-sintetizador-midi-para-android-com-kotlin-e-c/)
-- English version: [Developing a MIDI Synthesizer App for Android Using Kotlin and C++](https://tinyurl.com/34vsycr3)
-
-## License
-
-Distributed under the [MIT License](https://spdx.org/licenses/MIT.html).
-
-See [LICENSE](https://github.com/robsonsmartins/android-midi-synth/blob/main/LICENSE) file for more
-information.
-
-Some components used in this project are available under other licenses. Check each license file
-distributed with third-party components:
-
-- [FluidSynth](https://github.com/robsonsmartins/android-midi-synth/blob/main/app/src/main/cpp/fluidsynth/): LGPL 2.1
-- [KawaiStereoGrand SoundFont](https://github.com/robsonsmartins/android-midi-synth/blob/main/app/src/main/assets/): CC0 1.0 Universal 
-
-Some brands mentioned are registered and are the property of the respective deteiners/manufacturers.
-
-The same "Terms and Conditions" and "Privacy Policy" of the
-[Robson Martins Home Page](https://www.robsonmartins.com) apply here:
-
-- [Terms and Conditions](https://www.robsonmartins.com/content/policy/terms.php)
-- [Privacy Policy](https://www.robsonmartins.com/content/policy/privacy.php)
-
+Este software é distribuído sob a licença MIT. Consulte o arquivo `LICENSE` para mais detalhes.

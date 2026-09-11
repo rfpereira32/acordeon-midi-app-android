@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     package="com.robsonsmartins.androidmidisynth">
 
-    <!-- Adicione esta linha junto com as outras permissões e features no topo do manifesto -->
-    <uses-feature android:name="android.software.companion_device_setup" android:required="true" />
 
     <!-- Adicione estas duas linhas junto com as de Bluetooth no topo do seu manifesto -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -27,23 +24,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AndroidMidiSynth"
-        tools:replace="android:theme,android:allowBackup,android:icon,android:roundIcon"
-        tools:node="merge">
+        android:theme="@style/Theme.AndroidMidiSynth">
 
-        <!-- 🚀 VÍNCULO DO FOREGROUND SERVICE QUE COMPLEMENTA A CONFIGURAÇÃO DO CONTROL_AUDIO -->
-        <service
-            android:name="androidx.media.MediaSessionService"
-            android:enabled="true"
-            android:exported="true"
-            android:foregroundServiceType="mediaPlayback"
-            tools:node="merge">
-            <intent-filter>
-                <action android:name="androidx.media.MediaSessionService" />
-            </intent-filter>
-        </service>
 
-        <uses-library android:name="android.test.runner" android:required="false" />
 
         <activity
             android:name=".MainActivity"

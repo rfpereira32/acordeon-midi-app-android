@@ -52,11 +52,11 @@ SynthManager* SynthManager::instance = nullptr;
 SynthManager::SynthManager(): soundfontId(-1) {
     // setup synthesizer
     settings = new_fluid_settings();
+    if (settings == nullptr) return;
 //    fluid_settings_setstr(settings, "audio.driver", "opensles");
     fluid_settings_setstr(settings, "audio.driver", "oboe");
     fluid_settings_setint(settings, "audio.realtime-prio", 99);
     fluid_settings_setint(settings, "audio.periods", 2);
-    if (settings == nullptr) return;
     fluid_settings_setint(settings, "synth.cpu-cores", 4);
     fluid_settings_setnum(settings, "synth.gain", 0.6);
     fluid_settings_setstr(settings, "audio.oboe.performance-mode", "LowLatency");

@@ -146,6 +146,10 @@ MidiManager::~MidiManager() {
             nullptr
     );
 
+    AMidiOutputPort_close(
+            midiOutputPort
+    );
+
     AMidiDevice_release(
             nativeReceiveDevice
     );
@@ -254,137 +258,85 @@ void MidiManager::parseMidiData(
         const uint8_t *data,
         size_t numBytes
 ) {
+    size_t i = 0;
+    while (i < numBytes) {
+        uint8_t status = data[i] & 0xFF;
+        size_t msgLen = 0;
 
-    if (
-            numBytes < 3
-            ) {
-        return;
-    }
-
-    uint8_t status =
-            data[0] & 0xFF;
-
-    uint8_t midiChannel =
-            status & 0x0F;
-
-    uint8_t note =
-            data[1] & 0xFF;
-
-    uint8_t velocity =
-            data[2] & 0xFF;
-
-    std::ostringstream oss;
-
-    /*
-     * O ESP envia somente três canais de controle:
-     *
-     * MIDI 0 -> Controle 1
-     * MIDI 1 -> Controle 2
-     * MIDI 2 -> Controle 3
-     *
-     * Qualquer outro canal recebido continua sendo
-     * ignorado para o roteamento.
-     */
-    uint8_t controlSource =
-            0;
-
-    if (
-            midiChannel < 3
-            ) {
-
-        controlSource =
-                midiChannel + 1;
-
-    }
-    __android_log_print(
-            ANDROID_LOG_DEBUG,
-            "MidiManager",
-            "NOTA RX: status=0x%02X canalMIDI=%d nota=%d velocity=%d controle=%d",
-            status,
-            midiChannel + 1,
-            note,
-            velocity,
-            controlSource
-    );
-    switch (
-            (status & kMIDISysCmdChan) >> 4
-            ) {
-
-        // ================================================================
-        // NOTE OFF
-        // ================================================================
-
-        case kMIDIChanCmd_NoteOff:
-
-            if (
-                    controlSource == 0
-                    ) {
-                break;
+        if (status < 0x80) { // Byte de dados sem status (ignora p/ v1.0)
+            i++;
+            continue;
+        } else if (status < 0xF0) { // Channel Messages
+            uint8_t cmd = status & 0xF0;
+            msgLen = (cmd == 0xC0 || cmd == 0xD0) ? 2 : 3;
+        } else if (status == 0xF0) { // SysEx
+            msgLen = 1;
+            while ((i + msgLen) < numBytes && data[i + msgLen] != 0xF7) {
+                msgLen++;
             }
-
-            /*
-             * Se o Sustain estiver desligado, desligamos a nota
-             * em todos os canais que estavam respondendo
-             * ao controle no momento do Note On.
-             *
-             * Controle 4 responde aos controles 2 e 3.
-             */
-            if (!sustain) {
-
-                for (
-                        int channel = 0;
-                        channel < 16;
-                        channel++
-                        ) {
-
-                    if (
-                            controlSources[channel]
-                            == controlSource
-                            ||
-                            (
-                                    controlSources[channel] == 4
-                                    &&
-                                    (
-                                            controlSource == 2
-                                            ||
-                                            controlSource == 3
-                                    )
-                            )
-                            ) {
-
-                        synthManager->noteOff(
-                                channel,
-                                note
-                        );
-
-                    }
-
-                }
-
-                sustainNotes.erase(
-                        note
-                );
-
+            if ((i + msgLen) < numBytes) {
+                msgLen++; // Inclui o F7
             }
+        } else { // System Real-time ou Common
+            msgLen = 1;
+        }
 
-            playNotes.erase(
-                    note
-            );
-
+        // Se a mensagem estiver incompleta no final do buffer, ignoramos
+        if (i + msgLen > numBytes) {
             break;
+        }
+
+        uint8_t midiChannel =
+                status & 0x0F;
+
+        uint8_t note =
+                (msgLen > 1) ? (data[i + 1] & 0xFF) : 0;
+
+        uint8_t velocity =
+                (msgLen > 2) ? (data[i + 2] & 0xFF) : 0;
+
+        std::ostringstream oss;
+
+        /*
+         * O ESP envia somente três canais de controle:
+         *
+         * MIDI 0 -> Controle 1
+         * MIDI 1 -> Controle 2
+         * MIDI 2 -> Controle 3
+         *
+         * Qualquer outro canal recebido continua sendo
+         * ignorado para o roteamento.
+         */
+        uint8_t controlSource =
+                0;
+
+        if (
+                midiChannel < 3
+                ) {
+
+            controlSource =
+                    midiChannel + 1;
+
+        }
+        __android_log_print(
+                ANDROID_LOG_DEBUG,
+                "MidiManager",
+                "NOTA RX: status=0x%02X canalMIDI=%d nota=%d velocity=%d controle=%d",
+                status,
+                midiChannel + 1,
+                note,
+                velocity,
+                controlSource
+        );
+        switch (
+                (status & kMIDISysCmdChan) >> 4
+                ) {
 
             // ================================================================
-            // NOTE ON
+            // NOTE OFF
             // ================================================================
 
-        case kMIDIChanCmd_NoteOn:
-
-            /*
-             * MIDI Note On com velocity 0 equivale a Note Off.
-             */
-            if (
-                    velocity == 0
-                    ) {
+            case kMIDIChanCmd_NoteOff:
 
                 if (
                         controlSource == 0
@@ -392,6 +344,13 @@ void MidiManager::parseMidiData(
                     break;
                 }
 
+                /*
+                 * Se o Sustain estiver desligado, desligamos a nota
+                 * em todos os canais que estavam respondendo
+                 * ao controle no momento do Note On.
+                 *
+                 * Controle 4 responde aos controles 2 e 3.
+                 */
                 if (!sustain) {
 
                     for (
@@ -436,208 +395,274 @@ void MidiManager::parseMidiData(
 
                 break;
 
-            }
+                // ================================================================
+                // NOTE ON
+                // ================================================================
 
-            if (
-                    controlSource == 0
-                    ) {
-                break;
-            }
+            case kMIDIChanCmd_NoteOn:
 
-            if (sustain) {
-
-                sustainNotes.insert(
-                        note
-                );
-
-            }
-
-            playNotes.insert(
-                    note
-            );
-
-            /*
-             * A nota recebida do ESP é enviada para todos
-             * os canais Android associados ao controle.
-             *
-             * Controle 4 responde tanto ao Controle 2
-             * quanto ao Controle 3.
-             */
-            for (
-                    int channel = 0;
-                    channel < 16;
-                    channel++
-                    ) {
-
+                /*
+                 * MIDI Note On com velocity 0 equivale a Note Off.
+                 */
                 if (
-                        controlSources[channel]
-                        == controlSource
-                        ||
-                        (
-                                controlSources[channel] == 4
-                                &&
-                                (
-                                        controlSource == 2
-                                        ||
-                                        controlSource == 3
-                                )
-                        )
+                        velocity == 0
                         ) {
 
-                    synthManager->noteOn(
-                            channel,
-                            note,
-                            velocity
+                    if (
+                            controlSource == 0
+                            ) {
+                        break;
+                    }
+
+                    if (!sustain) {
+
+                        for (
+                                int channel = 0;
+                                channel < 16;
+                                channel++
+                                ) {
+
+                            if (
+                                    controlSources[channel]
+                                    == controlSource
+                                    ||
+                                    (
+                                            controlSources[channel] == 4
+                                            &&
+                                            (
+                                                    controlSource == 2
+                                                    ||
+                                                    controlSource == 3
+                                            )
+                                    )
+                                    ) {
+
+                                synthManager->noteOff(
+                                        channel,
+                                        note
+                                );
+
+                            }
+
+                        }
+
+                        sustainNotes.erase(
+                                note
+                        );
+
+                    }
+
+                    playNotes.erase(
+                            note
                     );
 
-                    /*
-                     * Informa ao Android que este canal
-                     * recebeu atividade MIDI.
-                     *
-                     * O canal é enviado como um único byte,
-                     * evitando criar mensagens de texto.
-                     */
-                    uint8_t activityMessage =
-                            static_cast<uint8_t>(channel);
+                    break;
 
-                    sendToCallback(
-                            &activityMessage,
-                            1
+                }
+
+                if (
+                        controlSource == 0
+                        ) {
+                    break;
+                }
+
+                if (sustain) {
+
+                    sustainNotes.insert(
+                            note
                     );
 
                 }
 
-            }
+                playNotes.insert(
+                        note
+                );
 
-            break;
+                /*
+                 * A nota recebida do ESP é enviada para todos
+                 * os canais Android associados ao controle.
+                 *
+                 * Controle 4 responde tanto ao Controle 2
+                 * quanto ao Controle 3.
+                 */
+                for (
+                        int channel = 0;
+                        channel < 16;
+                        channel++
+                        ) {
 
-            // ================================================================
-            // CONTROL CHANGE
-            // ================================================================
+                    if (
+                            controlSources[channel]
+                            == controlSource
+                            ||
+                            (
+                                    controlSources[channel] == 4
+                                    &&
+                                    (
+                                            controlSource == 2
+                                            ||
+                                            controlSource == 3
+                                    )
+                            )
+                            ) {
 
-        case kMIDIChanCmd_Control:
+                        synthManager->noteOn(
+                                channel,
+                                note,
+                                velocity
+                        );
 
-            /*
-             * Os controles MIDI enviados pelo ESP também
-             * pertencem a um dos três controles físicos.
-             */
-            parseMidiCmdControl(
-                    note,
-                    velocity
-            );
+                        /*
+                         * Informa ao Android que este canal
+                         * recebeu atividade MIDI.
+                         *
+                         * O canal é enviado como um único byte,
+                         * evitando criar mensagens de texto.
+                         */
+                        uint8_t activityMessage =
+                                static_cast<uint8_t>(channel);
 
-            break;
+                        sendToCallback(
+                                &activityMessage,
+                                1
+                        );
 
-            // ================================================================
-            // KEY PRESS
-            // ================================================================
+                    }
 
-        case kMIDIChanCmd_KeyPress:
+                }
 
-            oss.clear();
+                break;
 
-            oss
-                    << "Key Press: "
-                    << (int)note
-                    << " vel: "
-                    << (int)velocity
-                    << " status: "
-                    << (int)status;
+                // ================================================================
+                // CONTROL CHANGE
+                // ================================================================
 
-            sendToCallback(
-                    oss
-            );
+            case kMIDIChanCmd_Control:
 
-            break;
+                /*
+                 * Os controles MIDI enviados pelo ESP também
+                 * pertencem a um dos três controles físicos.
+                 */
+                parseMidiCmdControl(
+                        note,
+                        velocity
+                );
 
-            // ================================================================
-            // PROGRAM CHANGE
-            // ================================================================
+                break;
 
-        case kMIDIChanCmd_ProgramChange:
+                // ================================================================
+                // KEY PRESS
+                // ================================================================
 
-            oss.clear();
+            case kMIDIChanCmd_KeyPress:
 
-            oss
-                    << "Program Change: "
-                    << (int)note
-                    << " vel: "
-                    << (int)velocity
-                    << " status: "
-                    << (int)status;
+                oss.clear();
 
-            sendToCallback(
-                    oss
-            );
+                oss
+                        << "Key Press: "
+                        << (int)note
+                        << " vel: "
+                        << (int)velocity
+                        << " status: "
+                        << (int)status;
 
-            break;
+                sendToCallback(
+                        oss
+                );
 
-            // ================================================================
-            // CHANNEL PRESSURE
-            // ================================================================
+                break;
 
-        case kMIDIChanCmd_ChannelPress:
+                // ================================================================
+                // PROGRAM CHANGE
+                // ================================================================
 
-            oss.clear();
+            case kMIDIChanCmd_ProgramChange:
 
-            oss
-                    << "Channel Press: "
-                    << (int)note
-                    << " vel: "
-                    << (int)velocity
-                    << " status: "
-                    << (int)status;
+                oss.clear();
 
-            sendToCallback(
-                    oss
-            );
+                oss
+                        << "Program Change: "
+                        << (int)note
+                        << " vel: "
+                        << (int)velocity
+                        << " status: "
+                        << (int)status;
 
-            break;
+                sendToCallback(
+                        oss
+                );
 
-            // ================================================================
-            // PITCH WHEEL
-            // ================================================================
+                break;
 
-        case kMIDIChanCmd_PitchWheel:
+                // ================================================================
+                // CHANNEL PRESSURE
+                // ================================================================
 
-            oss.clear();
+            case kMIDIChanCmd_ChannelPress:
 
-            oss
-                    << "Pitch Wheel: "
-                    << (int)note
-                    << " vel: "
-                    << (int)velocity
-                    << " status: "
-                    << (int)status;
+                oss.clear();
 
-            sendToCallback(
-                    oss
-            );
+                oss
+                        << "Channel Press: "
+                        << (int)note
+                        << " vel: "
+                        << (int)velocity
+                        << " status: "
+                        << (int)status;
 
-            break;
+                sendToCallback(
+                        oss
+                );
 
-            // ================================================================
-            // DEFAULT
-            // ================================================================
+                break;
 
-        default:
+                // ================================================================
+                // PITCH WHEEL
+                // ================================================================
 
-            oss.clear();
+            case kMIDIChanCmd_PitchWheel:
 
-            oss
-                    << "Unparsed: "
-                    << (int)note
-                    << " vel: "
-                    << (int)velocity
-                    << " status: "
-                    << (int)status;
+                oss.clear();
 
-            sendToCallback(
-                    oss
-            );
+                oss
+                        << "Pitch Wheel: "
+                        << (int)note
+                        << " vel: "
+                        << (int)velocity
+                        << " status: "
+                        << (int)status;
 
-            break;
+                sendToCallback(
+                        oss
+                );
 
+                break;
+
+                // ================================================================
+                // DEFAULT
+                // ================================================================
+
+            default:
+
+                oss.clear();
+
+                oss
+                        << "Unparsed: "
+                        << (int)note
+                        << " vel: "
+                        << (int)velocity
+                        << " status: "
+                        << (int)status;
+
+                sendToCallback(
+                        oss
+                );
+
+                break;
+
+        }
+
+        i += msgLen;
     }
 
 }

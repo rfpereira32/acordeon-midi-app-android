@@ -476,15 +476,13 @@ class SoundFontManager(
         if (!podeExcluir(soundFont, estaEmUso))
             return false
 
-        try {
-
+        val excluiu = try {
             File(soundFont.caminho).delete()
-
         } catch (_: Exception) {
-
-            return false
-
+            false
         }
+
+        if (!excluiu) return false
 
         soundFonts.remove(soundFont)
 
