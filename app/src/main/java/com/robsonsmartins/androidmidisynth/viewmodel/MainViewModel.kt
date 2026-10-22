@@ -349,7 +349,8 @@ class MainViewModel : ViewModel() {
                 novoVolume
             )
 
-            salvarSessao()
+            // DIAGNÓSTICO TEMPORÁRIO: salvarSessao() desativado para teste de estalos
+            // salvarSessao()
 
             return
 
@@ -360,7 +361,8 @@ class MainViewModel : ViewModel() {
             novoVolume
         )
 
-        salvarSessao()
+        // DIAGNÓSTICO TEMPORÁRIO: salvarSessao() desativado para teste de estalos
+        // salvarSessao()
 
     }
 
@@ -568,7 +570,8 @@ class MainViewModel : ViewModel() {
 
         }
 
-        salvarSessao()
+        // DIAGNÓSTICO TEMPORÁRIO: salvarSessao() desativado para teste de estalos
+        // salvarSessao()
 
     }
 
@@ -1171,6 +1174,13 @@ class MainViewModel : ViewModel() {
 
             }
 
+            if (soundFont.sfid < 0) {
+                val mensagem = "Não foi possível carregar a SoundFont '${soundFont.nome}'."
+                Log.e("MainViewModel", mensagem)
+                erroPreset = mensagem
+                return false
+            }
+
         }
 
         // -------------------------------------------------------------------------
@@ -1219,9 +1229,43 @@ class MainViewModel : ViewModel() {
             mixerConfiguracao
         )
 
-        // -------------------------------------------------------------------------
-        // ControlSource
-        // -------------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// Limpa os instrumentos anteriores.
+// Os canais sem SoundFont permanecerão sem instrumento.
+// Volumes, mute e controlSource são preservados.
+// -------------------------------------------------------------------------
+
+        mixerState.channels.forEach { channel ->
+
+            midiMixer.setPreset(
+                channel.channel,
+                null
+            )
+
+            midiMixer.setSoundFont(
+                channel.channel,
+                null
+            )
+
+            channel.preset = null
+            channel.soundFont = null
+
+            val midiChannel =
+                midiMixer.getChannel(
+                    channel.channel
+                )
+
+            midiChannel.preset = null
+            midiChannel.soundFont = null
+
+            midiChannel.bankMsb = channel.bankMsb
+            midiChannel.bankLsb = channel.bankLsb
+            midiChannel.program = channel.program
+        }
+
+// -------------------------------------------------------------------------
+// ControlSource
+// -------------------------------------------------------------------------
 
         sincronizarControlSources()
 
@@ -1315,6 +1359,12 @@ class MainViewModel : ViewModel() {
         // -------------------------------------------------------------------------
 
         mixerState.channels.forEach { channel ->
+
+            if (channel.soundFontId < 0) {
+                synthController.setVolume(channel.channel, 0)
+                synthController.sendCC(channel.channel, 123, 0)
+                return@forEach
+            }
 
             val volumeEfetivo =
                 if (channel.muted) {

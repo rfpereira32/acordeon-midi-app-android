@@ -135,7 +135,7 @@ class SynthController(
      * lidos do FluidSynth e armazenados na própria
      * SoundFontInfo.
      */
-    fun carregarSoundFont(soundFont: SoundFontInfo) {
+    fun carregarSoundFont(soundFont: SoundFontInfo): Boolean {
 
         Log.d(
             "SoundFontDebug",
@@ -157,7 +157,41 @@ class SynthController(
                 "SoundFont já possui sfid=${soundFont.sfid}"
             )
 
-            return
+            if (soundFont.presets.isNotEmpty()) {
+                Log.d(
+                    "SoundFontDebug",
+                    "Lista de presets já preenchida: ${soundFont.presets.size}"
+                )
+                return true
+            }
+
+            Log.d(
+                "SoundFontDebug",
+                "SoundFont carregada, mas lista vazia. Recuperando presets."
+            )
+
+            val presets = synth.listPresets(soundFont.sfid)
+
+            if (presets.isEmpty()) {
+                Log.e(
+                    "SynthController",
+                    "SoundFont '${soundFont.nome}' (sfid=${soundFont.sfid}) possui lista de presets vazia."
+                )
+                synth.unloadSF(soundFont.sfid)
+                soundFont.sfid = -1
+                return false
+            }
+
+            soundFont.presets.clear()
+            soundFont.presets.addAll(presets)
+            soundFont.quantidadePresets = presets.size
+
+            Log.d(
+                "SoundFontDebug",
+                "Presets recuperados: quantidade=${presets.size}"
+            )
+
+            return true
         }
 
         Log.d(
@@ -176,6 +210,14 @@ class SynthController(
 
         soundFont.sfid = sfid
 
+        if (sfid < 0) {
+            Log.e(
+                "SynthController",
+                "Falha ao carregar SoundFont '${soundFont.nome}' (caminho=${soundFont.caminho}): sfid inválido ($sfid)"
+            )
+            return false
+        }
+
         Log.d(
             "SoundFontDebug",
             "ANTES synth.listPresets"
@@ -188,6 +230,16 @@ class SynthController(
             "DEPOIS synth.listPresets: quantidade=${presets.size}"
         )
 
+        if (presets.isEmpty()) {
+            Log.e(
+                "SynthController",
+                "SoundFont '${soundFont.nome}' carregada (sfid=$sfid) retornou lista de presets vazia."
+            )
+            synth.unloadSF(sfid)
+            soundFont.sfid = -1
+            return false
+        }
+
         soundFont.presets.clear()
 
         soundFont.presets.addAll(presets)
@@ -198,6 +250,8 @@ class SynthController(
             "SoundFontDebug",
             "FIM SynthController.carregarSoundFont"
         )
+
+        return true
     }
 
     /**
@@ -235,6 +289,18 @@ class SynthController(
             soundFont.sfid
         )
 
+    }
+
+    fun sendCC(
+        channel: Int,
+        controller: Int,
+        value: Int
+    ) {
+        synth.sendCC(
+            channel,
+            controller,
+            value
+        )
     }
 
     // =============================================================================

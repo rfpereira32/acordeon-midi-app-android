@@ -159,9 +159,9 @@ class MainActivity : ComponentActivity() {
 
         sessionCoordinator.restaurar()
 
-        sessionCoordinator.restaurarInstrumentos()
-
         soundFontManager.sincronizarBiblioteca()
+
+        sessionCoordinator.restaurarInstrumentos()
 
         synthController.setVolume(
             0,

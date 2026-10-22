@@ -77,26 +77,41 @@ class FluidSynthManager(private val context: Context) {
         filename: String,
         program: Int = 0
     ): Int {
+        val file = java.io.File(filename)
+        if (!file.exists()) {
+            android.util.Log.e("FluidSynthManager", "Falha ao carregar SoundFont: arquivo não existe. Caminho=$filename")
+            return -1
+        }
+        if (!file.isFile) {
+            android.util.Log.e("FluidSynthManager", "Falha ao carregar SoundFont: o caminho não é um arquivo regular. Caminho=$filename")
+            return -1
+        }
+        if (file.length() <= 0) {
+            android.util.Log.e("FluidSynthManager", "Falha ao carregar SoundFont: arquivo vazio (0 bytes). Caminho=$filename")
+            return -1
+        }
+
+        android.util.Log.d("FluidSynthManager", "Iniciando carregamento da SoundFont: arquivo=${file.name}, caminho=$filename, tamanho=${file.length()} bytes")
 
         try {
-
             val sfid = fluidsynthLoadSF(
                 filename,
                 program
             )
 
+            android.util.Log.d("FluidSynthManager", "Resultado fluidsynthLoadSF: arquivo=${file.name}, sfid=$sfid")
+
             if (sfid < 0) {
-                throw IOException("Erro ao carregar $filename")
+                android.util.Log.e("FluidSynthManager", "Erro ao carregar SoundFont no sintetizador: sfid=$sfid, caminho=$filename")
+                return -1
             }
 
             return sfid
 
-        } catch (e: IOException) {
-
-            throw RuntimeException(e)
-
+        } catch (e: Exception) {
+            android.util.Log.e("FluidSynthManager", "Exceção ao carregar SoundFont: caminho=$filename", e)
+            return -1
         }
-
     }
 
     /**
@@ -162,6 +177,20 @@ class FluidSynthManager(private val context: Context) {
             channel,
             7,
             volume
+        )
+
+    }
+
+    fun sendCC(
+        channel: Int,
+        controller: Int,
+        value: Int
+    ) {
+
+        fluidsynthCC(
+            channel,
+            controller,
+            value
         )
 
     }

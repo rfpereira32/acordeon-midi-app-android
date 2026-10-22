@@ -26,27 +26,11 @@ class ConfigurationSynchronizer(
         canal: Int,
         volume: Int
     ) {
-
-        if (canal !in 0..4)
-            return
-
-        volumeJobs[canal]?.cancel()
-
-        volumeJobs[canal] = scope.launch {
-
-            delay(300)
-
-            midiManager.enviarPacoteConfiguracao(
-
-                packetBuilder.criarPacoteSetVolume(
-                    canal,
-                    volume
-                )
-
-            )
-
-        }
-
+        // TESTE TEMPORÁRIO:
+        // Não envia alterações de volume ao ESP32.
+        // O volume local do FluidSynth continua funcionando
+        // pelo caminho independente do mixer.
+        return
     }
 
     fun setInstrumento(
@@ -73,7 +57,6 @@ class ConfigurationSynchronizer(
             )
 
         }
-
     }
 
     fun destroy() {

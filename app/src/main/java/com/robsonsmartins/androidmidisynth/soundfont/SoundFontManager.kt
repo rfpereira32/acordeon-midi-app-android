@@ -1,21 +1,25 @@
+
 package com.robsonsmartins.androidmidisynth.soundfont
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
-import java.io.File
-import java.io.FileOutputStream
 import com.robsonsmartins.androidmidisynth.audio.SynthController
 import com.robsonsmartins.androidmidisynth.session.SessionSoundFont
-import android.util.Log
+import java.io.File
+import java.io.FileOutputStream
 
 class SoundFontManager(
-
     private val context: Context,
-
     private val synthController: SynthController
+) {
 
-){
+    companion object {
+        private const val TAG = "SoundFontManager"
+        private const val DEBUG_TAG = "SoundFontDebug"
+    }
 
     // =============================================================================
     // Lista observável pelo Compose
@@ -24,15 +28,11 @@ class SoundFontManager(
     private val soundFonts = mutableStateListOf<SoundFontInfo>()
 
     init {
-
         criarSessaoInicial()
-
     }
 
     private fun criarSessaoInicial() {
-
         soundFonts.clear()
-
     }
 
     // =============================================================================
@@ -41,45 +41,24 @@ class SoundFontManager(
 
     fun listar(): List<SoundFontInfo> = soundFonts
 
-    /**
-     * Retorna uma SoundFont pelo ID.
-     */
     fun getSoundFont(id: Int): SoundFontInfo? {
-
         return soundFonts.find { it.id == id }
-
     }
 
-    /**
-     * Retorna uma SoundFont pelo sfid do FluidSynth.
-     */
     fun getSoundFontBySfid(sfid: Int): SoundFontInfo? {
-
         return soundFonts.find { it.sfid == sfid }
-
     }
 
-    /**
-     * Localiza um preset dentro de uma SoundFont.
-     */
     fun localizarPreset(
         soundFont: SoundFontInfo,
         bank: Int,
         program: Int
     ): PresetInfo? {
-
         return soundFont.presets.firstOrNull {
-
-            it.bank == bank &&
-                    it.program == program
-
+            it.bank == bank && it.program == program
         }
-
     }
 
-    /**
-     * Localiza uma SoundFont e um preset.
-     */
     fun localizarInstrumento(
         soundFontId: Int,
         bank: Int,
@@ -89,153 +68,101 @@ class SoundFontManager(
         val soundFont = getSoundFont(soundFontId)
 
         if (soundFont == null) {
-
-            Log.d(
-                "SoundFontManager",
-                "SoundFont $soundFontId não encontrada"
-            )
-
+            Log.d(TAG, "SoundFont $soundFontId não encontrada")
             return null
-
         }
 
         Log.d(
-            "SoundFontManager",
+            TAG,
             "SoundFont '${soundFont.nome}' carregada " +
-                    "sfid=${soundFont.sfid} " +
-                    "presets=${soundFont.presets.size}"
+                    "sfid=${soundFont.sfid} presets=${soundFont.presets.size}"
         )
 
-        val preset = localizarPreset(
-            soundFont,
-            bank,
-            program
-        )
+        val preset = localizarPreset(soundFont, bank, program)
 
         if (preset == null) {
-
             Log.d(
-                "SoundFontManager",
-                "Preset não encontrado. " +
-                        "bank=$bank program=$program"
+                TAG,
+                "Preset não encontrado. bank=$bank program=$program"
             )
-
             return null
-
         }
 
-        Log.d(
-            "SoundFontManager",
-            "Preset encontrado: ${preset.nome}"
-        )
+        Log.d(TAG, "Preset encontrado: ${preset.nome}")
 
         return soundFont to preset
-
     }
 
-    /**
-     * Limpa todas as informações carregadas
-     * de uma SoundFont.
-     */
     fun limparPresets(soundFont: SoundFontInfo) {
-
         soundFont.presets.clear()
-
         soundFont.quantidadePresets = 0
-
         soundFont.presetSelecionado = null
-
     }
 
     fun adicionar(soundFont: SoundFontInfo) {
-
         soundFonts.add(soundFont)
-
     }
 
     fun remover(soundFont: SoundFontInfo) {
-
         soundFonts.remove(soundFont)
-
     }
 
+    // =============================================================================
+    // Carregamento no FluidSynth
+    // =============================================================================
+
     fun carregar(id: Int) {
+        Log.d(DEBUG_TAG, "INICIO carregar id=$id")
+
+        val soundFont = soundFonts.find { it.id == id }
+            ?: run {
+                Log.e(DEBUG_TAG, "SoundFont id=$id não encontrada")
+                return
+            }
 
         Log.d(
-            "SoundFontDebug",
-            "INICIO carregar id=$id"
-        )
-
-        val soundFont =
-            soundFonts.find { it.id == id }
-                ?: run {
-
-                    Log.e(
-                        "SoundFontDebug",
-                        "SoundFont id=$id não encontrada"
-                    )
-
-                    return
-                }
-
-        Log.d(
-            "SoundFontDebug",
-            "SoundFont encontrada: " +
-                    "id=${soundFont.id} " +
-                    "nome=${soundFont.nome} " +
-                    "caminho=${soundFont.caminho} " +
+            DEBUG_TAG,
+            "SoundFont encontrada: id=${soundFont.id} " +
+                    "nome=${soundFont.nome} caminho=${soundFont.caminho} " +
                     "carregada=${soundFont.carregada}"
         )
 
-        Log.d(
-            "SoundFontDebug",
-            "ANTES synthController.carregarSoundFont"
-        )
+        Log.d(DEBUG_TAG, "ANTES synthController.carregarSoundFont")
 
-        synthController.carregarSoundFont(soundFont)
+        val sucesso = synthController.carregarSoundFont(soundFont)
 
         Log.d(
-            "SoundFontDebug",
-            "DEPOIS synthController.carregarSoundFont"
+            DEBUG_TAG,
+            "DEPOIS synthController.carregarSoundFont: sucesso=$sucesso"
         )
 
-        soundFont.carregada = true
+        soundFont.carregada = sucesso
 
         Log.d(
-            "SoundFontDebug",
-            "SoundFont marcada como carregada"
+            DEBUG_TAG,
+            "SoundFont carregada status = ${soundFont.carregada}"
         )
-
     }
 
     fun descarregar(id: Int) {
+        val soundFont = soundFonts.find { it.id == id } ?: return
 
-        val soundFont =
-            soundFonts.find { it.id == id }
-                ?: return
-
-        synthController.descarregarSoundFont(soundFont)
+        if (soundFont.sfid >= 0) {
+            synthController.descarregarSoundFont(soundFont)
+        }
 
         soundFont.carregada = false
-
+        soundFont.sfid = -1
     }
 
     fun alternar(id: Int) {
-
-        val soundFont =
-            soundFonts.find { it.id == id }
-                ?: return
+        val soundFont = soundFonts.find { it.id == id } ?: return
 
         if (soundFont.carregada) {
-
             descarregar(id)
-
         } else {
-
             carregar(id)
-
         }
-
     }
 
     fun carregadas(): List<SoundFontInfo> =
@@ -245,223 +172,342 @@ class SoundFontManager(
         soundFonts.filter { !it.carregada }
 
     fun restaurarBiblioteca() {
-
         soundFonts
             .filter { it.carregada }
-            .forEach {
-
-                synthController.carregarSoundFont(it)
-
+            .forEach { soundFont ->
+                val sucesso = synthController.carregarSoundFont(soundFont)
+                soundFont.carregada = sucesso
             }
-
     }
 
     // =============================================================================
-    // Arquivos
+    // Importação de arquivos
     // =============================================================================
 
     /**
-     * Importa uma SoundFont escolhida pelo usuário.
+     * Copia uma SoundFont selecionada pelo usuário para o armazenamento privado.
      *
-     * @return true se a SoundFont foi importada.
-     *         false se ela já existia.
+     * Se existir um cadastro cujo arquivo desapareceu, tenta restaurar o arquivo
+     * no caminho já cadastrado, preservando o ID, o nome e as referências da sessão.
+     *
+     * @return true se a importação ou recuperação foi concluída.
      */
     fun importarSoundFont(uri: Uri): Boolean {
+        val nomeArquivo = obterNomeArquivo(uri)
 
-        val resolver = context.contentResolver
-
-        var nomeArquivo: String? = null
-
-        resolver.query(
-            uri,
-            arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
-            null,
-            null,
-            null
-        )?.use { cursor ->
-
-            if (cursor.moveToFirst()) {
-
-                val index =
-                    cursor.getColumnIndex(
-                        android.provider.OpenableColumns.DISPLAY_NAME
-                    )
-
-                if (index >= 0) {
-                    nomeArquivo = cursor.getString(index)
-                }
-
-            }
-
-        }
-
-        val nomeSoundFont =
-            nomeArquivo?.takeIf {
-                it.endsWith(
-                    ".sf2",
-                    ignoreCase = true
-                )
-            } ?: return false
-
-        // Evita importar duas vezes a mesma SoundFont
-        if (
-            soundFonts.any {
-                it.nome.equals(
-                    nomeSoundFont,
-                    ignoreCase = true
-                )
-            }
-        ) {
+        if (nomeArquivo.isNullOrBlank()) {
+            Log.e(TAG, "Importação recusada: não foi possível obter o nome do arquivo.")
             return false
         }
 
-        val arquivoDestino = File(
-            context.filesDir,
-            nomeSoundFont
-        )
-
-        resolver.openInputStream(uri)?.use { input ->
-
-            FileOutputStream(arquivoDestino).use { output ->
-
-                input.copyTo(output)
-
-            }
-
+        if (!nomeArquivo.endsWith(".sf2", ignoreCase = true)) {
+            Log.e(
+                TAG,
+                "Importação recusada: extensão inválida. Nome=$nomeArquivo"
+            )
+            return false
         }
 
-        val novoId =
-            (soundFonts.maxOfOrNull { it.id } ?: 0) + 1
+        Log.d(
+            TAG,
+            "Solicitação de importação: nome=$nomeArquivo uri=$uri"
+        )
 
-        soundFonts.add(
+        // Se o nome já está cadastrado, verificar se o arquivo ainda existe.
+        val existente = soundFonts.firstOrNull {
+            it.nome.equals(nomeArquivo, ignoreCase = true)
+        }
 
-            SoundFontInfo(
+        if (existente != null) {
+            val arquivoExistente = File(existente.caminho)
 
-                id = novoId,
+            if (arquivoExistente.isFile && arquivoExistente.length() > 0L) {
+                Log.w(
+                    TAG,
+                    "Importação recusada: já existe um cadastro válido para " +
+                            "'${existente.nome}', caminho=${existente.caminho}"
+                )
+                return false
+            }
 
-                nome = nomeSoundFont,
-
-                caminho = arquivoDestino.absolutePath,
-
-                carregada = false
-
+            Log.w(
+                TAG,
+                "Cadastro antigo encontrado sem arquivo válido. " +
+                        "Tentando recuperar: id=${existente.id}, " +
+                        "nome=${existente.nome}, caminho=${existente.caminho}"
             )
 
-        )
-        return true
+            val recuperado = copiarUriParaArquivo(
+                uri = uri,
+                destino = arquivoExistente
+            )
 
+            if (!recuperado) {
+                Log.e(
+                    TAG,
+                    "Falha ao recuperar a SoundFont '${existente.nome}'."
+                )
+                return false
+            }
+
+            // O cadastro original é mantido para preservar o ID e as referências.
+            existente.carregada = false
+            existente.sfid = -1
+            limparPresets(existente)
+
+            Log.i(
+                TAG,
+                "SoundFont recuperada: id=${existente.id}, " +
+                        "nome=${existente.nome}, caminho=${existente.caminho}"
+            )
+
+            return true
+        }
+
+        // Não há cadastro com esse nome: criar uma nova entrada.
+        val arquivoDestino = File(context.filesDir, nomeArquivo)
+
+        if (!copiarUriParaArquivo(uri, arquivoDestino)) {
+            Log.e(
+                TAG,
+                "Importação falhou ao copiar '$nomeArquivo' para " +
+                        arquivoDestino.absolutePath
+            )
+            return false
+        }
+
+        val novoId = (soundFonts.maxOfOrNull { it.id } ?: 0) + 1
+
+        soundFonts.add(
+            SoundFontInfo(
+                id = novoId,
+                nome = nomeArquivo,
+                caminho = arquivoDestino.absolutePath,
+                carregada = false
+            )
+        )
+
+        Log.i(
+            TAG,
+            "SoundFont importada: id=$novoId, nome=$nomeArquivo, " +
+                    "tamanho=${arquivoDestino.length()} bytes, " +
+                    "caminho=${arquivoDestino.absolutePath}"
+        )
+
+        return true
+    }
+
+    /**
+     * Obtém o nome do arquivo fornecido pelo seletor de documentos do Android.
+     */
+    private fun obterNomeArquivo(uri: Uri): String? {
+        return try {
+            context.contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(
+                        OpenableColumns.DISPLAY_NAME
+                    )
+
+                    if (index >= 0) cursor.getString(index) else null
+                } else {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao consultar o nome do arquivo: uri=$uri", e)
+            null
+        }
+    }
+
+    /**
+     * Copia o conteúdo para um arquivo temporário e só o instala no destino
+     * depois de confirmar que a cópia não está vazia.
+     */
+    private fun copiarUriParaArquivo(
+        uri: Uri,
+        destino: File
+    ): Boolean {
+
+        val temporario = File(
+            context.filesDir,
+            ".soundfont_import_${System.nanoTime()}.tmp"
+        )
+
+        try {
+            val input = context.contentResolver.openInputStream(uri)
+
+            if (input == null) {
+                Log.e(
+                    TAG,
+                    "Não foi possível abrir o arquivo selecionado: uri=$uri"
+                )
+                return false
+            }
+
+            input.use { stream ->
+                FileOutputStream(temporario).use { output ->
+                    stream.copyTo(output)
+                    output.flush()
+                }
+            }
+
+            if (!temporario.isFile || temporario.length() <= 0L) {
+                Log.e(
+                    TAG,
+                    "A cópia temporária está vazia ou inválida: uri=$uri"
+                )
+                return false
+            }
+
+            destino.parentFile?.let { pasta ->
+                if (!pasta.exists() && !pasta.mkdirs()) {
+                    Log.e(
+                        TAG,
+                        "Não foi possível criar a pasta de destino: ${pasta.absolutePath}"
+                    )
+                    return false
+                }
+            }
+
+            /*
+             * Primeiro tenta renomear o arquivo temporário. Se não for possível,
+             * usa uma cópia com substituição e confirma o resultado.
+             */
+            if (destino.exists() && !destino.delete()) {
+                Log.e(
+                    TAG,
+                    "Não foi possível substituir o arquivo de destino: " +
+                            destino.absolutePath
+                )
+                return false
+            }
+
+            val renomeado = temporario.renameTo(destino)
+
+            if (!renomeado) {
+                temporario.copyTo(destino, overwrite = true)
+            }
+
+            if (!destino.isFile || destino.length() <= 0L) {
+                Log.e(
+                    TAG,
+                    "Arquivo de destino inválido após a cópia: " +
+                            destino.absolutePath
+                )
+                return false
+            }
+
+            Log.d(
+                TAG,
+                "Cópia concluída: destino=${destino.absolutePath}, " +
+                        "tamanho=${destino.length()} bytes"
+            )
+
+            return true
+        } catch (e: Exception) {
+            Log.e(
+                TAG,
+                "Erro ao copiar SoundFont. uri=$uri destino=${destino.absolutePath}",
+                e
+            )
+            return false
+        } finally {
+            if (temporario.exists()) {
+                temporario.delete()
+            }
+        }
     }
 
     /**
      * Retorna o arquivo interno correspondente à SoundFont.
      */
     fun getArquivo(nomeArquivo: String): File {
-
-        return File(
-            context.filesDir,
-            nomeArquivo
-        )
-
+        return File(context.filesDir, nomeArquivo)
     }
 
-    private fun adicionarSoundFont(
-        item: SessionSoundFont
-    ) {
-
+    private fun adicionarSoundFont(item: SessionSoundFont) {
         soundFonts.add(
-
             SoundFontInfo(
-
                 id = item.id,
-
                 nome = item.nome,
-
                 caminho = File(
                     context.filesDir,
                     item.arquivo
                 ).absolutePath,
-
-                carregada = item.carregada
-
+                carregada = item.carregada,
+                sfid = -1
             )
-
         )
-
     }
 
     fun aplicarSessao(
         sessaoSoundFonts: List<SessionSoundFont>
     ): Boolean {
-
-        if (sessaoSoundFonts.isEmpty())
+        if (sessaoSoundFonts.isEmpty()) {
             return false
+        }
 
         soundFonts.clear()
 
         sessaoSoundFonts.forEach { item ->
-
             adicionarSoundFont(item)
-
         }
 
         return true
-
     }
 
     fun aplicarBiblioteca() {
-
         soundFonts.forEach { soundFont ->
-
             if (soundFont.carregada) {
-
-                synthController.carregarSoundFont(soundFont)
-
+                val sucesso = synthController.carregarSoundFont(soundFont)
+                soundFont.carregada = sucesso
             } else {
+                if (soundFont.sfid >= 0) {
+                    synthController.descarregarSoundFont(soundFont)
+                }
 
-                synthController.descarregarSoundFont(soundFont)
-
+                soundFont.carregada = false
+                soundFont.sfid = -1
             }
-
         }
-
     }
 
     fun sincronizarBiblioteca() {
-
-        Log.d(
-            "SoundFontManager",
-            "Sincronizando ${soundFonts.size} SoundFonts"
-        )
+        Log.d(TAG, "Sincronizando ${soundFonts.size} SoundFonts")
 
         soundFonts.forEach { soundFont ->
-
             if (soundFont.carregada) {
-
-                synthController.carregarSoundFont(soundFont)
-
+                val sucesso = synthController.carregarSoundFont(soundFont)
+                soundFont.carregada = sucesso
             } else {
+                if (soundFont.sfid >= 0) {
+                    synthController.descarregarSoundFont(soundFont)
+                }
 
-                synthController.descarregarSoundFont(soundFont)
-
+                soundFont.carregada = false
+                soundFont.sfid = -1
             }
-
         }
-
     }
+
+    // =============================================================================
+    // Exclusão
+    // =============================================================================
 
     fun podeExcluir(
         soundFont: SoundFontInfo,
         estaEmUso: (SoundFontInfo) -> Boolean
     ): Boolean {
-
-        if (soundFont.carregada)
-            return false
-
-        if (estaEmUso(soundFont))
-            return false
+        if (soundFont.carregada) return false
+        if (estaEmUso(soundFont)) return false
 
         return true
-
     }
 
     fun excluir(
@@ -469,24 +515,35 @@ class SoundFontManager(
         estaEmUso: (SoundFontInfo) -> Boolean
     ): Boolean {
 
-        val soundFont =
-            soundFonts.find { it.id == id }
-                ?: return false
+        val soundFont = soundFonts.find { it.id == id } ?: return false
 
-        if (!podeExcluir(soundFont, estaEmUso))
+        if (!podeExcluir(soundFont, estaEmUso)) {
             return false
+        }
 
+        val arquivo = File(soundFont.caminho)
+
+        // Se o arquivo já desapareceu, ainda é possível remover o cadastro,
+        // desde que não esteja carregado nem em uso.
         val excluiu = try {
-            File(soundFont.caminho).delete()
-        } catch (_: Exception) {
+            !arquivo.exists() || arquivo.delete()
+        } catch (e: Exception) {
+            Log.e(
+                TAG,
+                "Erro ao excluir arquivo da SoundFont: ${arquivo.absolutePath}",
+                e
+            )
             false
         }
 
-        if (!excluiu) return false
+        if (!excluiu) {
+            return false
+        }
 
         soundFonts.remove(soundFont)
 
-        return true
+        Log.i(TAG, "Cadastro da SoundFont removido: ${soundFont.nome}")
 
+        return true
     }
 }
